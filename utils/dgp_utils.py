@@ -33,6 +33,8 @@ def timely_update_allowed_ua():
 
 
 async def validate_client_is_updated(user_agent: Annotated[str, Header()]):
+    if user_agent.startswith("Snap Hutao/2023"):
+        return True
     if user_agent not in allowed_user_agents:
         raise HTTPException(status_code=status.HTTP_418_IM_A_TEAPOT, detail="Client is outdated.")
     return True
