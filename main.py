@@ -3,6 +3,7 @@ import uvicorn
 from fastapi import FastAPI
 from fastapi.responses import RedirectResponse
 from routers import enka_network, metadata, patch, static
+from base_logger import logger
 
 app = FastAPI(redoc_url=None)
 app.include_router(enka_network.router)
@@ -18,5 +19,5 @@ async def root():
 
 if __name__ == "__main__":
     if env_result:
-        print(".env file loaded")
+        logger.info(".env file is loaded")
     uvicorn.run(app, host="0.0.0.0", port=8080, proxy_headers=True, forwarded_allow_ips="*")

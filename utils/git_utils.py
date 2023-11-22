@@ -6,6 +6,7 @@ import httpx
 import tarfile
 import shutil
 from utils.email_utils import send_system_email
+from base_logger import logger
 
 scan_duration = int(os.getenv("CENSOR_FILE_SCAN_DURATION", 30))
 
@@ -17,7 +18,7 @@ def process_file(upstream_github_repo: str, jihulab_repo: str, branch: str, file
     broken_json_files = []
     while checked_time < 3:
         try:
-            print(f"Checking file: {file}")
+            logger.info(f"Checking file: {file}")
             url = f"https://jihulab.com/{jihulab_repo}/-/raw/main/{file}"
             headers = {
                 "Accept-Language": "zh-CN;q=0.8,zh;q=0.7"
@@ -25,18 +26,18 @@ def process_file(upstream_github_repo: str, jihulab_repo: str, branch: str, file
             r = httpx.get(url, headers=headers)
             text_raw = r.text
         except Exception:
-            print(f"Failed to check file: {file}, retry after 3 seconds...")
+            logger.exception(f"Failed to check file: {file}, retry after 3 seconds...")
             checked_time += 1
             time.sleep(3)
             continue
         if "根据相关法律政策" in text_raw or "According to the relevant laws and regulations" in text_raw:
-            print(f"Found censored file: {file}")
+            logger.warning(f"Found censored file: {file}")
             censored_files.append(file)
         elif file.endswith(".json"):
             try:
                 r.json()
             except json.JSONDecodeError:
-                print(f"Found non-json file: {file}")
+                logger.warning(f"Found non-json file: {file}")
                 broken_json_files.append(file)
         break
     os.remove(file_path)
@@ -51,7 +52,7 @@ def jihulab_regulatory_checker(upstream_github_repo: str, jihulab_repo: str, bra
     :param branch: name of the branch such as 'main'
     :return: a list of file which files in downstream are different from upstream
     """
-    print("Starting regulatory checker...")
+    logger.info(f"Starting regulatory checker for {jihulab_repo}...")
     os.makedirs("./cache", exist_ok=True)
     if os.path.exists("./cache/censored_files.json"):
         with open("./cache/censored_files.json", "r", encoding="utf-8") as f:
@@ -59,7 +60,7 @@ def jihulab_regulatory_checker(upstream_github_repo: str, jihulab_repo: str, bra
         older_censored_files = json.loads(content)
         # If last modified time is less than 30 minutes, skip this check
         if time.time() - os.path.getmtime("./cache/censored_files.json") < 60 * scan_duration:
-            print(f"Last check is less than {60*scan_duration} minutes, skip this check.")
+            logger.info(f"Last check is less than {60*scan_duration} minutes, skip this check.")
             return older_censored_files
     else:
         older_censored_files = []
@@ -82,7 +83,7 @@ def jihulab_regulatory_checker(upstream_github_repo: str, jihulab_repo: str, bra
             file_path = file_path.replace(f"upstream/{upstream_github_repo.split('/')[1]}-{branch}/", "")
             file_path = file_path.replace("\\", "/")
             upstream_files.append(file_path)
-    print(f"Current upstream files: {upstream_files}")
+    logger.info(f"Current upstream files: {upstream_files}")
 
     cpu_count = os.cpu_count()
 
@@ -100,9 +101,10 @@ def jihulab_regulatory_checker(upstream_github_repo: str, jihulab_repo: str, bra
     censored_files = list(set(censored_files))
     url_list = [f"https://jihulab.com/{jihulab_repo}/-/blob/main/{file}" for file in censored_files]
 
-    print(f"{"-"*20}\nCensored files:")
+    print("-"*20)
+    logger.info(f"Censored files: {censored_files}")
     for file in url_list:
-        print(file)
+        logger.info(file)
 
     # Send email to admin
     if len(censored_files) > 0:
@@ -115,7 +117,7 @@ def jihulab_regulatory_checker(upstream_github_repo: str, jihulab_repo: str, bra
             email_subject = "请求人工复审被拦截的文件 - " + jihulab_repo
             send_system_email(email_subject, email_content, "support@dgp-studio.cn")
         elif censored_files == older_censored_files:
-            print("No change in censored file list.")
+            logger.info("No change in censored file list.")
         else:
             added_files = set(censored_files) - set(older_censored_files)
             different_files = set(censored_files) ^ set(older_censored_files)

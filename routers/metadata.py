@@ -32,7 +32,6 @@ async def china_metadata_request_handler(file_path: str):
     :param file_path: Path to the metadata file
     :return: HTTP 302 redirect to the file based on censorship status of the file
     """
-    print(f"Request to metadata file: {file_path}")
     host_for_normal_files = f"https://jihulab.com/DGP-Studio/Snap.Metadata/-/raw/main/{file_path}"
     host_for_censored_files = f"https://metadata.snapgenshin.com/{file_path}"
 
