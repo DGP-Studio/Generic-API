@@ -17,10 +17,13 @@ def update_recent_versions():
     for k, v in WHITE_LIST_REPOSITORIES.items():
         this_repo_headers = []
         this_page = 1
+        latest_version = httpx.get(f"https://api.github.com/repos/{k}/releases/latest").json()["tag_name"]
+        this_repo_headers.append(v.format(ver=latest_version))
         while len(this_repo_headers) < 2:
             all_versions = httpx.get(f"https://api.github.com/repos/{k}/releases?per_page=30&page={this_page}").json()
             stable_versions = [v.format(ver=r["tag_name"]) for r in all_versions if not r["prerelease"]][:2]
             this_repo_headers += stable_versions
+            this_repo_headers = list(set(this_repo_headers))
             this_page += 1
         new_user_agents += this_repo_headers[:2]
 

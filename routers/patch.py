@@ -1,5 +1,6 @@
 import httpx
 from fastapi import APIRouter, Response, status
+from utils.dgp_utils import timely_update_allowed_ua
 
 router = APIRouter(tags=["category:patch"])
 
@@ -22,6 +23,7 @@ async def generic_get_snap_hutao_latest_version():
 async def generic_patch_snap_hutao_latest_version(response: Response):
     global snap_hutao_latest_version
     snap_hutao_latest_version = update_snap_hutao_latest_version()
+    timely_update_allowed_ua()
     response.status_code = status.HTTP_201_CREATED
     return {"version": snap_hutao_latest_version}
 
