@@ -32,6 +32,14 @@ def update_recent_versions():
     pre_release_versions = [v["tag_name"] for v in hutao_alpha_list if v["prerelease"]][:5]
     new_user_agents += [f"Snap Hutao/{v}" for v in pre_release_versions]
 
+    # Snap Hutao Next Version
+    pr_list = httpx.get("https://api.github.com/repos/DGP-Studio/Snap.Hutao.Docs/pulls").json()
+    all_opened_pr_title = [pr["title"] for pr in pr_list if
+                           pr["state"] == "open" and pr["title"].startswith("Update to ")]
+    if len(all_opened_pr_title) > 0:
+        next_version = all_opened_pr_title[0].split(" ")[2]
+        new_user_agents.append(f"Snap Hutao/{next_version}")
+
     logging.info(f"Updated allowed user agents: {new_user_agents}")
     return new_user_agents
 
@@ -48,6 +56,8 @@ def timely_update_allowed_ua():
 async def validate_client_is_updated(user_agent: Annotated[str, Header()]):
     logger.info(f"Received request from user agent: {user_agent}")
     if user_agent.startswith("Snap Hutao/2023"):
+        return True
+    if user_agent.startswith("PaimonsNotebook/"):
         return True
     if user_agent not in allowed_user_agents:
         logger.info(f"Client is outdated: {user_agent}, not in the allowed list: {allowed_user_agents}")
