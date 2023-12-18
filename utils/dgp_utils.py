@@ -6,6 +6,7 @@ from fastapi_utils.tasks import repeat_every
 from fastapi import HTTPException, status, Header
 from typing import Annotated
 from base_logger import logger
+from config import github_headers
 
 WHITE_LIST_REPOSITORIES = json.loads(os.environ.get("WHITE_LIST_REPOSITORIES"))
 
@@ -17,10 +18,12 @@ def update_recent_versions():
     for k, v in WHITE_LIST_REPOSITORIES.items():
         this_repo_headers = []
         this_page = 1
-        latest_version = httpx.get(f"https://api.github.com/repos/{k}/releases/latest").json()["tag_name"]
+        latest_version = httpx.get(f"https://api.github.com/repos/{k}/releases/latest",
+                                   headers=github_headers).json()["tag_name"]
         this_repo_headers.append(v.format(ver=latest_version))
         while len(this_repo_headers) < 2:
-            all_versions = httpx.get(f"https://api.github.com/repos/{k}/releases?per_page=30&page={this_page}").json()
+            all_versions = httpx.get(f"https://api.github.com/repos/{k}/releases?per_page=30&page={this_page}",
+                                     headers=github_headers).json()
             stable_versions = [v.format(ver=r["tag_name"]) for r in all_versions if not r["prerelease"]][:2]
             this_repo_headers += stable_versions
             this_repo_headers = list(set(this_repo_headers))
@@ -28,12 +31,14 @@ def update_recent_versions():
         new_user_agents += this_repo_headers[:2]
 
     # Snap Hutao Alpha
-    hutao_alpha_list = httpx.get("https://api.github.com/repos/DGP-Studio/Snap.Hutao/releases").json()
+    hutao_alpha_list = httpx.get("https://api.github.com/repos/DGP-Studio/Snap.Hutao/releases",
+                                 headers=github_headers).json()
     pre_release_versions = [v["tag_name"] for v in hutao_alpha_list if v["prerelease"]][:5]
     new_user_agents += [f"Snap Hutao/{v}" for v in pre_release_versions]
 
     # Snap Hutao Next Version
-    pr_list = httpx.get("https://api.github.com/repos/DGP-Studio/Snap.Hutao.Docs/pulls").json()
+    pr_list = httpx.get("https://api.github.com/repos/DGP-Studio/Snap.Hutao.Docs/pulls",
+                        headers=github_headers).json()
     all_opened_pr_title = [pr["title"] for pr in pr_list if
                            pr["state"] == "open" and pr["title"].startswith("Update to ")]
     if len(all_opened_pr_title) > 0:
