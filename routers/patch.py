@@ -1,5 +1,6 @@
 import httpx
 from fastapi import APIRouter, Response, status
+from fastapi.responses import RedirectResponse
 from utils.dgp_utils import timely_update_allowed_ua
 from config import github_headers
 
@@ -47,6 +48,11 @@ async def generic_get_snap_hutao_latest_version_china_endpoint():
     }
 
 
+@router.get("/cn/patch/hutao/download", tags=["region:cn"])
+async def get_snap_hutao_latest_download_direct_china_endpoint():
+    return RedirectResponse(snap_hutao_latest_version["cn"][0], status_code=302)
+
+
 @router.get("/global/patch/hutao", tags=["region:global"])
 async def generic_get_snap_hutao_latest_version_global_endpoint():
     return {
@@ -54,6 +60,11 @@ async def generic_get_snap_hutao_latest_version_global_endpoint():
         "message": "Global endpoint reached",
         "data": snap_hutao_latest_version["global"]
     }
+
+
+@router.get("/global/patch/hutao/download", tags=["region:global"])
+async def get_snap_hutao_latest_download_direct_china_endpoint():
+    return RedirectResponse(snap_hutao_latest_version["global"][0], status_code=302)
 
 
 @router.patch("/cn/patch/hutao", tags=["region:cn"], include_in_schema=False)
