@@ -9,10 +9,12 @@ oldContainer=`docker ps -a| grep ${containerName} | head -1|awk '{print $1}' `
 echo Delete old container...
 docker rm  $oldContainer -f
 echo Delete success
+mkdir cache
 
 docker build -f Dockerfile -t $imageName:$imageVersion .
 docker run -d -itp $externalPort:$internalPort \
     -v $(pwd)/.env:/app/.env \
+    -v $(pwd)/cache:/app/cache \
     --restart=always \
     --name="$containerName" \
     $imageName:$imageVersion
