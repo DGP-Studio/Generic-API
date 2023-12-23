@@ -31,10 +31,7 @@ def update_recent_versions():
         new_user_agents += this_repo_headers[:2]
 
     # Snap Hutao Alpha
-    hutao_alpha_list = httpx.get("https://api.github.com/repos/DGP-Studio/Snap.Hutao/releases",
-                                 headers=github_headers).json()
-    pre_release_versions = [v["tag_name"] for v in hutao_alpha_list if v["prerelease"]][:5]
-    new_user_agents += [f"Snap Hutao/{v}" for v in pre_release_versions]
+    # To be redesigned
 
     # Snap Hutao Next Version
     pr_list = httpx.get("https://api.github.com/repos/DGP-Studio/Snap.Hutao.Docs/pulls",
@@ -42,7 +39,7 @@ def update_recent_versions():
     all_opened_pr_title = [pr["title"] for pr in pr_list if
                            pr["state"] == "open" and pr["title"].startswith("Update to ")]
     if len(all_opened_pr_title) > 0:
-        next_version = all_opened_pr_title[0].split(" ")[2]
+        next_version = all_opened_pr_title[0].split(" ")[2] + ".0"
         new_user_agents.append(f"Snap Hutao/{next_version}")
 
     logging.info(f"Updated allowed user agents: {new_user_agents}")
