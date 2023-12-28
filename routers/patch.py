@@ -12,6 +12,8 @@ def update_snap_hutao_latest_version() -> dict:
     github_msix_url = None
     sha256sums_url = None
     sha256sums_value = None
+    gitlab_message = ""
+    github_message = ""
 
     # handle GitHub release
     github_meta = httpx.get("https://api.github.com/repos/DGP-Studio/Snap.Hutao/releases/latest",
@@ -40,37 +42,65 @@ def update_snap_hutao_latest_version() -> dict:
         follow_redirects=True).json()
     try:
         cn_version = jihulab_meta["tag_name"] + ".0"
-        cn_url = list([a["direct_asset_url"] for a in jihulab_meta["assets"]["links"]
-                       if a["link_type"] == "package"])[0]
+        cn_url = [list([a["direct_asset_url"] for a in jihulab_meta["assets"]["links"]
+                        if a["link_type"] == "package"])[0]]
     except KeyError:
         cn_version = github_meta["tag_name"] + ".0"
         cn_url = github_msix_url
+        gitlab_message += "GitLab release not found, using GitHub release instead. "
     except IndexError:
         cn_version = github_meta["tag_name"] + ".0"
         cn_url = github_msix_url
+        gitlab_message += "GitLab release not found, using GitHub release instead. "
 
     return {
         "global": {
             "version": github_meta["tag_name"] + ".0",
             "urls": github_msix_url,
-            "sha256": sha256sums_value if sha256sums_value else "76165ff6f39c9c5febe580f456c24a9914162e6fb41a1b161781504836c4a210"
+            "sha256": sha256sums_value if sha256sums_value else None
         },
         "cn": {
             "version": cn_version,
             "urls": cn_url,
-            "sha256": sha256sums_value if sha256sums_value else "76165ff6f39c9c5febe580f456c24a9914162e6fb41a1b161781504836c4a210"
+            "sha256": sha256sums_value if sha256sums_value else None
+        },
+        "github_message": github_message,
+        "gitlab_message": gitlab_message
+    }
+
+
+def update_snap_hutao_deployment_version():
+    github_meta = httpx.get("https://api.github.com/repos/DGP-Studio/Snap.Hutao.Deployment/releases/latest",
+                            headers=github_headers).json()
+    for asset in github_meta["assets"]:
+        if asset["name"].endswith(".exe"):
+            github_msix_url = [asset["browser_download_url"]]
+    jihulab_meta = httpx.get(
+        "https://jihulab.com/api/v4/projects/DGP-Studio%2FSnap.Hutao.Deployment/releases/permalink/latest",
+        follow_redirects=True).json()
+    return {
+        "global": {
+            "version": github_meta["tag_name"] + ".0",
+            "urls": github_msix_url
+        },
+        "cn": {
+            "version": jihulab_meta["tag_name"] + ".0",
+            "urls": list([list([a["direct_asset_url"] for a in jihulab_meta["assets"]["links"]
+                                if a["link_type"] == "package"])[0]])
         }
     }
 
 
 snap_hutao_latest_version = update_snap_hutao_latest_version()
+snap_hutao_deployment_latest_version = update_snap_hutao_deployment_version()
 
 
+# Snap Hutao
 @router.get("/cn/patch/hutao", tags=["region:cn"])
 async def generic_get_snap_hutao_latest_version_china_endpoint():
     return {
         "retcode": 0,
-        "message": "CN endpoint reached",
+        "message": f"CN endpoint reached. {snap_hutao_latest_version["gitlab_message"]}",
         "data": snap_hutao_latest_version["cn"]
     }
 
@@ -84,7 +114,7 @@ async def get_snap_hutao_latest_download_direct_china_endpoint():
 async def generic_get_snap_hutao_latest_version_global_endpoint():
     return {
         "retcode": 0,
-        "message": "Global endpoint reached",
+        "message": f"Global endpoint reached. {snap_hutao_latest_version['github_message']}",
         "data": snap_hutao_latest_version["global"]
     }
 
@@ -94,9 +124,48 @@ async def get_snap_hutao_latest_download_direct_china_endpoint():
     return RedirectResponse(snap_hutao_latest_version["global"]["urls"][0], status_code=302)
 
 
+# Snap Hutao Deployment
+@router.get("/cn/patch/hutao-deployment", tags=["region:cn"])
+async def generic_get_snap_hutao_latest_version_china_endpoint():
+    return {
+        "retcode": 0,
+        "message": f"CN endpoint reached.",
+        "data": snap_hutao_deployment_latest_version["cn"]
+    }
+
+
+@router.get("/cn/patch/hutao-deployment/download", tags=["region:cn"])
+async def get_snap_hutao_latest_download_direct_china_endpoint():
+    return RedirectResponse(snap_hutao_deployment_latest_version["cn"]["urls"][0], status_code=302)
+
+
+@router.get("/global/patch/hutao-deployment", tags=["region:global"])
+async def generic_get_snap_hutao_latest_version_global_endpoint():
+    return {
+        "retcode": 0,
+        "message": f"Global endpoint reached.",
+        "data": snap_hutao_deployment_latest_version["global"]
+    }
+
+
+@router.get("/global/patch/hutao-deployment/download", tags=["region:global"])
+async def get_snap_hutao_latest_download_direct_china_endpoint():
+    return RedirectResponse(snap_hutao_deployment_latest_version["global"]["urls"][0], status_code=302)
+
+
 @router.patch("/cn/patch/hutao", tags=["region:cn"], include_in_schema=False)
 @router.patch("/global/patch/hutao", tags=["region:global"], include_in_schema=False)
 async def generic_patch_snap_hutao_latest_version(response: Response):
+    global snap_hutao_latest_version
+    snap_hutao_latest_version = update_snap_hutao_latest_version()
+    timely_update_allowed_ua()
+    response.status_code = status.HTTP_201_CREATED
+    return {"version": snap_hutao_latest_version}
+
+
+@router.patch("/cn/patch/hutao-deployment", tags=["region:cn"], include_in_schema=False)
+@router.patch("/global/patch/hutao-deployment", tags=["region:global"], include_in_schema=False)
+async def generic_patch_snap_hutao_deployment_latest_version(response: Response):
     global snap_hutao_latest_version
     snap_hutao_latest_version = update_snap_hutao_latest_version()
     timely_update_allowed_ua()
