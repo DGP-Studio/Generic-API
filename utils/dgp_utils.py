@@ -28,7 +28,7 @@ def update_recent_versions():
             stable_versions = [v.format(ver=r["tag_name"]) for r in all_versions if not r["prerelease"]][:2]
             this_repo_headers += stable_versions
             this_page += 1
-        this_repo_headers = this_repo_headers[:2]
+        this_repo_headers = list(set(this_repo_headers))[:2]
 
         # Guessing next version
         latest_version_int_list = [int(i) for i in latest_version.split(".")]
