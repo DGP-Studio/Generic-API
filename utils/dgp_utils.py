@@ -21,14 +21,27 @@ def update_recent_versions():
         latest_version = httpx.get(f"https://api.github.com/repos/{k}/releases/latest",
                                    headers=github_headers).json()["tag_name"]
         this_repo_headers.append(v.format(ver=latest_version))
+
         while len(this_repo_headers) < 2:
             all_versions = httpx.get(f"https://api.github.com/repos/{k}/releases?per_page=30&page={this_page}",
                                      headers=github_headers).json()
             stable_versions = [v.format(ver=r["tag_name"]) for r in all_versions if not r["prerelease"]][:2]
             this_repo_headers += stable_versions
-            this_repo_headers = list(set(this_repo_headers))
             this_page += 1
-        new_user_agents += this_repo_headers[:2]
+        this_repo_headers = this_repo_headers[:2]
+
+        # Guessing next version
+        latest_version_int_list = [int(i) for i in latest_version.split(".")]
+        next_major_version = f"{latest_version_int_list[0] + 1}.0.0"
+        next_minor_version = f"{latest_version_int_list[0]}.{latest_version_int_list[1] + 1}.0"
+        next_patch_version = f"{latest_version_int_list[0]}.{latest_version_int_list[1]}.{latest_version_int_list[2] + 1}"
+        this_repo_headers.append(v.format(ver=next_major_version))
+        this_repo_headers.append(v.format(ver=next_minor_version))
+        this_repo_headers.append(v.format(ver=next_patch_version))
+
+        this_repo_headers = list(set(this_repo_headers))
+        new_user_agents += this_repo_headers
+
 
     # Snap Hutao Alpha
     # To be redesigned
@@ -57,7 +70,7 @@ def timely_update_allowed_ua():
 
 async def validate_client_is_updated(user_agent: Annotated[str, Header()]):
     logger.info(f"Received request from user agent: {user_agent}")
-    if user_agent.startswith("Snap Hutao/2023"):
+    if user_agent.startswith("Snap Hutao/2024"):
         return True
     if user_agent.startswith("PaimonsNotebook/"):
         return True

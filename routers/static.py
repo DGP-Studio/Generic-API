@@ -3,7 +3,8 @@ from fastapi.responses import RedirectResponse
 from utils.dgp_utils import validate_client_is_updated
 
 
-router = APIRouter(tags=["category:static"], dependencies=[Depends(validate_client_is_updated)])
+#router = APIRouter(tags=["category:static"], dependencies=[Depends(validate_client_is_updated)])
+router = APIRouter(tags=["category:static"])
 
 
 @router.get("/cn/static/zip/{file_path:path}", tags=["region:cn"])
