@@ -14,6 +14,7 @@ def update_snap_hutao_latest_version() -> dict:
     sha256sums_value = None
     gitlab_message = ""
     github_message = ""
+    archive_url = None
 
     # handle GitHub release
     github_meta = httpx.get("https://api.github.com/repos/DGP-Studio/Snap.Hutao/releases/latest",
@@ -44,6 +45,8 @@ def update_snap_hutao_latest_version() -> dict:
         cn_version = jihulab_meta["tag_name"] + ".0"
         cn_url = [list([a["direct_asset_url"] for a in jihulab_meta["assets"]["links"]
                         if a["link_type"] == "package"])[0]]
+        archive_url = [list([a["direct_asset_url"] for a in jihulab_meta["assets"]["links"]
+                             if a["name"] == "artifact_archive"])[0]]
     except KeyError:
         cn_version = github_meta["tag_name"] + ".0"
         cn_url = github_msix_url
@@ -57,12 +60,14 @@ def update_snap_hutao_latest_version() -> dict:
         "global": {
             "version": github_meta["tag_name"] + ".0",
             "urls": github_msix_url,
-            "sha256": sha256sums_value if sha256sums_value else None
+            "sha256": sha256sums_value if sha256sums_value else None,
+            "archive_urls": []
         },
         "cn": {
             "version": cn_version,
             "urls": cn_url,
-            "sha256": sha256sums_value if sha256sums_value else None
+            "sha256": sha256sums_value if sha256sums_value else None,
+            "archive_urls": archive_url
         },
         "github_message": github_message,
         "gitlab_message": gitlab_message
