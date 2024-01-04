@@ -43,7 +43,7 @@ def update_snap_hutao_latest_version() -> dict:
         follow_redirects=True).json()
     try:
         cn_version = jihulab_meta["tag_name"] + ".0"
-        cn_url = [list([a["direct_asset_url"] for a in jihulab_meta["assets"]["links"]
+        cn_url = [f"https://static-next.snapgenshin.com/d/Snap.Hutao.{jihulab_meta["tag_name"]}.msix", list([a["direct_asset_url"] for a in jihulab_meta["assets"]["links"]
                         if a["link_type"] == "package"])[0]]
         archive_url = [list([a["direct_asset_url"] for a in jihulab_meta["assets"]["links"]
                              if a["name"] == "artifact_archive"])[0]]
