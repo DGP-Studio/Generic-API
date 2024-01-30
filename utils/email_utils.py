@@ -2,6 +2,7 @@ import os
 import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
+from base_logger import logger
 
 FROM_EMAIL = os.getenv("FROM_EMAIL")
 SMTP_SERVER = os.getenv("SMTP_SERVER")
@@ -31,8 +32,8 @@ def send_system_email(subject, message, to_email):
         # 关闭连接
         server.quit()
 
-        print("邮件发送成功")
+        logger.info(f"邮件发送成功: {subject}")
         return True
     except Exception as e:
-        print("邮件发送失败:", str(e))
+        logger.exception(f"邮件发送失败: {e}")
         return False

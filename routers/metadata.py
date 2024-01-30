@@ -1,21 +1,36 @@
+import os
+import redis
+import json
 from fastapi import APIRouter, Depends
 from fastapi.responses import RedirectResponse
 from fastapi_utils.tasks import repeat_every
-from utils.git_utils import jihulab_regulatory_checker, scan_duration
 from utils.dgp_utils import validate_client_is_updated
+from base_logger import logger
+
+scan_duration = int(os.getenv("CENSOR_FILE_SCAN_DURATION", 30)) / 2  # half of the duration
+metadata_censored_files = []
 
 router = APIRouter(tags=["category:metadata"], dependencies=[Depends(validate_client_is_updated)])
-metadata_censored_files = jihulab_regulatory_checker("DGP-Studio/Snap.Metadata", "DGP-Studio/Snap.Metadata", "main")
 
 
 @repeat_every(seconds=60 * scan_duration)
-async def refresh_metadata_censored_files() -> None:
+@router.on_event("startup")
+async def refresh_metadata_censored_files():
     """
     Refresh metadata_censored_files every 30 minutes.
     """
-    print(f"Start {scan_duration*60}-min scheduled refreshing metadata_censored_files")
+    logger.info(f"Start {scan_duration * 60}-min scheduled refreshing metadata_censored_files")
     global metadata_censored_files
-    metadata_censored_files = jihulab_regulatory_checker("DGP-Studio/Snap.Metadata", "DGP-Studio/Snap.Metadata", "main")
+    logger.info("Getting metadata_censored_files from Redis")
+    r = redis.Redis(host="redis", port=6379, db=0, decode_responses=True)
+    redis_data = r.get("metadata_censored_files")
+    logger.info(f"Receive data of metadata_censored_files from Redis: {redis_data}")
+    if redis_data is not None:
+        metadata_censored_files = json.loads(redis_data)
+    else:
+        metadata_censored_files = []
+    r.close()
+    logger.info(f"Redis connection closed as scheduled refreshing metadata_censored_files finished")
 
 
 @router.get("/cn/ban")

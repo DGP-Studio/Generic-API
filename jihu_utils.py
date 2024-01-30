@@ -5,6 +5,8 @@ import os
 import httpx
 import tarfile
 import shutil
+import redis
+import config       # DO NOT REMOVE
 from utils.email_utils import send_system_email
 from base_logger import logger
 
@@ -60,7 +62,7 @@ def jihulab_regulatory_checker(upstream_github_repo: str, jihulab_repo: str, bra
         older_censored_files = json.loads(content)
         # If last modified time is less than 30 minutes, skip this check
         if time.time() - os.path.getmtime("./cache/censored_files.json") < 60 * scan_duration:
-            logger.info(f"Last check is less than {60*scan_duration} minutes, skip this check.")
+            logger.info(f"Last check is less than {60 * scan_duration} minutes, skip this check.")
             return older_censored_files
     else:
         older_censored_files = []
@@ -101,7 +103,7 @@ def jihulab_regulatory_checker(upstream_github_repo: str, jihulab_repo: str, bra
     censored_files = list(set(censored_files))
     url_list = [f"https://jihulab.com/{jihulab_repo}/-/blob/main/{file}" for file in censored_files]
 
-    print("-"*20)
+    print("-" * 20)
     logger.info(f"Censored files: {censored_files}")
     for file in url_list:
         logger.info(file)
@@ -151,3 +153,13 @@ def jihulab_regulatory_checker(upstream_github_repo: str, jihulab_repo: str, bra
     with open("./cache/censored_files.json", "w+", encoding="utf-8") as f:
         f.write(json.dumps(censored_files, ensure_ascii=False, indent=2))
     return censored_files
+
+
+if __name__ == "__main__":
+    r = redis.Redis(host="redis", port=6379, db=0)
+    while True:
+        regulatory_check_result = jihulab_regulatory_checker("DGP-Studio/Snap.Metadata", "DGP-Studio/Snap.Metadata",
+                                                             "main")
+        logger.info(f"Regulatory check result: {regulatory_check_result}")
+        r.set("metadata_censored_files", json.dumps(regulatory_check_result), ex=60 * scan_duration * 2)
+        time.sleep(60 * scan_duration)

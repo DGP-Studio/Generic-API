@@ -16,6 +16,28 @@ services:
     restart: unless-stopped
     depends_on:
       - tunnel
+      - jihu-utils
+
+  redis:
+    container_name: Snap-Hutao-Generic-API-Redis
+    image: redis:latest
+    volumes:
+      - ./redis:/data
+    restart: unless-stopped
+
+  jihu-utils:
+    build:
+      context: .
+      dockerfile: Dockerfile-jihu-utils
+      target: runtime
+    image: jihu-utils
+    container_name: jihu-utils
+    restart: unless-stopped
+    volumes:
+      - ./cache:/app/cache
+      - ./.env:/app/.env
+    depends_on:
+      - redis
 
   tunnel:
     container_name: Snap-Hutao-Generic-API-Tunnel
