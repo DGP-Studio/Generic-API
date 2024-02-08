@@ -1,9 +1,10 @@
 import httpx
 import os
-from fastapi import APIRouter, Response, status, Request
+from fastapi import APIRouter, Response, status, Request, Depends
 from fastapi.responses import RedirectResponse
 from utils.dgp_utils import timely_update_allowed_ua
 from config import github_headers, VALID_PROJECT_KEYS
+from utils.authentication import verify_api_token
 import re
 
 router = APIRouter(tags=["category:patch"])
@@ -217,8 +218,10 @@ async def generic_patch_latest_version(response: Response, project_key: str):
 # @router.get("/cn/patch/yae") -> use Nginx reverse proxy instead
 # @router.get("/global/patch/yae") -> use Nginx reverse proxy instead
 
-@router.post("/cn/patch/cn-overwrite-url", tags=["admin"], include_in_schema=True)
-@router.post("/global/patch/cn-overwrite-url", tags=["admin"], include_in_schema=True)
+@router.post("/cn/patch/cn-overwrite-url", tags=["admin"], include_in_schema=True,
+             dependencies=[Depends(verify_api_token)])
+@router.post("/global/patch/cn-overwrite-url", tags=["admin"], include_in_schema=True,
+             dependencies=[Depends(verify_api_token)])
 async def update_overwritten_china_url(response: Response, request: Request):
     data = await request.json()
     project_key = data.get("key", "").lower()

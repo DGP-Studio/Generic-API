@@ -19,6 +19,9 @@ async def refresh_metadata_censored_files():
     """
     Refresh metadata_censored_files every 30 minutes.
     """
+    if os.getenv("NO_REDIS", "false").lower() == "true":
+        logger.info("Skipping scheduled refreshing metadata_censored_files as NO_REDIS is set to true")
+        return True
     logger.info(f"Start {scan_duration * 60}-min scheduled refreshing metadata_censored_files")
     global metadata_censored_files
     logger.info("Getting metadata_censored_files from Redis")

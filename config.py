@@ -9,3 +9,5 @@ github_headers = {
     "Authorization": f"Bearer {os.environ.get('GITHUB_PAT')}",
     "X-GitHub-Api-Version": "2022-11-28"
 }
+
+API_TOKEN = os.environ.get("API_TOKEN")
