@@ -1,3 +1,5 @@
+from datetime import date
+
 from fastapi import APIRouter, Depends, Request
 from utils.dgp_utils import validate_client_is_updated
 from mysql_app import crud, models, schemas
@@ -55,10 +57,15 @@ def random_pick_wallpaper(db, force_refresh: bool = False) -> Wallpaper:
     global today_wallpaper
     if today_wallpaper and not force_refresh:
         return today_wallpaper
-    logging.info("Random pick wallpaper")
+    logging.info("Picking a new wallpaper...")
     all_new_wallpapers = crud.get_all_fresh_wallpaper(db)
-    random_index = random.randint(0, len(all_new_wallpapers) - 1)
-    today_wallpaper = all_new_wallpapers[random_index]
+    today_wallpaper_pool = [wall for wall in all_new_wallpapers if wall.display_date == date.today()]
+    if today_wallpaper_pool:
+        wallpaper_pool = today_wallpaper_pool
+    else:
+        wallpaper_pool = all_new_wallpapers
+    random_index = random.randint(0, len(wallpaper_pool) - 1)
+    today_wallpaper = wallpaper_pool[random_index]
     res = crud.set_last_display_date_with_index(db, today_wallpaper.id)
     logging.info(f"Set last display date with index {today_wallpaper.id}: {res}")
     return today_wallpaper

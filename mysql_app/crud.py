@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Session
-from sqlalchemy import or_
+from sqlalchemy import or_, and_
 from datetime import date, timedelta
 from . import models, schemas
 
@@ -38,11 +38,12 @@ def enable_wallpaper_with_url(db: Session, url: str):
 
 def get_all_fresh_wallpaper(db: Session):
     target_date = str(date.today() - timedelta(days=3))
-    result = db.query(models.Wallpaper).filter(or_(models.Wallpaper.last_display_date < target_date,
-                                                   models.Wallpaper.last_display_date is None)).all()
-    if result is None:
-        return db.query(models.Wallpaper).all()[0]
-    return result
+    all_wallpapers = db.query(models.Wallpaper)
+    fresh_wallpapers = all_wallpapers.filter(or_(models.Wallpaper.last_display_date < target_date,
+                                                 models.Wallpaper.last_display_date == None)).all()
+    if len(fresh_wallpapers) == 0:
+        return db.query(models.Wallpaper).all()
+    return fresh_wallpapers
 
 
 def set_last_display_date_with_index(db: Session, index: int):
