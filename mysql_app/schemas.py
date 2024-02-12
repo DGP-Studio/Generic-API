@@ -3,6 +3,12 @@ from typing import Optional
 import datetime
 
 
+class StandardResponse(BaseModel):
+    retcode: int = 0
+    message: str = "ok"
+    data: Optional[dict | list | None] = None
+
+
 class Wallpaper(BaseModel):
     url: str
     display_date: Optional[datetime.date | None] = None
@@ -11,3 +17,19 @@ class Wallpaper(BaseModel):
     author: str
     uploader: str
     disabled: Optional[int | bool] = False
+
+
+class RedemptionCode(BaseModel):
+    code: str
+    value: int
+    used: Optional[bool] = False
+    description: str
+    created_by: str
+    created_datetime: datetime.datetime
+    used_by: Optional[str] = None
+    used_datetime: Optional[datetime.datetime | None] = None
+
+
+class RedemptionToken(BaseModel):
+    token: str
+    authority: str
