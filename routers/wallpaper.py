@@ -28,6 +28,7 @@ if os.getenv("NO_REDIS", "false").lower() == "true":
     redis_conn = None
 else:
     redis_conn = redis.Redis(host="redis", port=6379, db=1, decode_responses=True)
+    logger.info("Redis connection established in Wallpaper module")
 router = APIRouter(tags=["category:wallpaper"])
 
 
@@ -85,7 +86,8 @@ def random_pick_wallpaper(db, force_refresh: bool = False) -> Wallpaper:
 
 
 @router.get("/cn/wallpaper/today", response_model=StandardResponse, dependencies=[Depends(validate_client_is_updated)])
-@router.get("/global/wallpaper/today", response_model=StandardResponse, dependencies=[Depends(validate_client_is_updated)])
+@router.get("/global/wallpaper/today", response_model=StandardResponse,
+            dependencies=[Depends(validate_client_is_updated)])
 async def get_today_wallpaper(db: SessionLocal = Depends(get_db)):
     wallpaper = random_pick_wallpaper(db, False)
     response = StandardResponse()
@@ -127,37 +129,45 @@ async def reset_last_display(db: SessionLocal = Depends(get_db)):
 
 
 @router.get("/cn/wallpaper/bing", response_model=StandardResponse, dependencies=[Depends(validate_client_is_updated)])
-@router.get("/global/wallpaper/bing", response_model=StandardResponse, dependencies=[Depends(validate_client_is_updated)])
+@router.get("/global/wallpaper/bing", response_model=StandardResponse,
+            dependencies=[Depends(validate_client_is_updated)])
 async def get_bing_wallpaper(request: Request):
-    # For test only
-    url = request.url
-    base_url = request
     url_hostname = request.url.hostname
-    url_path = request.url.path
-    base_url_hostname = request.base_url.hostname
-    base_url_path = request.base_url.path
-    logger.info(f"url: {url}, base_url: {base_url}, url_hostname: {url_hostname}, url_path: {url_path}, "
-                f"base_url_hostname: {base_url_hostname}, base_url_path: {base_url_path}")
-    # End of test
+    if url_hostname.startswith("api-global"):
+        redis_key = "bing_wallpaper_global"
+        bing_api = "https://www.bing.com/HPImageArchive.aspx?format=js&idx=0&n=1&mkt=en-US"
+        bing_prefix = "www"
+    elif url_hostname.startswith("api-cn"):
+        redis_key = "bing_wallpaper_cn"
+        bing_api = "https://cn.bing.com/HPImageArchive.aspx?format=js&idx=0&n=1"
+        bing_prefix = "cn"
+    else:
+        logger.error(f"Unknown hostname: {url_hostname}")
+        redis_key = "bing_wallpaper_global"
+        bing_api = "https://www.bing.com/HPImageArchive.aspx?format=js&idx=0&n=1&mkt=en-US"
+        bing_prefix = "www"
 
     if redis_conn is not None:
-        redis_data = redis_conn.get("bing_wallpaper")
+        try:
+            redis_data = json.loads(redis_conn.get(redis_key))
+        except (json.JSONDecodeError, TypeError):
+            redis_data = None
         if redis_data is not None:
             response = StandardResponse()
             response.message = "cached"
             response.data = redis_data
             return response
     # Get Bing wallpaper
-    url = "https://www.bing.com/HPImageArchive.aspx?format=js&idx=0&n=1&mkt=en-US"
-    bing_output = httpx.get(url).json()
+    bing_output = httpx.get(bing_api).json()
     data = {
-        "url": f"https://www.bing.com{bing_output['images'][0]['url']}",
+        "url": f"https://{bing_prefix}.bing.com{bing_output['images'][0]['url']}",
         "source_url": f"{bing_output['images'][0]['copyrightlink']}",
         "author": bing_output['images'][0]['copyright'],
         "uploader": "Microsoft Bing"
     }
     if redis_conn is not None:
-        await redis_conn.set("bing_wallpaper", json.dumps(data), ex=3600)
+        res = redis_conn.set(redis_key, json.dumps(data), ex=3600)
+        logger.info(f"Set bing_wallpaper to Redis result: {res}")
     response = StandardResponse()
     response.message = "sourced"
     response.data = data

@@ -5,13 +5,27 @@ from fastapi.responses import RedirectResponse
 from utils.dgp_utils import timely_update_allowed_ua
 from config import github_headers, VALID_PROJECT_KEYS
 from utils.authentication import verify_api_token
+from base_logger import logger
+import redis
+import json
 import re
 
-router = APIRouter(tags=["category:patch"])
+if os.getenv("NO_REDIS", "false").lower() == "true":
+    logger.info("Skipping Redis connection in Wallpaper module as NO_REDIS is set to true")
+    redis_conn = None
+else:
+    redis_conn = redis.Redis(host="redis", port=6379, db=1, decode_responses=True)
+    logger.info("Redis connection established in Patch module")
 
-overwritten_china_url = {}
-for key in VALID_PROJECT_KEYS:
-    overwritten_china_url[key] = None
+try:
+    overwritten_china_url = json.loads(redis_conn.get("overwritten_china_url"))
+except (redis.exceptions.ConnectionError, TypeError):
+    logger.warning("Failed to get overwritten_china_url from Redis, using empty dict")
+    overwritten_china_url = {}
+    for key in VALID_PROJECT_KEYS:
+        overwritten_china_url[key] = None
+
+router = APIRouter(tags=["category:patch"])
 
 
 def update_snap_hutao_latest_version() -> dict:
@@ -69,11 +83,7 @@ def update_snap_hutao_latest_version() -> dict:
                             if a["link_type"] == "package"])[0]]
         archive_url = [list([a["direct_asset_url"] for a in jihulab_meta["assets"]["links"]
                              if a["name"] == "artifact_archive"])[0]]
-    except KeyError:
-        cn_version = github_meta["tag_name"] + ".0"
-        cn_url = overwritten_china_url["snap-hutao"] if overwritten_china_url["snap-hutao"] else github_msix_url
-        gitlab_message += "GitLab release not found, using GitHub release instead. "
-    except IndexError:
+    except (KeyError, IndexError):
         cn_version = github_meta["tag_name"] + ".0"
         cn_url = overwritten_china_url["snap-hutao"] if overwritten_china_url["snap-hutao"] else github_msix_url
         gitlab_message += "GitLab release not found, using GitHub release instead. "
@@ -228,6 +238,9 @@ async def update_overwritten_china_url(response: Response, request: Request):
     overwrite_url = data.get("url", None)
     if data["key"] in VALID_PROJECT_KEYS:
         overwritten_china_url[project_key] = overwrite_url
+        if redis_conn:
+            result = redis_conn.set("overwritten_china_url", json.dumps(overwritten_china_url))
+            logger.info(f"Set overwritten_china_url to Redis: {result}")
         if project_key == "snap-hutao":
             global snap_hutao_latest_version
             snap_hutao_latest_version = update_snap_hutao_latest_version()
