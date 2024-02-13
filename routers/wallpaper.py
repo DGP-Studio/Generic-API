@@ -8,10 +8,15 @@ from mysql_app.schemas import Wallpaper, StandardResponse
 from base_logger import logging
 from utils.authentication import verify_api_token
 from base_logger import logger
+from pydantic import BaseModel
 import random
 import httpx
 import os
 import redis
+
+
+class WallpaperURL(BaseModel):
+    url: str
 
 
 def get_db():
@@ -132,17 +137,16 @@ async def reset_last_display(db: SessionLocal = Depends(get_db)):
 @router.get("/global/wallpaper/bing", response_model=StandardResponse,
             dependencies=[Depends(validate_client_is_updated)])
 async def get_bing_wallpaper(request: Request):
-    url_hostname = request.url.hostname
-    if url_hostname.startswith("api-global"):
+    url_path = request.url.path
+    if url_path.startswith("/global"):
         redis_key = "bing_wallpaper_global"
         bing_api = "https://www.bing.com/HPImageArchive.aspx?format=js&idx=0&n=1&mkt=en-US"
         bing_prefix = "www"
-    elif url_hostname.startswith("api-cn"):
+    elif url_path.startswith("/cn"):
         redis_key = "bing_wallpaper_cn"
         bing_api = "https://cn.bing.com/HPImageArchive.aspx?format=js&idx=0&n=1"
         bing_prefix = "cn"
     else:
-        logger.error(f"Unknown hostname: {url_hostname}")
         redis_key = "bing_wallpaper_global"
         bing_api = "https://www.bing.com/HPImageArchive.aspx?format=js&idx=0&n=1&mkt=en-US"
         bing_prefix = "www"
@@ -154,14 +158,14 @@ async def get_bing_wallpaper(request: Request):
             redis_data = None
         if redis_data is not None:
             response = StandardResponse()
-            response.message = "cached"
+            response.message = f"cached: {redis_key}"
             response.data = redis_data
             return response
     # Get Bing wallpaper
     bing_output = httpx.get(bing_api).json()
     data = {
         "url": f"https://{bing_prefix}.bing.com{bing_output['images'][0]['url']}",
-        "source_url": f"{bing_output['images'][0]['copyrightlink']}",
+        "source_url": {bing_output['images'][0]['copyrightlink']},
         "author": bing_output['images'][0]['copyright'],
         "uploader": "Microsoft Bing"
     }
@@ -169,6 +173,62 @@ async def get_bing_wallpaper(request: Request):
         res = redis_conn.set(redis_key, json.dumps(data), ex=3600)
         logger.info(f"Set bing_wallpaper to Redis result: {res}")
     response = StandardResponse()
-    response.message = "sourced"
+    response.message = f"sourced: {redis_key}"
+    response.data = data
+    return response
+
+
+@router.get("/cn/wallpaper/genshin-launcher", response_model=StandardResponse,
+            dependencies=[Depends(validate_client_is_updated)])
+@router.get("/global/wallpaper/genshin-launcher", response_model=StandardResponse,
+            dependencies=[Depends(validate_client_is_updated)])
+async def get_genshin_launcher_wallpaper(request: Request, language: str = "en-us"):
+    language_set = ["zh-cn", "zh-tw", "en-us", "ja-jp", "ko-kr", "fr-fr", "de-de", "es-es", "pt-pt", "ru-ru", "id-id",
+                    "vi-vn", "th-th"]
+    url_path = request.url.path
+    if url_path.startswith("/global"):
+        if language not in language_set:
+            language = "en-us"
+        g_type = "global"
+        redis_key = f"genshin_launcher_wallpaper_global_{language}"
+        genshin_launcher_wallpaper_api = (f"https://sdk-os-static.mihoyo.com/hk4e_global/mdk/launcher/api/content"
+                                          f"?filter_adv=true&key=gcStgarh&language={language}&launcher_id=10")
+    elif url_path.startswith("/cn"):
+        g_type = "cn"
+        redis_key = "genshin_launcher_wallpaper_cn"
+        genshin_launcher_wallpaper_api = (f"https://sdk-static.mihoyo.com/hk4e_cn/mdk/launcher/api/content?filter_adv"
+                                          f"=true&key=eYd89JmJ&language=zh-cn&launcher_id=18")
+    else:
+        if language not in language_set:
+            language = "en-us"
+        g_type = "global"
+        redis_key = f"genshin_launcher_wallpaper_global_{language}"
+        genshin_launcher_wallpaper_api = (f"https://sdk-os-static.mihoyo.com/hk4e_global/mdk/launcher/api/content"
+                                          f"?filter_adv=true&key=gcStgarh&language={language}&launcher_id=10")
+    # Check Redis
+    if redis_conn is not None:
+        try:
+            redis_data = json.loads(redis_conn.get(redis_key))
+        except (json.JSONDecodeError, TypeError):
+            redis_data = None
+        if redis_data is not None:
+            response = StandardResponse()
+            response.message = f"cached: {redis_key}"
+            response.data = redis_data
+            return response
+    # Get Genshin Launcher wallpaper from API
+    genshin_output = httpx.get(genshin_launcher_wallpaper_api).json()
+    background_url = genshin_output["data"]["adv"]["background"]
+    data = {
+        "url": background_url,
+        "source_url": "https://mihoyo.com" if g_type == "cn" else "https://hoyoverse.com",
+        "author": "miHoYo" if g_type == "cn" else "HoYoverse",
+        "uploader": "miHoYo" if g_type == "cn" else "HoYoverse"
+    }
+    if redis_conn is not None:
+        res = redis_conn.set(redis_key, json.dumps(data), ex=3600)
+        logger.info(f"Set genshin_launcher_wallpaper to Redis result: {res}")
+    response = StandardResponse()
+    response.message = f"sourced: {redis_key}"
     response.data = data
     return response

@@ -19,7 +19,7 @@ else:
 
 try:
     overwritten_china_url = json.loads(redis_conn.get("overwritten_china_url"))
-except (redis.exceptions.ConnectionError, TypeError):
+except (redis.exceptions.ConnectionError, TypeError, AttributeError):
     logger.warning("Failed to get overwritten_china_url from Redis, using empty dict")
     overwritten_china_url = {}
     for key in VALID_PROJECT_KEYS:
