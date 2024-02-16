@@ -7,6 +7,7 @@ from fastapi_utils.tasks import repeat_every
 from utils.dgp_utils import validate_client_is_updated
 from base_logger import logger
 
+
 scan_duration = int(os.getenv("CENSOR_FILE_SCAN_DURATION", 30)) / 2  # half of the duration
 metadata_censored_files = []
 
@@ -24,8 +25,14 @@ async def refresh_metadata_censored_files():
         return True
     logger.info(f"Start {scan_duration * 60}-min scheduled refreshing metadata_censored_files")
     global metadata_censored_files
-    logger.info("Getting metadata_censored_files from Redis")
-    r = redis.Redis(host="redis", port=6379, db=0, decode_responses=True)
+    if os.getenv("NO_REDIS", "false").lower() == "true":
+        logger.info("Skipping Redis connection in Wallpaper module as NO_REDIS is set to true")
+        r = None
+    else:
+        REDIS_HOST = os.getenv("REDIS_HOST", "redis")
+        logger.info(f"Connecting to Redis at {REDIS_HOST}")
+        r = redis.Redis(host=REDIS_HOST, port=6379, db=1, decode_responses=True)
+        logger.info("Redis connection established")
     redis_data = r.get("metadata_censored_files")
     logger.info(f"Receive data of metadata_censored_files from Redis: {redis_data}")
     if redis_data is not None:

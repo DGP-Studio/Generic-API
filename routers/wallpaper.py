@@ -1,6 +1,5 @@
-import json
-from datetime import date
 from fastapi import APIRouter, Depends, Request
+from pydantic import BaseModel
 from utils.dgp_utils import validate_client_is_updated
 from mysql_app import crud, models, schemas
 from mysql_app.database import SessionLocal, engine
@@ -8,7 +7,8 @@ from mysql_app.schemas import Wallpaper, StandardResponse
 from base_logger import logging
 from utils.authentication import verify_api_token
 from base_logger import logger
-from pydantic import BaseModel
+import json
+from datetime import date
 import random
 import httpx
 import os
@@ -32,8 +32,10 @@ if os.getenv("NO_REDIS", "false").lower() == "true":
     logger.info("Skipping Redis connection in Wallpaper module as NO_REDIS is set to true")
     redis_conn = None
 else:
-    redis_conn = redis.Redis(host="redis", port=6379, db=1, decode_responses=True)
-    logger.info("Redis connection established in Wallpaper module")
+    REDIS_HOST = os.getenv("REDIS_HOST", "redis")
+    logger.info(f"Connecting to Redis at {REDIS_HOST} for Wallpaper module")
+    redis_conn = redis.Redis(host=REDIS_HOST, port=6379, db=1, decode_responses=True)
+    logger.info("Redis connection established for Wallpaper module")
 router = APIRouter(tags=["category:wallpaper"])
 
 
@@ -43,13 +45,25 @@ async def get_all_wallpapers(db: SessionLocal = Depends(get_db)):
     return crud.get_all_wallpapers(db)
 
 
-@router.post("/cn/wallpaper/add", response_model=schemas.Wallpaper, dependencies=[Depends(verify_api_token)])
-@router.post("/global/wallpaper/add", response_model=schemas.Wallpaper, dependencies=[Depends(verify_api_token)])
+@router.post("/cn/wallpaper/add", response_model=schemas.StandardResponse, dependencies=[Depends(verify_api_token)])
+@router.post("/global/wallpaper/add", response_model=schemas.StandardResponse, dependencies=[Depends(verify_api_token)])
 async def add_wallpaper(wallpaper: schemas.Wallpaper, db: SessionLocal = Depends(get_db)):
+    response = StandardResponse()
     wallpaper.display_date = None
     wallpaper.last_display_date = None
     wallpaper.disabled = False
-    return crud.add_wallpaper(db, wallpaper)
+    add_result = crud.add_wallpaper(db, wallpaper)
+    if add_result:
+        response.data ={
+            "url": add_result.url,
+            "display_date": add_result.display_date,
+            "last_display_date": add_result.last_display_date,
+            "source_url": add_result.source_url,
+            "author": add_result.author,
+            "uploader": add_result.uploader,
+            "disabled": add_result.disabled
+        }
+    return response
 
 
 @router.post("/cn/wallpaper/disable", dependencies=[Depends(verify_api_token)])
@@ -154,18 +168,17 @@ async def get_bing_wallpaper(request: Request):
     if redis_conn is not None:
         try:
             redis_data = json.loads(redis_conn.get(redis_key))
-        except (json.JSONDecodeError, TypeError):
-            redis_data = None
-        if redis_data is not None:
             response = StandardResponse()
             response.message = f"cached: {redis_key}"
             response.data = redis_data
             return response
+        except (json.JSONDecodeError, TypeError):
+            pass
     # Get Bing wallpaper
     bing_output = httpx.get(bing_api).json()
     data = {
         "url": f"https://{bing_prefix}.bing.com{bing_output['images'][0]['url']}",
-        "source_url": {bing_output['images'][0]['copyrightlink']},
+        "source_url": bing_output['images'][0]['copyrightlink'],
         "author": bing_output['images'][0]['copyright'],
         "uploader": "Microsoft Bing"
     }
