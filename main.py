@@ -2,6 +2,7 @@ from config import env_result
 import uvicorn
 from fastapi import FastAPI
 from fastapi.responses import RedirectResponse
+from fastapi.middleware.cors import CORSMiddleware
 from routers import enka_network, metadata, patch, static, net, wallpaper
 from base_logger import logger
 
@@ -12,6 +13,19 @@ app.include_router(patch.router)
 app.include_router(static.router)
 app.include_router(net.router)
 app.include_router(wallpaper.router)
+
+origins = [
+    "http://localhost",
+    "http://localhost:8080",
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 @app.get("/", response_class=RedirectResponse, status_code=301)
