@@ -27,10 +27,15 @@ except (redis.exceptions.ConnectionError, TypeError, AttributeError):
     for key in VALID_PROJECT_KEYS:
         overwritten_china_url[key] = None
 
-router = APIRouter(tags=["category:patch"])
+china_router = APIRouter(tags=["Patch"], prefix="/patch")
+global_router = APIRouter(tags=["Patch"], prefix="/patch")
 
 
 def update_snap_hutao_latest_version() -> dict:
+    """
+    Update Snap Hutao latest version from GitHub and Jihulab
+    :return: dict of latest version metadata
+    """
     github_msix_url = None
     sha256sums_url = None
     sha256sums_value = None
@@ -118,7 +123,11 @@ def update_snap_hutao_latest_version() -> dict:
     }
 
 
-def update_snap_hutao_deployment_version():
+def update_snap_hutao_deployment_version() -> dict:
+    """
+    Update Snap Hutao Deployment latest version from GitHub and Jihulab
+    :return: dict of Snap Hutao Deployment latest version metadata
+    """
     github_meta = httpx.get("https://api.github.com/repos/DGP-Studio/Snap.Hutao.Deployment/releases/latest",
                             headers=github_headers).json()
     github_msix_url = None
@@ -152,8 +161,13 @@ snap_hutao_deployment_latest_version = update_snap_hutao_deployment_version()
 
 
 # Snap Hutao
-@router.get("/cn/patch/hutao", tags=["region:cn"])
+@china_router.get("/hutao")
 async def generic_get_snap_hutao_latest_version_china_endpoint():
+    """
+    Get Snap Hutao latest version from China endpoint
+
+    :return: Standard response with latest version metadata in China endpoint
+    """
     return {
         "retcode": 0,
         "message": f"CN endpoint reached. {snap_hutao_latest_version["gitlab_message"]}",
@@ -161,13 +175,23 @@ async def generic_get_snap_hutao_latest_version_china_endpoint():
     }
 
 
-@router.get("/cn/patch/hutao/download", tags=["region:cn"])
+@china_router.get("/hutao/download")
 async def get_snap_hutao_latest_download_direct_china_endpoint():
+    """
+    Redirect to Snap Hutao latest download link in China endpoint (use first link in the list)
+
+    :return: 302 Redirect to the first download link
+    """
     return RedirectResponse(snap_hutao_latest_version["cn"]["urls"][0], status_code=302)
 
 
-@router.get("/global/patch/hutao", tags=["region:global"])
+@global_router.get("/hutao")
 async def generic_get_snap_hutao_latest_version_global_endpoint():
+    """
+    Get Snap Hutao latest version from Global endpoint (GitHub)
+
+    :return: Standard response with latest version metadata in Global endpoint
+    """
     return {
         "retcode": 0,
         "message": f"Global endpoint reached. {snap_hutao_latest_version['github_message']}",
@@ -175,14 +199,24 @@ async def generic_get_snap_hutao_latest_version_global_endpoint():
     }
 
 
-@router.get("/global/patch/hutao/download", tags=["region:global"])
+@global_router.get("/hutao/download")
 async def get_snap_hutao_latest_download_direct_china_endpoint():
+    """
+    Redirect to Snap Hutao latest download link in Global endpoint (use first link in the list)
+
+    :return: 302 Redirect to the first download link
+    """
     return RedirectResponse(snap_hutao_latest_version["global"]["urls"][0], status_code=302)
 
 
 # Snap Hutao Deployment
-@router.get("/cn/patch/hutao-deployment", tags=["region:cn"])
+@china_router.get("/hutao-deployment")
 async def generic_get_snap_hutao_latest_version_china_endpoint():
+    """
+    Get Snap Hutao Deployment latest version from China endpoint
+
+    :return: Standard response with latest version metadata in China endpoint
+    """
     return {
         "retcode": 0,
         "message": f"CN endpoint reached.",
@@ -190,13 +224,23 @@ async def generic_get_snap_hutao_latest_version_china_endpoint():
     }
 
 
-@router.get("/cn/patch/hutao-deployment/download", tags=["region:cn"])
+@china_router.get("/hutao-deployment/download")
 async def get_snap_hutao_latest_download_direct_china_endpoint():
+    """
+    Redirect to Snap Hutao Deployment latest download link in China endpoint (use first link in the list)
+
+    :return: 302 Redirect to the first download link
+    """
     return RedirectResponse(snap_hutao_deployment_latest_version["cn"]["urls"][0], status_code=302)
 
 
-@router.get("/global/patch/hutao-deployment", tags=["region:global"])
+@global_router.get("/hutao-deployment")
 async def generic_get_snap_hutao_latest_version_global_endpoint():
+    """
+    Get Snap Hutao Deployment latest version from Global endpoint (GitHub)
+
+    :return: Standard response with latest version metadata in Global endpoint
+    """
     return {
         "retcode": 0,
         "message": f"Global endpoint reached.",
@@ -204,14 +248,28 @@ async def generic_get_snap_hutao_latest_version_global_endpoint():
     }
 
 
-@router.get("/global/patch/hutao-deployment/download", tags=["region:global"])
+@global_router.get("/hutao-deployment/download")
 async def get_snap_hutao_latest_download_direct_china_endpoint():
+    """
+    Redirect to Snap Hutao Deployment latest download link in Global endpoint (use first link in the list)
+
+    :return: 302 Redirect to the first download link
+    """
     return RedirectResponse(snap_hutao_deployment_latest_version["global"]["urls"][0], status_code=302)
 
 
-@router.patch("/cn/patch/{project_key}", tags=["region:cn"], include_in_schema=False)
-@router.patch("/global/patch/{project_key}", tags=["region:global"], include_in_schema=False)
+@china_router.patch("/{project_key}", include_in_schema=True)
+@global_router.patch("/{project_key}", include_in_schema=True)
 async def generic_patch_latest_version(response: Response, project_key: str):
+    """
+    Update latest version of a project
+
+    :param response: Response model from FastAPI
+
+    :param project_key: Key name of the project to update
+
+    :return: Latest version metadata of the project updated
+    """
     new_version = None
     if project_key == "snap-hutao":
         global snap_hutao_latest_version
@@ -227,14 +285,23 @@ async def generic_patch_latest_version(response: Response, project_key: str):
 
 
 # Yae Patch API handled by https://github.com/Masterain98/SnapHutao-Yae-Patch-Backend
-# @router.get("/cn/patch/yae") -> use Nginx reverse proxy instead
-# @router.get("/global/patch/yae") -> use Nginx reverse proxy instead
+# @china_router.get("/yae") -> use Nginx reverse proxy instead
+# @global_router.get("/yae") -> use Nginx reverse proxy instead
 
-@router.post("/cn/patch/cn-overwrite-url", tags=["admin"], include_in_schema=True,
-             dependencies=[Depends(verify_api_token)])
-@router.post("/global/patch/cn-overwrite-url", tags=["admin"], include_in_schema=True,
-             dependencies=[Depends(verify_api_token)])
+@china_router.post("/cn-overwrite-url", tags=["admin"], include_in_schema=True,
+                   dependencies=[Depends(verify_api_token)])
+@global_router.post("/cn-overwrite-url", tags=["admin"], include_in_schema=True,
+                    dependencies=[Depends(verify_api_token)])
 async def update_overwritten_china_url(response: Response, request: Request):
+    """
+    Update overwritten China URL for a project, this url will be placed at first priority when fetching latest version
+
+    :param response: Response model from FastAPI
+
+    :param request: Request model from FastAPI
+
+    :return: Json response with message
+    """
     data = await request.json()
     project_key = data.get("key", "").lower()
     overwrite_url = data.get("url", None)

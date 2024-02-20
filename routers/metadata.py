@@ -11,11 +11,14 @@ from base_logger import logger
 scan_duration = int(os.getenv("CENSOR_FILE_SCAN_DURATION", 30)) / 2  # half of the duration
 metadata_censored_files = []
 
-router = APIRouter(tags=["category:metadata"], dependencies=[Depends(validate_client_is_updated)])
+china_router = APIRouter(tags=["Hutao Metadata"], dependencies=[Depends(validate_client_is_updated)],
+                         prefix="/metadata")
+global_router = APIRouter(tags=["Hutao Metadata"], dependencies=[Depends(validate_client_is_updated)],
+                          prefix="/metadata")
 
 
 @repeat_every(seconds=60 * scan_duration)
-@router.on_event("startup")
+@china_router.on_event("startup")
 async def refresh_metadata_censored_files():
     """
     Refresh metadata_censored_files every 30 minutes.
@@ -43,18 +46,25 @@ async def refresh_metadata_censored_files():
     logger.info(f"Redis connection closed as scheduled refreshing metadata_censored_files finished")
 
 
-@router.get("/cn/ban")
-@router.get("/global/ban")
+@china_router.get("/ban")
+@global_router.get("/ban")
 async def get_banned_files():
+    """
+    Get the list of censored files.
+
+    :return: a list of censored files
+    """
     global metadata_censored_files
     return metadata_censored_files
 
 
-@router.get("/cn/metadata/{file_path:path}", tags=["region:cn"])
+@china_router.get("/{file_path:path}")
 async def china_metadata_request_handler(file_path: str):
     """
     Handle requests to metadata files.
+
     :param file_path: Path to the metadata file
+
     :return: HTTP 302 redirect to the file based on censorship status of the file
     """
     host_for_normal_files = f"https://jihulab.com/DGP-Studio/Snap.Metadata/-/raw/main/{file_path}"
@@ -66,11 +76,13 @@ async def china_metadata_request_handler(file_path: str):
         return RedirectResponse(host_for_normal_files, status_code=302)
 
 
-@router.get("/global/metadata/{file_path:path}", tags=["region:global"])
+@global_router.get("/{file_path:path}")
 async def global_metadata_request_handler(file_path: str):
     """
     Handle requests to metadata files.
+
     :param file_path: Path to the metadata file
+
     :return: HTTP 302 redirect to the file based on censorship status of the file
     """
     host_for_normal_files = f"https://hutao-metadata-pages.snapgenshin.cn/{file_path}"

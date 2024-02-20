@@ -5,14 +5,60 @@ from fastapi.responses import RedirectResponse
 from fastapi.middleware.cors import CORSMiddleware
 from routers import enka_network, metadata, patch, static, net, wallpaper
 from base_logger import logger
+from config import (MAIN_SERVER_DESCRIPTION, API_VERSION, TOS_URL, CONTACT_INFO, LICENSE_INFO,
+                    CHINA_SERVER_DESCRIPTION, GLOBAL_SERVER_DESCRIPTION)
 
-app = FastAPI(redoc_url=None)
-app.include_router(enka_network.router)
-app.include_router(metadata.router)
-app.include_router(patch.router)
-app.include_router(static.router)
-app.include_router(net.router)
-app.include_router(wallpaper.router)
+app = FastAPI(redoc_url=None,
+              title="Hutao Generic API (Main Server)",
+              summary="Generic API to support various services for Snap Hutao project.",
+              version=API_VERSION,
+              description=MAIN_SERVER_DESCRIPTION,
+              terms_of_service=TOS_URL,
+              contact=CONTACT_INFO,
+              license_info=LICENSE_INFO,
+              openapi_url="/openapi.json")
+china_app = FastAPI(title="Hutao Generic API (China Ver.)",
+                    summary="Generic API to support various services for Snap Hutao project, specifically for "
+                            "Mainland China region.",
+                    version=API_VERSION,
+                    description=CHINA_SERVER_DESCRIPTION,
+                    terms_of_service=TOS_URL,
+                    contact=CONTACT_INFO,
+                    license_info=LICENSE_INFO,
+                    openapi_url="/openapi.json")
+global_app = FastAPI(title="Hutao Generic API (Global Ver.)",
+                     summary="Generic API to support various services for Snap Hutao project, specifically for "
+                             "Global region.",
+                     version=API_VERSION,
+                     description=GLOBAL_SERVER_DESCRIPTION,
+                     terms_of_service=TOS_URL,
+                     contact=CONTACT_INFO,
+                     license_info=LICENSE_INFO,
+                     openapi_url="/openapi.json")
+
+# Enka Network API Routers
+china_app.include_router(enka_network.china_router)
+global_app.include_router(enka_network.global_router)
+
+# Hutao Metadata API Routers
+china_app.include_router(metadata.china_router)
+global_app.include_router(metadata.global_router)
+
+# Patch API Routers
+china_app.include_router(patch.china_router)
+global_app.include_router(patch.global_router)
+
+# Static API Routers
+china_app.include_router(static.china_router)
+global_app.include_router(static.global_router)
+
+# Network API Routers
+china_app.include_router(net.china_router)
+global_app.include_router(net.global_router)
+
+# Wallpaper API Routers
+china_app.include_router(wallpaper.china_router)
+global_app.include_router(wallpaper.global_router)
 
 origins = [
     "http://localhost",
@@ -27,10 +73,13 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+app.mount("/cn", china_app, name="Hutao Generic API (China Ver.)")
+app.mount("/global", global_app, name="Hutao Generic API (Global Ver.)")
+
 
 @app.get("/", response_class=RedirectResponse, status_code=301)
-@app.get("/cn", response_class=RedirectResponse, status_code=301)
-@app.get("/global", response_class=RedirectResponse, status_code=301)
+@china_app.get("/", response_class=RedirectResponse, status_code=301)
+@global_app.get("/", response_class=RedirectResponse, status_code=301)
 async def root():
     return "https://hut.ao"
 
