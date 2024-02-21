@@ -294,7 +294,8 @@ async def generic_patch_latest_version(response: Response, project_key: str):
                     dependencies=[Depends(verify_api_token)])
 async def update_overwritten_china_url(response: Response, request: Request):
     """
-    Update overwritten China URL for a project, this url will be placed at first priority when fetching latest version
+    Update overwritten China URL for a project, this url will be placed at first priority when fetching latest version.
+    **This endpoint requires API token verification**
 
     :param response: Response model from FastAPI
 
