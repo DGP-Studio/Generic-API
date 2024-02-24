@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, Request
+import pymysql
 from pydantic import BaseModel
 from utils.dgp_utils import validate_client_is_updated
 from mysql_app import crud, models, schemas
@@ -57,9 +58,9 @@ async def get_all_wallpapers(db: SessionLocal = Depends(get_db)):
 
 
 @china_router.post("/add", response_model=schemas.StandardResponse, dependencies=[Depends(verify_api_token)],
-                    tags=["admin"])
+                   tags=["admin"])
 @global_router.post("/add", response_model=schemas.StandardResponse, dependencies=[Depends(verify_api_token)],
-                     tags=["admin"])
+                    tags=["admin"])
 async def add_wallpaper(wallpaper: schemas.Wallpaper, db: SessionLocal = Depends(get_db)):
     """
     Add a new wallpaper to database. **This endpoint requires API token verification**
@@ -188,16 +189,21 @@ async def get_today_wallpaper(db: SessionLocal = Depends(get_db)):
 
     :return: StandardResponse object with new wallpaper data in data field
     """
-    wallpaper = random_pick_wallpaper(db, False)
-    response = StandardResponse()
-    response.retcode = 0
-    response.message = "Wallpaper refreshed"
-    response.data = {
-        "url": wallpaper.url,
-        "source_url": wallpaper.source_url,
-        "author": wallpaper.author,
-        "uploader": wallpaper.uploader
-    }
+    while True:
+        try:
+            wallpaper = random_pick_wallpaper(db, True)
+            response = StandardResponse()
+            response.retcode = 0
+            response.message = "Wallpaper refreshed"
+            response.data = {
+                "url": wallpaper.url,
+                "source_url": wallpaper.source_url,
+                "author": wallpaper.author,
+                "uploader": wallpaper.uploader
+            }
+            break
+        except pymysql.err.OperationalError:
+            pass
     return response
 
 
