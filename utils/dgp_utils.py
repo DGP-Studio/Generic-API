@@ -9,6 +9,9 @@ from base_logger import logger
 from config import github_headers
 
 WHITE_LIST_REPOSITORIES = json.loads(os.environ.get("WHITE_LIST_REPOSITORIES"))
+BYPASS_CLIENT_VERIFICATION = os.environ.get("BYPASS_CLIENT_VERIFICATION", "False").lower() == "true"
+if BYPASS_CLIENT_VERIFICATION:
+    logger.warning("Client verification is bypassed in this server.")
 
 
 def update_recent_versions():
@@ -69,6 +72,8 @@ def timely_update_allowed_ua():
 
 
 async def validate_client_is_updated(user_agent: Annotated[str, Header()]):
+    if BYPASS_CLIENT_VERIFICATION:
+        return True
     logger.info(f"Received request from user agent: {user_agent}")
     if user_agent.startswith("Snap Hutao/2024"):
         return True
