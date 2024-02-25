@@ -1,9 +1,21 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends, Response
 from fastapi.responses import RedirectResponse
+from pydantic import BaseModel
+from mysql_app import schemas
+from mysql_app.schemas import StandardResponse
+from utils.authentication import verify_api_token
+
+
+class StaticUpdateURL(BaseModel):
+    type: str
+    url: str
 
 
 china_router = APIRouter(tags=["Static"], prefix="/static")
 global_router = APIRouter(tags=["Static"], prefix="/static")
+
+cn_zip_url = "https://static-next.snapgenshin.com/d/lz/{file_path}"
+cn_raw_url = "https://jihulab.com/DGP-Studio/Snap.Static/-/raw/main/{file_path}"
 
 
 @china_router.get("/zip/{file_path:path}")
@@ -17,7 +29,7 @@ async def cn_get_zipped_file(file_path: str):
     """
     # https://jihulab.com/DGP-Studio/Snap.Static.Zip/-/raw/main/{file_path}
     # https://static-next.snapgenshin.com/d/zip/{file_path}
-    return RedirectResponse(f"https://static-next.snapgenshin.com/d/zip/{file_path}", status_code=302)
+    return RedirectResponse(cn_zip_url.format(file_path=file_path), status_code=302)
 
 
 @china_router.get("/raw/{file_path:path}")
@@ -31,7 +43,7 @@ async def cn_get_raw_file(file_path: str):
     """
     # https://jihulab.com/DGP-Studio/Snap.Static/-/raw/main/{file_path}
     # https://static-next.snapgenshin.com/d/raw/{file_path}
-    return RedirectResponse(f"https://jihulab.com/DGP-Studio/Snap.Static/-/raw/main/{file_path}", status_code=302)
+    return RedirectResponse(cn_raw_url.format(file_path=file_path), status_code=302)
 
 
 @global_router.get("/zip/{file_path:path}")
@@ -56,3 +68,45 @@ async def global_get_raw_file(file_path: str):
     :return: 302 Redirect to the raw file
     """
     return RedirectResponse(f"https://static.snapgenshin.cn/{file_path}", status_code=302)
+
+
+@global_router.post("/set", response_model=schemas.StandardResponse, dependencies=[Depends(verify_api_token)],
+                    tags=["admin"])
+@china_router.post("/set", response_model=schemas.StandardResponse, dependencies=[Depends(verify_api_token)],
+                   tags=["admin"])
+async def set_static_cn_url(update_request: StaticUpdateURL, response: Response):
+    """
+    Endpoint used to set the static file URL for **China endpoint**
+
+    :param response: Response object from FastAPI
+
+    :param update_request: StaticUpdateURL
+
+    :return: StandardResponse
+    """
+    success = False
+    return_data = StandardResponse()
+
+    if update_request.type == "zip":
+        global cn_zip_url
+        if r"{file_path}" in update_request.url:
+            success = True
+            cn_zip_url = update_request.url
+        else:
+            return_data.message = "Invalid URL, make sure to include {file_path} in the URL"
+    elif update_request.type == "raw":
+        global cn_raw_url
+        if r"{file_path}" in update_request.url:
+            success = True
+            cn_raw_url = update_request.url
+        else:
+            return_data.message = "Invalid URL, make sure to include {file_path} in the URL"
+    else:
+        return_data.message = "Invalid type"
+
+    if success:
+        return_data.message = "Success"
+    else:
+        response.status_code = 400
+        return_data.retcode = 1
+    return return_data
