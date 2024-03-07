@@ -154,8 +154,8 @@ def random_pick_wallpaper(db, force_refresh: bool = False) -> Wallpaper:
     return today_wallpaper
 
 
-@china_router.get("/today", response_model=StandardResponse, dependencies=[Depends(validate_client_is_updated)])
-@global_router.get("/today", response_model=StandardResponse, dependencies=[Depends(validate_client_is_updated)])
+@china_router.get("/today", response_model=StandardResponse)
+@global_router.get("/today", response_model=StandardResponse)
 async def get_today_wallpaper(db: SessionLocal = Depends(get_db)):
     """
     Get today's wallpaper
@@ -226,8 +226,8 @@ async def reset_last_display(db: SessionLocal = Depends(get_db)):
     return response
 
 
-@china_router.get("/bing", response_model=StandardResponse, dependencies=[Depends(validate_client_is_updated)])
-@global_router.get("/bing", response_model=StandardResponse, dependencies=[Depends(validate_client_is_updated)])
+@china_router.get("/bing", response_model=StandardResponse)
+@global_router.get("/bing", response_model=StandardResponse)
 async def get_bing_wallpaper(request: Request):
     """
     Get Bing wallpaper
@@ -276,10 +276,8 @@ async def get_bing_wallpaper(request: Request):
     return response
 
 
-@china_router.get("/genshin-launcher", response_model=StandardResponse,
-                  dependencies=[Depends(validate_client_is_updated)])
-@global_router.get("/genshin-launcher", response_model=StandardResponse,
-                   dependencies=[Depends(validate_client_is_updated)])
+@china_router.get("/genshin-launcher", response_model=StandardResponse)
+@global_router.get("/genshin-launcher", response_model=StandardResponse)
 async def get_genshin_launcher_wallpaper(request: Request, language: str = "en-us"):
     """
     Get Genshin Impact launcher wallpaper

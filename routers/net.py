@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Request, HTTPException
+from fastapi import APIRouter, Request
 
 china_router = APIRouter(tags=["Network"])
 global_router = APIRouter(tags=["Network"])
