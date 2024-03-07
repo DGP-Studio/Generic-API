@@ -1,0 +1,302 @@
+{
+    "client": "Thunder Client",
+    "collectionName": "Generic-API (local)",
+    "dateExported": "2024-03-07T23:50:58.093Z",
+    "version": "1.1",
+    "folders": [
+        {
+            "_id": "4c3ab557-b546-432b-b33d-6df6fe71bb88",
+            "name": "wallpaper",
+            "containerId": "",
+            "created": "2024-02-25T01:58:07.693Z",
+            "sortNum": 10000
+        },
+        {
+            "_id": "f7dacf85-87f7-42c7-bc15-ed40bd83b15a",
+            "name": "network",
+            "containerId": "",
+            "created": "2024-02-25T01:58:07.694Z",
+            "sortNum": 20000
+        },
+        {
+            "_id": "786f936d-f28d-4391-9dfd-4ddabb61186e",
+            "name": "patch",
+            "containerId": "",
+            "created": "2024-02-25T01:58:07.695Z",
+            "sortNum": 30000
+        },
+        {
+            "_id": "f28cd875-ba68-448a-bead-fdb1019312ea",
+            "name": "metadata",
+            "containerId": "",
+            "created": "2024-02-25T01:58:07.696Z",
+            "sortNum": 40000
+        },
+        {
+            "_id": "f3c293dc-d223-4f83-a422-0c0c51924380",
+            "name": "static",
+            "containerId": "",
+            "created": "2024-02-25T01:58:27.623Z",
+            "sortNum": 60000
+        }
+    ],
+    "requests": [
+        {
+            "_id": "db9b59a2-91b6-4b9a-9b26-a7e0f7b31b8c",
+            "colId": "72d06ee6-01e6-4dac-a430-8c8ae665fdcd",
+            "containerId": "f28cd875-ba68-448a-bead-fdb1019312ea",
+            "name": "Metadata",
+            "url": "http://127.0.0.1:8080/cn/metadata/Genshin/CHS/Meta.json",
+            "method": "GET",
+            "sortNum": 10000,
+            "created": "2024-02-25T01:58:07.693Z",
+            "modified": "2024-02-25T01:58:07.693Z",
+            "headers": [
+                {
+                    "name": "User-Agent",
+                    "value": "Snap Hutao/1.8.0.0"
+                }
+            ],
+            "params": [],
+            "tests": []
+        },
+        {
+            "_id": "b689f23c-510f-4054-8a3c-5228fe81175c",
+            "colId": "72d06ee6-01e6-4dac-a430-8c8ae665fdcd",
+            "containerId": "f7dacf85-87f7-42c7-bc15-ed40bd83b15a",
+            "name": "IP",
+            "url": "http://127.0.0.1:8080/global/ip",
+            "method": "GET",
+            "sortNum": 10000,
+            "created": "2024-02-25T01:58:07.695Z",
+            "modified": "2024-02-25T01:58:07.695Z",
+            "headers": [],
+            "params": [],
+            "tests": []
+        },
+        {
+            "_id": "9d3d2d5f-efc2-4475-bd67-ddf6c03bf617",
+            "colId": "72d06ee6-01e6-4dac-a430-8c8ae665fdcd",
+            "containerId": "786f936d-f28d-4391-9dfd-4ddabb61186e",
+            "name": "Update CN URL",
+            "url": "http://127.0.0.1:8080/cn/patch/cn-overwrite-url",
+            "method": "POST",
+            "sortNum": 10000,
+            "created": "2024-02-25T01:58:07.696Z",
+            "modified": "2024-03-07T23:17:32.210Z",
+            "headers": [
+                {
+                    "name": "API-Token",
+                    "value": "HY2d8jAw4EowpBqFrzzCwRusyfBbeiKa"
+                }
+            ],
+            "params": [],
+            "body": {
+                "type": "json",
+                "raw": "{\n  \"key\":\"snap-hutao\",\n  \"url\":\"https://lsw-fast.lenovo.com.cn/appstore/apps/adp/pkg/0158-2024-02-07032248-1707290568061.msix\"\n}",
+                "form": []
+            },
+            "reqType": "post",
+            "tests": []
+        },
+        {
+            "_id": "79dcef99-eaff-4bb0-b388-268a8352e3a1",
+            "colId": "72d06ee6-01e6-4dac-a430-8c8ae665fdcd",
+            "containerId": "4c3ab557-b546-432b-b33d-6df6fe71bb88",
+            "name": "Bing",
+            "url": "http://127.0.0.1:8080/global/wallpaper/bing",
+            "method": "GET",
+            "sortNum": 10000,
+            "created": "2024-02-25T01:58:07.697Z",
+            "modified": "2024-03-07T23:47:55.934Z",
+            "headers": [
+                {
+                    "name": "User-Agent",
+                    "value": "Snap Hutao/1.9.6.0"
+                },
+                {
+                    "name": "API-Token",
+                    "value": "123"
+                }
+            ],
+            "params": [],
+            "reqType": "get",
+            "tests": []
+        },
+        {
+            "_id": "49134eea-c7e9-4610-a7aa-e29d892da543",
+            "colId": "72d06ee6-01e6-4dac-a430-8c8ae665fdcd",
+            "containerId": "786f936d-f28d-4391-9dfd-4ddabb61186e",
+            "name": "Patch Update",
+            "url": "http://127.0.0.1:8080/cn/patch/snap-hutao",
+            "method": "PATCH",
+            "sortNum": 20000,
+            "created": "2024-02-25T01:58:07.700Z",
+            "modified": "2024-03-07T23:48:17.630Z",
+            "headers": [],
+            "params": [],
+            "reqType": "patch",
+            "tests": []
+        },
+        {
+            "_id": "ef67e1a8-85d8-45b3-b26c-4f06792d8950",
+            "colId": "72d06ee6-01e6-4dac-a430-8c8ae665fdcd",
+            "containerId": "f28cd875-ba68-448a-bead-fdb1019312ea",
+            "name": "Metadata CN",
+            "url": "http://127.0.0.1:8080/cn/metadata/Genshin/CHS/Meta.json",
+            "method": "GET",
+            "sortNum": 30000,
+            "created": "2024-02-25T01:58:07.701Z",
+            "modified": "2024-03-07T23:48:40.602Z",
+            "headers": [
+                {
+                    "name": "User-Agent",
+                    "value": "Snap Hutao/1.8.2.0"
+                }
+            ],
+            "params": [],
+            "reqType": "get",
+            "tests": []
+        },
+        {
+            "_id": "9f4de5c9-f55b-4bf6-9fb9-c296285e59c7",
+            "colId": "72d06ee6-01e6-4dac-a430-8c8ae665fdcd",
+            "containerId": "786f936d-f28d-4391-9dfd-4ddabb61186e",
+            "name": "CN patch check",
+            "url": "http://127.0.0.1:8080/cn/patch/hutao",
+            "method": "GET",
+            "sortNum": 30000,
+            "created": "2024-02-25T01:58:07.702Z",
+            "modified": "2024-03-07T23:50:50.597Z",
+            "headers": [],
+            "params": [],
+            "reqType": "get",
+            "tests": []
+        },
+        {
+            "_id": "bf3bcf40-4c7b-4c99-a644-90791d473f69",
+            "colId": "72d06ee6-01e6-4dac-a430-8c8ae665fdcd",
+            "containerId": "4c3ab557-b546-432b-b33d-6df6fe71bb88",
+            "name": "today",
+            "url": "http://127.0.0.1:8080/cn/wallpaper/refresh",
+            "method": "GET",
+            "sortNum": 55000,
+            "created": "2024-02-25T01:58:07.703Z",
+            "modified": "2024-03-07T23:47:59.125Z",
+            "headers": [
+                {
+                    "name": "User-Agent",
+                    "value": "Snap Hutao/1.9.6.0"
+                },
+                {
+                    "name": "API-Token",
+                    "value": "HY2d8jAw4EowpBqFrzzCwRusyfBbeiKa"
+                }
+            ],
+            "params": [],
+            "reqType": "get",
+            "tests": []
+        },
+        {
+            "_id": "1f8bb172-e441-423d-9852-a7af3f5e3c3c",
+            "colId": "72d06ee6-01e6-4dac-a430-8c8ae665fdcd",
+            "containerId": "4c3ab557-b546-432b-b33d-6df6fe71bb88",
+            "name": "refresh",
+            "url": "http://127.0.0.1:8080/cn/wallpaper/refresh",
+            "method": "GET",
+            "sortNum": 77500,
+            "created": "2024-02-25T01:58:07.704Z",
+            "modified": "2024-03-07T23:48:02.339Z",
+            "headers": [
+                {
+                    "name": "User-Agent",
+                    "value": "Snap Hutao/1.9.6.0"
+                },
+                {
+                    "name": "API-Token",
+                    "value": "HY2d8jAw4EowpBqFrzzCwRusyfBbeiKa"
+                }
+            ],
+            "params": [],
+            "reqType": "get",
+            "tests": []
+        },
+        {
+            "_id": "e54ef4f0-fb29-41f1-b950-a6a2aefc2361",
+            "colId": "72d06ee6-01e6-4dac-a430-8c8ae665fdcd",
+            "containerId": "4c3ab557-b546-432b-b33d-6df6fe71bb88",
+            "name": "add wallpaper",
+            "url": "http://127.0.0.1:8080/cn/wallpaper/add",
+            "method": "POST",
+            "sortNum": 100000,
+            "created": "2024-02-25T01:58:07.705Z",
+            "modified": "2024-03-07T23:48:05.219Z",
+            "headers": [
+                {
+                    "name": "api-token",
+                    "value": "HY2d8jAw4EowpBqFrzzCwRusyfBbeiKa"
+                }
+            ],
+            "params": [],
+            "body": {
+                "type": "json",
+                "raw": "{\n  \"url\": \"https://img.alicdn.com/imgextra/i3/1797064093/O1CN01YyADU01g6e1LWx2M5_!!1797064093.png\",\n  \"source_url\": \"https://img.alicdn.com/imgextra/i3/1797064093/O1CN01YyADU01g6e1LWx2M5_!!1797064093.png\",\n  \"author\": \"MiHoYo\",\n  \"uploader\": \"Snap Hutao\"\n}",
+                "form": []
+            },
+            "reqType": "post",
+            "tests": []
+        },
+        {
+            "_id": "a09d3e7e-a9f5-4fed-9491-43b6241cad64",
+            "colId": "72d06ee6-01e6-4dac-a430-8c8ae665fdcd",
+            "containerId": "f3c293dc-d223-4f83-a422-0c0c51924380",
+            "name": "download zip package",
+            "url": "http://127.0.0.1:8080/cn/static/zip/EmotionIcon.zip",
+            "method": "GET",
+            "sortNum": 110000,
+            "created": "2024-02-25T01:58:32.535Z",
+            "modified": "2024-03-07T23:31:21.796Z",
+            "headers": [
+                {
+                    "name": "User-Agent",
+                    "value": "Snap Hutao/1.9.7.0"
+                },
+                {
+                    "name": "X-QUALITY",
+                    "value": "hIGh"
+                },
+                {
+                    "name": "X-MINIMUM",
+                    "value": "true"
+                }
+            ],
+            "params": [],
+            "reqType": "get",
+            "tests": []
+        },
+        {
+            "_id": "a9e31770-2c3f-43ad-ab9c-07fb09611ce5",
+            "colId": "72d06ee6-01e6-4dac-a430-8c8ae665fdcd",
+            "containerId": "f3c293dc-d223-4f83-a422-0c0c51924380",
+            "name": "Update CN zip url format",
+            "url": "http://127.0.0.1:8080/cn/static/set",
+            "method": "POST",
+            "sortNum": 120000,
+            "created": "2024-02-25T02:00:49.144Z",
+            "modified": "2024-02-25T02:09:32.659Z",
+            "headers": [
+                {
+                    "name": "API-TOKEN",
+                    "value": "HY2d8jAw4EowpBqFrzzCwRusyfBbeiKa"
+                }
+            ],
+            "params": [],
+            "body": {
+                "type": "json",
+                "raw": "{\n  \"type\": \"zip\",\n  \"url\": \"https://baidu.com{file_path}\"\n}",
+                "form": []
+            },
+            "tests": []
+        }
+    ]
+}
