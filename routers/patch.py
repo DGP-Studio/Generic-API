@@ -160,17 +160,12 @@ def update_snap_hutao_latest_version() -> dict:
     logger.debug(f"JiHuLAB data fetched: {jihulab_patch_meta}")
 
     # Clear overwritten URL if the version is updated
-    try:
-        if overwritten_china_url["snap-hutao"]["version"] != github_patch_meta.version:
-            overwritten_china_url["snap-hutao"]["version"] = None
-            overwritten_china_url["snap-hutao"]["url"] = None
-            if redis_conn:
-                r = redis_conn.set("overwritten_china_url", json.dumps(overwritten_china_url))
-                logger.info(f"Set overwritten_china_url to Redis: {r}")
-    except (KeyError, TypeError):
-        print(overwritten_china_url)
-        import time
-        time.sleep(50)
+    if overwritten_china_url["snap-hutao"]["version"] != github_patch_meta.version:
+        overwritten_china_url["snap-hutao"]["version"] = None
+        overwritten_china_url["snap-hutao"]["url"] = None
+        if redis_conn:
+            r = redis_conn.set("overwritten_china_url", json.dumps(overwritten_china_url))
+            logger.info(f"Set overwritten_china_url to Redis: {r}")
 
     return {
         "global": {
