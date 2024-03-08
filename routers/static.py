@@ -16,7 +16,7 @@ class StaticUpdateURL(BaseModel):
 china_router = APIRouter(tags=["Static"], prefix="/static")
 global_router = APIRouter(tags=["Static"], prefix="/static")
 
-cn_zip_url = "https://static-next.snapgenshin.com/d/lz/{file_path}"
+cn_zip_url = "https://static-next.snapgenshin.com/d/tx/{file_path}"
 cn_raw_url = "https://jihulab.com/DGP-Studio/Snap.Static/-/raw/main/{file_path}"
 
 
@@ -32,8 +32,8 @@ async def cn_get_zipped_file(file_path: str, request: Request):
     """
     # https://jihulab.com/DGP-Studio/Snap.Static.Zip/-/raw/main/{file_path}
     # https://static-next.snapgenshin.com/d/zip/{file_path}
-    quality = request.headers.get("x-quality", "unknown").lower()
-    minimum_package = request.headers.get("x-minimum", "unknown").lower()
+    quality = request.headers.get("x-quality", "raw").lower()
+    minimum_package = request.headers.get("x-minimum", "true").lower()
 
     if quality == "unknown" or minimum_package == "unknown":
         raise HTTPException(status_code=418, detail="Invalid request")
@@ -50,8 +50,9 @@ async def cn_get_zipped_file(file_path: str, request: Request):
     match quality:
         case "high":
             file_path = file_path.replace(".zip", "-tiny.zip")
+            file_path = "tiny-zip/" + file_path
         case "raw":
-            pass
+            file_path = "zip/" + file_path
         case _:
             raise HTTPException(status_code=404, detail="Invalid quality")
     logging.debug(f"Redirecting to {cn_zip_url.format(file_path=file_path)}")
@@ -82,8 +83,8 @@ async def global_get_zipped_file(file_path: str, request: Request):
 
     :return: Redirect to the zip file
     """
-    quality = request.headers.get("x-quality", "unknown").lower()
-    minimum_package = request.headers.get("x-minimum", "unknown").lower()
+    quality = request.headers.get("x-quality", "raw").lower()
+    minimum_package = request.headers.get("x-minimum", "true").lower()
 
     if quality == "unknown" or minimum_package == "unknown":
         raise HTTPException(status_code=418, detail="Invalid request")
@@ -99,12 +100,13 @@ async def global_get_zipped_file(file_path: str, request: Request):
     match quality:
         case "high":
             file_path = file_path.replace(".zip", "-tiny.zip")
+            logging.debug(f"Redirecting to https://static-tiny-zip.snapgenshin.cn/{file_path}")
+            return RedirectResponse(f"https://static-tiny-zip.snapgenshin.cn/{file_path}", status_code=302)
         case "raw":
-            pass
+            logging.debug(f"Redirecting to https://static-zip.snapgenshin.cn/{file_path}")
+            return RedirectResponse(f"https://static-zip.snapgenshin.cn/{file_path}", status_code=302)
         case _:
             raise HTTPException(status_code=404, detail="Invalid quality")
-    logging.debug(f"Redirecting to https://static-zip.snapgenshin.cn/{file_path}")
-    return RedirectResponse(f"https://static-zip.snapgenshin.cn/{file_path}", status_code=302)
 
 
 @global_router.get("/raw/{file_path:path}")

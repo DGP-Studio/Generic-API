@@ -23,6 +23,22 @@ else:
 
 try:
     overwritten_china_url = json.loads(redis_conn.get("overwritten_china_url"))
+    # Temp fix for v2 format
+    if "snap-hutao" not in overwritten_china_url.keys():
+        if type(overwritten_china_url["snap-hutao"]) is not dict:
+            stored_url = overwritten_china_url["snap-hutao"]
+            overwritten_china_url["snap-hutao"] = {
+                "version": None,
+                "url": stored_url
+            }
+            overwritten_china_url["snap-hutao-deployment"] = {
+                "version": None,
+                "url": None
+            }
+            if redis_conn:
+                result = redis_conn.set("overwritten_china_url", json.dumps(overwritten_china_url))
+                logger.info(f"Set overwritten_china_url to Redis: {result}")
+    # End of temp fix
 except (redis.exceptions.ConnectionError, TypeError, AttributeError):
     logger.warning("Failed to get overwritten_china_url from Redis, using empty dict")
     overwritten_china_url = {}
@@ -144,12 +160,17 @@ def update_snap_hutao_latest_version() -> dict:
     logger.debug(f"JiHuLAB data fetched: {jihulab_patch_meta}")
 
     # Clear overwritten URL if the version is updated
-    if overwritten_china_url["snap-hutao"]["version"] != github_patch_meta.version:
-        overwritten_china_url["snap-hutao"]["version"] = None
-        overwritten_china_url["snap-hutao"]["url"] = None
-        if redis_conn:
-            result = redis_conn.set("overwritten_china_url", json.dumps(overwritten_china_url))
-            logger.info(f"Set overwritten_china_url to Redis: {result}")
+    try:
+        if overwritten_china_url["snap-hutao"]["version"] != github_patch_meta.version:
+            overwritten_china_url["snap-hutao"]["version"] = None
+            overwritten_china_url["snap-hutao"]["url"] = None
+            if redis_conn:
+                r = redis_conn.set("overwritten_china_url", json.dumps(overwritten_china_url))
+                logger.info(f"Set overwritten_china_url to Redis: {r}")
+    except (KeyError, TypeError):
+        print(overwritten_china_url)
+        import time
+        time.sleep(50)
 
     return {
         "global": {
@@ -206,8 +227,8 @@ def update_snap_hutao_deployment_version() -> dict:
         overwritten_china_url["snap-hutao-deployment"]["version"] = None
         overwritten_china_url["snap-hutao-deployment"]["url"] = None
         if redis_conn:
-            result = redis_conn.set("overwritten_china_url", json.dumps(overwritten_china_url))
-            logger.info(f"Set overwritten_china_url to Redis: {result}")
+            r = redis_conn.set("overwritten_china_url", json.dumps(overwritten_china_url))
+            logger.info(f"Set overwritten_china_url to Redis: {r}")
 
     return {
         "global": {
@@ -385,13 +406,11 @@ async def update_overwritten_china_url(response: Response, request: Request):
             "url": overwrite_url
         }
         if redis_conn:
-            result = redis_conn.set("overwritten_china_url", json.dumps(overwritten_china_url))
-            logger.info(f"Set overwritten_china_url to Redis: {result}")
+            r = redis_conn.set("overwritten_china_url", json.dumps(overwritten_china_url))
+            logger.info(f"Set overwritten_china_url to Redis: {r}")
         if project_key == "snap-hutao":
-            global snap_hutao_latest_version
             snap_hutao_latest_version = update_snap_hutao_latest_version()
         elif project_key == "snap-hutao-deployment":
-            global snap_hutao_deployment_latest_version
             snap_hutao_deployment_latest_version = update_snap_hutao_deployment_version()
         response.status_code = status.HTTP_201_CREATED
         return {"message": f"Successfully overwritten {project_key} url to {overwrite_url}"}
