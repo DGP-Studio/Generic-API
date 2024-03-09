@@ -24,7 +24,7 @@ else:
 try:
     overwritten_china_url = json.loads(redis_conn.get("overwritten_china_url"))
     # Temp fix for v2 format
-    if "snap-hutao" not in overwritten_china_url.keys():
+    if "snap-hutao" in overwritten_china_url.keys():
         if type(overwritten_china_url["snap-hutao"]) is not dict:
             stored_url = overwritten_china_url["snap-hutao"]
             overwritten_china_url["snap-hutao"] = {

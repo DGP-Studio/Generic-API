@@ -91,7 +91,8 @@ async def global_get_zipped_file(file_path: str, request: Request):
 
     match minimum_package:
         case "true":
-            file_path = file_path.replace(".zip", "-Minimum.zip")
+            if file_path == "ItemIcon.zip" or file_path == "EmotionIcon.zip":
+                file_path = file_path.replace(".zip", "-Minimum.zip")
         case "false":
             pass
         case _:
