@@ -23,9 +23,11 @@ else:
 
 try:
     overwritten_china_url = json.loads(redis_conn.get("overwritten_china_url"))
+    logger.info(f"Got overwritten_china_url from Redis: {overwritten_china_url}")
     # Temp fix for v2 format
     if "snap-hutao" in overwritten_china_url.keys():
         if type(overwritten_china_url["snap-hutao"]) is not dict:
+            logger.info("Detected v1 format of overwritten_china_url, converting to v2 format")
             stored_url = overwritten_china_url["snap-hutao"]
             overwritten_china_url["snap-hutao"] = {
                 "version": None,
@@ -60,7 +62,6 @@ sample_overwritten_china_url = {
     }
 }
 """
-
 
 china_router = APIRouter(tags=["Patch"], prefix="/patch")
 global_router = APIRouter(tags=["Patch"], prefix="/patch")
@@ -129,6 +130,7 @@ def update_snap_hutao_latest_version() -> dict:
     Update Snap Hutao latest version from GitHub and Jihulab
     :return: dict of latest version metadata
     """
+    global overwritten_china_url
     gitlab_message = ""
     github_message = ""
 
@@ -141,7 +143,7 @@ def update_snap_hutao_latest_version() -> dict:
     jihulab_meta = httpx.get(
         "https://jihulab.com/api/v4/projects/DGP-Studio%2FSnap.Hutao/releases/permalink/latest",
         follow_redirects=True).json()
-    jihu_tag_name = jihulab_meta["tag_name"]+".0"
+    jihu_tag_name = jihulab_meta["tag_name"] + ".0"
     if jihu_tag_name != github_patch_meta.version:
         # JiHuLAB sync not done yet
         gitlab_message = f"GitLab release not found, using GitHub release instead. "
@@ -152,7 +154,7 @@ def update_snap_hutao_latest_version() -> dict:
                            if a["link_type"] == "package"][0]
             archive_url = [a["direct_asset_url"] for a in jihulab_meta["assets"]["links"]
                            if a["name"] == "artifact_archive"][0]
-            jihulab_patch_meta.url = jihulab_url
+            jihulab_patch_meta.url = [jihulab_url]
             jihulab_patch_meta.archive_url = [archive_url]
         except (KeyError, IndexError) as e:
             gitlab_message = f"Error occurred when fetching Snap Hutao from JiHuLAB: {e}. "
@@ -161,11 +163,15 @@ def update_snap_hutao_latest_version() -> dict:
 
     # Clear overwritten URL if the version is updated
     if overwritten_china_url["snap-hutao"]["version"] != github_patch_meta.version:
+        logger.info("Found unmatched version, clearing overwritten URL")
         overwritten_china_url["snap-hutao"]["version"] = None
         overwritten_china_url["snap-hutao"]["url"] = None
         if redis_conn:
             r = redis_conn.set("overwritten_china_url", json.dumps(overwritten_china_url))
             logger.info(f"Set overwritten_china_url to Redis: {r}")
+    else:
+        gitlab_message += f"Using overwritten URL: {overwritten_china_url['snap-hutao']['url']}. "
+        jihulab_patch_meta.url = [overwritten_china_url["snap-hutao"]["url"]] + github_patch_meta.url
 
     return {
         "global": {
@@ -200,6 +206,7 @@ def update_snap_hutao_deployment_version() -> dict:
     Update Snap Hutao Deployment latest version from GitHub and Jihulab
     :return: dict of Snap Hutao Deployment latest version metadata
     """
+    global overwritten_china_url
     github_meta = httpx.get("https://api.github.com/repos/DGP-Studio/Snap.Hutao.Deployment/releases/latest",
                             headers=github_headers).json()
     github_msix_url = None
@@ -219,6 +226,7 @@ def update_snap_hutao_deployment_version() -> dict:
 
     # Clear overwritten URL if the version is updated
     if overwritten_china_url["snap-hutao-deployment"]["version"] != jihulab_meta["tag_name"]:
+        logger.info("Found unmatched version, clearing overwritten URL")
         overwritten_china_url["snap-hutao-deployment"]["version"] = None
         overwritten_china_url["snap-hutao-deployment"]["url"] = None
         if redis_conn:
@@ -408,4 +416,5 @@ async def update_overwritten_china_url(response: Response, request: Request):
         elif project_key == "snap-hutao-deployment":
             snap_hutao_deployment_latest_version = update_snap_hutao_deployment_version()
         response.status_code = status.HTTP_201_CREATED
+        logger.info(f"Latest overwritten URL data: {overwritten_china_url}")
         return {"message": f"Successfully overwritten {project_key} url to {overwrite_url}"}
