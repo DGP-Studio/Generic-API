@@ -216,13 +216,8 @@ def update_snap_hutao_deployment_version() -> dict:
     jihulab_meta = httpx.get(
         "https://jihulab.com/api/v4/projects/DGP-Studio%2FSnap.Hutao.Deployment/releases/permalink/latest",
         follow_redirects=True).json()
-    if overwritten_china_url["snap-hutao-deployment"]:
-        cn_urls = [overwritten_china_url["snap-hutao-deployment"]] + list(
-            [list([a["direct_asset_url"] for a in jihulab_meta["assets"]["links"]
-                   if a["link_type"] == "package"])[0]])
-    else:
-        cn_urls = list([list([a["direct_asset_url"] for a in jihulab_meta["assets"]["links"]
-                              if a["link_type"] == "package"])[0]])
+    cn_urls = list([list([a["direct_asset_url"] for a in jihulab_meta["assets"]["links"]
+                          if a["link_type"] == "package"])[0]])
 
     # Clear overwritten URL if the version is updated
     if overwritten_china_url["snap-hutao-deployment"]["version"] != jihulab_meta["tag_name"]:
@@ -232,6 +227,10 @@ def update_snap_hutao_deployment_version() -> dict:
         if redis_conn:
             r = redis_conn.set("overwritten_china_url", json.dumps(overwritten_china_url))
             logger.info(f"Set overwritten_china_url to Redis: {r}")
+    else:
+        cn_urls = [overwritten_china_url["snap-hutao-deployment"]["url"]] + cn_urls
+
+
 
     return {
         "global": {

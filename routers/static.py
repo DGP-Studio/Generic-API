@@ -16,8 +16,7 @@ class StaticUpdateURL(BaseModel):
 china_router = APIRouter(tags=["Static"], prefix="/static")
 global_router = APIRouter(tags=["Static"], prefix="/static")
 
-cn_zip_url = "https://static-next.snapgenshin.com/d/tx/{file_path}"
-cn_raw_url = "https://jihulab.com/DGP-Studio/Snap.Static/-/raw/main/{file_path}"
+CN_OSS_URL = "https://static-next.snapgenshin.com/d/tx/{file_path}"
 
 
 @china_router.get("/zip/{file_path:path}")
@@ -55,22 +54,32 @@ async def cn_get_zipped_file(file_path: str, request: Request):
             file_path = "zip/" + file_path
         case _:
             raise HTTPException(status_code=404, detail="Invalid quality")
-    logging.debug(f"Redirecting to {cn_zip_url.format(file_path=file_path)}")
-    return RedirectResponse(cn_zip_url.format(file_path=file_path), status_code=302)
+    logging.debug(f"Redirecting to {CN_OSS_URL.format(file_path=file_path)}")
+    return RedirectResponse(CN_OSS_URL.format(file_path=file_path), status_code=302)
 
 
 @china_router.get("/raw/{file_path:path}")
-async def cn_get_raw_file(file_path: str):
+async def cn_get_raw_file(file_path: str, request: Request):
     """
     Endpoint used to redirect to the raw static file in China server
 
+    :param request: request object from FastAPI
     :param file_path: Raw file relative path in Snap.Static
+
 
     :return: 302 Redirect to the raw file
     """
-    # https://jihulab.com/DGP-Studio/Snap.Static/-/raw/main/{file_path}
-    # https://static-next.snapgenshin.com/d/raw/{file_path}
-    return RedirectResponse(cn_raw_url.format(file_path=file_path), status_code=302)
+    quality = request.headers.get("x-quality", "raw").lower()
+
+    match quality:
+        case "high":
+            file_path = "tiny-raw/" + file_path
+        case "raw":
+            file_path = "raw/" + file_path
+        case _:
+            raise HTTPException(status_code=404, detail="Invalid quality")
+    logging.debug(f"Redirecting to {CN_OSS_URL.format(file_path=file_path)}")
+    return RedirectResponse(CN_OSS_URL.format(file_path=file_path), status_code=302)
 
 
 @global_router.get("/zip/{file_path:path}")
@@ -111,54 +120,21 @@ async def global_get_zipped_file(file_path: str, request: Request):
 
 
 @global_router.get("/raw/{file_path:path}")
-async def global_get_raw_file(file_path: str):
+async def global_get_raw_file(file_path: str, request: Request):
     """
     Endpoint used to redirect to the raw static file in Global server
 
+    :param request: request object from FastAPI
     :param file_path: Relative path in Snap.Static
 
     :return: 302 Redirect to the raw file
     """
-    return RedirectResponse(f"https://static.snapgenshin.cn/{file_path}", status_code=302)
+    quality = request.headers.get("x-quality", "raw").lower()
 
-
-@global_router.post("/set", response_model=schemas.StandardResponse, dependencies=[Depends(verify_api_token)],
-                    tags=["admin"])
-@china_router.post("/set", response_model=schemas.StandardResponse, dependencies=[Depends(verify_api_token)],
-                   tags=["admin"])
-async def set_static_cn_url(update_request: StaticUpdateURL, response: Response):
-    """
-    Endpoint used to set the static file URL for **China endpoint**
-
-    :param response: Response object from FastAPI
-
-    :param update_request: StaticUpdateURL
-
-    :return: StandardResponse
-    """
-    success = False
-    return_data = StandardResponse()
-
-    if update_request.type == "zip":
-        global cn_zip_url
-        if r"{file_path}" in update_request.url:
-            success = True
-            cn_zip_url = update_request.url
-        else:
-            return_data.message = "Invalid URL, make sure to include {file_path} in the URL"
-    elif update_request.type == "raw":
-        global cn_raw_url
-        if r"{file_path}" in update_request.url:
-            success = True
-            cn_raw_url = update_request.url
-        else:
-            return_data.message = "Invalid URL, make sure to include {file_path} in the URL"
-    else:
-        return_data.message = "Invalid type"
-
-    if success:
-        return_data.message = "Success"
-    else:
-        response.status_code = 400
-        return_data.retcode = 1
-    return return_data
+    match quality:
+        case "high":
+            return RedirectResponse(f"https://static-tiny.snapgenshin.cn/{file_path}", status_code=302)
+        case "raw":
+            return RedirectResponse(f"https://static.snapgenshin.cn/{file_path}", status_code=302)
+        case _:
+            raise HTTPException(status_code=404, detail="Invalid quality")
