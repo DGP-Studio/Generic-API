@@ -171,7 +171,7 @@ def update_snap_hutao_latest_version() -> dict:
             logger.info(f"Set overwritten_china_url to Redis: {r}")
     else:
         gitlab_message += f"Using overwritten URL: {overwritten_china_url['snap-hutao']['url']}. "
-        jihulab_patch_meta.url = [overwritten_china_url["snap-hutao"]["url"]] + github_patch_meta.url
+        jihulab_patch_meta.url = [overwritten_china_url["snap-hutao"]["url"]] + jihulab_patch_meta.url
 
     return {
         "global": {
@@ -229,8 +229,6 @@ def update_snap_hutao_deployment_version() -> dict:
             logger.info(f"Set overwritten_china_url to Redis: {r}")
     else:
         cn_urls = [overwritten_china_url["snap-hutao-deployment"]["url"]] + cn_urls
-
-
 
     return {
         "global": {
