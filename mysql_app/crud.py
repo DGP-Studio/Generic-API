@@ -37,7 +37,7 @@ def enable_wallpaper_with_url(db: Session, url: str):
 
 
 def get_all_fresh_wallpaper(db: Session):
-    target_date = str(date.today() - timedelta(days=7))
+    target_date = str(date.today() - timedelta(days=14))
     all_wallpapers = db.query(models.Wallpaper)
     fresh_wallpapers = all_wallpapers.filter(or_(models.Wallpaper.last_display_date < target_date,
                                                  models.Wallpaper.last_display_date == None)).all()
