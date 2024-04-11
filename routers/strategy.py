@@ -33,6 +33,11 @@ def get_db():
 
 
 def refresh_miyoushe_avatar_strategy(db: Session = None) -> bool:
+    """
+    Refresh avatar strategy from Miyoushe
+    :param db: Database session
+    :return: True if successful else raise RuntimeError
+    """
     if not db:
         db = SessionLocal()
     avatar_strategy = []
@@ -68,6 +73,11 @@ def refresh_miyoushe_avatar_strategy(db: Session = None) -> bool:
 
 
 def refresh_hoyolab_avatar_strategy(db: Session = None):
+    """
+    Refresh avatar strategy from Hoyolab
+    :param db: Database session
+    :return: true if successful else raise RuntimeError
+    """
     avatar_strategy = []
     if not db:
         db = SessionLocal()
@@ -107,6 +117,12 @@ def refresh_hoyolab_avatar_strategy(db: Session = None):
 @china_router.get("/refresh", response_model=StandardResponse, dependencies=[Depends(verify_api_token)])
 @global_router.get("/refresh", response_model=StandardResponse, dependencies=[Depends(verify_api_token)])
 def refresh_avatar_strategy(channel: str, db: Session = Depends(get_db)):
+    """
+    Refresh avatar strategy from Miyoushe or Hoyolab
+    :param channel: one of `miyoushe`, `hoyolab`, `all`
+    :param db: Database session
+    :return: StandardResponse with DB operation result and full cached strategy dict
+    """
     if channel == "miyoushe":
         result = {"mys": refresh_miyoushe_avatar_strategy(db)}
     elif channel == "hoyolab":
@@ -141,6 +157,12 @@ def refresh_avatar_strategy(channel: str, db: Session = Depends(get_db)):
 @china_router.get("/item", response_model=StandardResponse)
 @global_router.get("/item", response_model=StandardResponse)
 def get_avatar_strategy_item(item_id: int, db: Session = Depends(get_db)):
+    """
+    Get avatar strategy item by avatar ID
+    :param item_id: Genshin internal avatar ID (compatible with weapon id if available)
+    :param db: Database session
+    :return: strategy URLs for Miyoushe and Hoyolab
+    """
     MIYOUSHE_STRATEGY_URL = "https://bbs.mihoyo.com/ys/strategy/channel/map/39/{mys_strategy_id}?bbs_presentation_style=no_header"
     HOYOLAB_STRATEGY_URL = "https://www.hoyolab.com/guidelist?game_id=2&guide_id={hoyolab_strategy_id}"
 
