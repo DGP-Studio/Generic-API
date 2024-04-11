@@ -1,5 +1,6 @@
 from sqlalchemy.orm import Session
-from sqlalchemy import or_, and_
+from sqlalchemy.dialects.mysql import insert
+from sqlalchemy import or_
 from datetime import date, timedelta
 from . import models, schemas
 
@@ -57,3 +58,38 @@ def reset_last_display(db: Session):
     db.query(models.Wallpaper).update({models.Wallpaper.last_display_date: None})
     db.commit()
     return True
+
+
+def add_avatar_strategy(db: Session, strategy: schemas.AvatarStrategy):
+    insert_stmt = insert(models.AvatarStrategy).values(**strategy.dict()).on_duplicate_key_update(
+        mys_strategy_id=strategy.mys_strategy_id if strategy.mys_strategy_id is not None else models.AvatarStrategy.mys_strategy_id,
+        hoyolab_strategy_id=strategy.hoyolab_strategy_id if strategy.hoyolab_strategy_id is not None else models.AvatarStrategy.hoyolab_strategy_id
+    )
+    db.execute(insert_stmt)
+    db.commit()
+
+    """
+    existing_strategy = db.query(models.AvatarStrategy).filter_by(avatar_id=strategy.avatar_id).first()
+
+    if existing_strategy:
+        if strategy.mys_strategy_id is not None:
+            existing_strategy.mys_strategy_id = strategy.mys_strategy_id
+        if strategy.hoyolab_strategy_id is not None:
+            existing_strategy.hoyolab_strategy_id = strategy.hoyolab_strategy_id
+    else:
+        new_strategy = models.AvatarStrategy(**strategy.dict())
+        db.add(new_strategy)
+
+    db.commit()
+    db.refresh(existing_strategy)
+    """
+
+    return strategy
+
+
+def get_avatar_strategy_by_id(avatar_id: str, db: Session):
+    return db.query(models.AvatarStrategy).filter_by(avatar_id=avatar_id).first()
+
+
+def get_all_avatar_strategy(db: Session):
+    return db.query(models.AvatarStrategy).all()

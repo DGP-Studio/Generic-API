@@ -3,7 +3,7 @@ import uvicorn
 from fastapi import FastAPI
 from fastapi.responses import RedirectResponse
 from fastapi.middleware.cors import CORSMiddleware
-from routers import enka_network, metadata, patch, static, net, wallpaper
+from routers import enka_network, metadata, patch, static, net, wallpaper, strategy
 from base_logger import logger
 from config import (MAIN_SERVER_DESCRIPTION, API_VERSION, TOS_URL, CONTACT_INFO, LICENSE_INFO,
                     CHINA_SERVER_DESCRIPTION, GLOBAL_SERVER_DESCRIPTION)
@@ -59,6 +59,10 @@ global_app.include_router(net.global_router)
 # Wallpaper API Routers
 china_app.include_router(wallpaper.china_router)
 global_app.include_router(wallpaper.global_router)
+
+# Strategy API Routers
+china_app.include_router(strategy.china_router)
+global_app.include_router(strategy.global_router)
 
 origins = [
     "http://localhost",
