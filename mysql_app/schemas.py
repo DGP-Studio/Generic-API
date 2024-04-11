@@ -33,3 +33,9 @@ class RedemptionCode(BaseModel):
 class RedemptionToken(BaseModel):
     token: str
     authority: str
+
+
+class AvatarStrategy(BaseModel):
+    avatar_id: int
+    mys_strategy_id: Optional[int | None] = None
+    hoyolab_strategy_id: Optional[int | None] = None
