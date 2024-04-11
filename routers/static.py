@@ -21,7 +21,6 @@ global_router = APIRouter(tags=["Static"], prefix="/static")
 
 CN_OSS_URL = "https://static-next.snapgenshin.com/d/tx/{file_path}"
 zip_size_data = {}
-zip_size_lock = asyncio.Lock()
 
 
 @china_router.get("/zip/{file_path:path}")
@@ -148,61 +147,62 @@ async def global_get_raw_file(file_path: str, request: Request):
 @repeat_every(seconds=60 * 60 * 3)
 async def list_static_files_size():
     global zip_size_data
-    async with zip_size_lock:
-        # Raw
-        api_url = "https://static-next.snapgenshin.com/api/fs/list"
-        payload = {
-            "path": "/tx/zip",
-            "password": "",
-            "page": 1,
-            "per_page": 0,
-            "refresh": False
-        }
-        response = httpx.post(api_url, json=payload)
-        if response.status_code == 200:
-            data = response.json().get("data", []).get("content", [])
-        else:
-            raise RuntimeError(
-                f"Failed to list static files, \nstatus code: {response.status_code}, \ncontent: {response.text}")
-        raw_minimum = [f for f in data if f["name"] != "ItemIcon.zip" and f["name"] != "EmotionIcon.zip"]
-        raw_full = [f for f in data if f["name"] != "ItemIcon-Minimum.zip" or f["name"] == "EmotionIcon-Minimum.zip"]
-        raw_minimum_size = sum([f["size"] for f in raw_minimum])
-        raw_full_size = sum([f["size"] for f in raw_full])
+    # Raw
+    api_url = "https://static-next.snapgenshin.com/api/fs/list"
+    payload = {
+        "path": "/tx/zip",
+        "password": "",
+        "page": 1,
+        "per_page": 0,
+        "refresh": False
+    }
+    response = httpx.post(api_url, json=payload)
+    if response.status_code == 200:
+        data = response.json().get("data", []).get("content", [])
+    else:
+        raise RuntimeError(
+            f"Failed to list static files, \nstatus code: {response.status_code}, \ncontent: {response.text}")
+    raw_minimum = [f for f in data if f["name"] != "ItemIcon.zip" and f["name"] != "EmotionIcon.zip"]
+    raw_full = [f for f in data if f["name"] != "ItemIcon-Minimum.zip" or f["name"] == "EmotionIcon-Minimum.zip"]
+    raw_minimum_size = sum([f["size"] for f in raw_minimum])
+    raw_full_size = sum([f["size"] for f in raw_full])
 
-        # Tiny
-        payload = {
-            "path": "/tx/tiny-zip",
-            "password": "",
-            "page": 1,
-            "per_page": 0,
-            "refresh": False
-        }
-        response = httpx.post(api_url, json=payload)
-        if response.status_code == 200:
-            data = response.json().get("data", []).get("content", [])
-        else:
-            raise RuntimeError(
-                f"Failed to list static files, \nstatus code: {response.status_code}, \ncontent: {response.text}")
-        tiny_minimum = [f for f in data if f["name"] != "ItemIcon-tiny.zip" and f["name"] != "EmotionIcon-tiny.zip"]
-        tiny_full = [f for f in data if f["name"] != "ItemIcon-Minimum-tiny.zip" or f["name"] == "EmotionIcon-Minimum-tiny.zip"]
-        tiny_minimum_size = sum([f["size"] for f in tiny_minimum])
-        tiny_full_size = sum([f["size"] for f in tiny_full])
-        zip_size_data = {
-            "raw_minimum": raw_minimum_size,
-            "raw_full": raw_full_size,
-            "tiny_minimum": tiny_minimum_size,
-            "tiny_full": tiny_full_size
-        }
-        logger.info(f"Updated static files size data: {zip_size_data}")
-        return zip_size_data
+    # Tiny
+    payload = {
+        "path": "/tx/tiny-zip",
+        "password": "",
+        "page": 1,
+        "per_page": 0,
+        "refresh": False
+    }
+    response = httpx.post(api_url, json=payload)
+    if response.status_code == 200:
+        data = response.json().get("data", []).get("content", [])
+    else:
+        raise RuntimeError(
+            f"Failed to list static files, \nstatus code: {response.status_code}, \ncontent: {response.text}")
+    tiny_minimum = [f for f in data if f["name"] != "ItemIcon-tiny.zip" and f["name"] != "EmotionIcon-tiny.zip"]
+    tiny_full = [f for f in data if f["name"] != "ItemIcon-Minimum-tiny.zip" or f["name"] == "EmotionIcon-Minimum-tiny.zip"]
+    tiny_minimum_size = sum([f["size"] for f in tiny_minimum])
+    tiny_full_size = sum([f["size"] for f in tiny_full])
+    zip_size_data = {
+        "raw_minimum": raw_minimum_size,
+        "raw_full": raw_full_size,
+        "tiny_minimum": tiny_minimum_size,
+        "tiny_full": tiny_full_size
+    }
+    logger.info(f"Updated static files size data: {zip_size_data}")
+    return zip_size_data
+
+
+asyncio.create_task(list_static_files_size())
 
 
 @china_router.get("/size", response_model=StandardResponse)
 @global_router.get("/size", response_model=StandardResponse)
 async def get_static_files_size():
-    async with zip_size_lock:
-        if not zip_size_data:
-            await list_static_files_size()
+    if not zip_size_data:
+        await list_static_files_size()
     response = StandardResponse(
         retcode=0,
         message="Success",
