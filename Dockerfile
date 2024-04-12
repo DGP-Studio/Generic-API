@@ -8,6 +8,7 @@ RUN pip install fastapi-utils
 RUN pip install redis
 RUN pip install pymysql
 RUN pip install cryptography
+RUN pip install requests
 #RUN pip install --no-cache-dir -r /code/requirements.txt
 RUN pip install pyinstaller
 RUN pyinstaller -F main.py
