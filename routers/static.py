@@ -36,16 +36,16 @@ async def cn_get_zipped_file(file_path: str, request: Request):
     # https://jihulab.com/DGP-Studio/Snap.Static.Zip/-/raw/main/{file_path}
     # https://static-next.snapgenshin.com/d/zip/{file_path}
     quality = request.headers.get("x-quality", "raw").lower()
-    minimum_package = request.headers.get("x-minimum", "true").lower()
+    archive_type = request.headers.get("x-archive", "full").lower()
 
-    if quality == "unknown" or minimum_package == "unknown":
+    if quality == "unknown" or archive_type == "unknown":
         raise HTTPException(status_code=418, detail="Invalid request")
 
-    match minimum_package:
-        case "true":
+    match archive_type:
+        case "minimum":
             if file_path == "ItemIcon.zip" or file_path == "EmotionIcon.zip":
                 file_path = file_path.replace(".zip", "-Minimum.zip")
-        case "false":
+        case "full":
             pass
         case _:
             raise HTTPException(status_code=404, detail="Invalid minimum package")
@@ -97,16 +97,16 @@ async def global_get_zipped_file(file_path: str, request: Request):
     :return: Redirect to the zip file
     """
     quality = request.headers.get("x-quality", "raw").lower()
-    minimum_package = request.headers.get("x-minimum", "true").lower()
+    archive_type = request.headers.get("x-archive", "full").lower()
 
-    if quality == "unknown" or minimum_package == "unknown":
+    if quality == "unknown" or archive_type == "unknown":
         raise HTTPException(status_code=418, detail="Invalid request")
 
-    match minimum_package:
-        case "true":
+    match archive_type:
+        case "minimum":
             if file_path == "ItemIcon.zip" or file_path == "EmotionIcon.zip":
                 file_path = file_path.replace(".zip", "-Minimum.zip")
-        case "false":
+        case "full":
             pass
         case _:
             raise HTTPException(status_code=404, detail="Invalid minimum package")
