@@ -1,3 +1,4 @@
+import asyncio
 import json
 import logging
 import os
@@ -69,6 +70,9 @@ allowed_user_agents = update_recent_versions()
 def timely_update_allowed_ua():
     global allowed_user_agents
     allowed_user_agents = update_recent_versions()
+
+
+asyncio.ensure_future(timely_update_allowed_ua())
 
 
 async def validate_client_is_updated(user_agent: Annotated[str, Header()]):

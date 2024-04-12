@@ -1,3 +1,4 @@
+import asyncio
 import os
 import redis
 import json
@@ -18,7 +19,6 @@ global_router = APIRouter(tags=["Hutao Metadata"], dependencies=[Depends(validat
 
 
 @repeat_every(seconds=60 * scan_duration)
-@china_router.on_event("startup")
 async def refresh_metadata_censored_files():
     """
     Refresh metadata_censored_files every 30 minutes.
@@ -36,7 +36,7 @@ async def refresh_metadata_censored_files():
         logger.info(f"Connecting to Redis at {REDIS_HOST}")
         r = redis.Redis(host=REDIS_HOST, port=6379, db=1, decode_responses=True)
         logger.info("Redis connection established")
-    redis_data = r.get("metadata_censored_files")
+    redis_data = await r.get("metadata_censored_files")
     logger.info(f"Receive data of metadata_censored_files from Redis: {redis_data}")
     if redis_data is not None:
         metadata_censored_files = json.loads(redis_data)
@@ -44,6 +44,9 @@ async def refresh_metadata_censored_files():
         metadata_censored_files = []
     r.close()
     logger.info(f"Redis connection closed as scheduled refreshing metadata_censored_files finished")
+
+
+asyncio.ensure_future(refresh_metadata_censored_files())
 
 
 @china_router.get("/ban")
