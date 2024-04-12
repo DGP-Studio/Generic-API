@@ -195,7 +195,7 @@ async def list_static_files_size():
     return zip_size_data
 
 
-asyncio.create_task(list_static_files_size())
+asyncio.ensure_future(list_static_files_size())
 
 
 @china_router.get("/size", response_model=StandardResponse)
