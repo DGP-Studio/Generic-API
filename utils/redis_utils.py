@@ -39,4 +39,10 @@ Redis data map
 
 - metadata_censored_files
     - Shared with jihu_utils container
+    
+# Patch Module
+
+- overwritten_china_url
+- snap_hutao_latest_version
+- snap_hutao_deployment_latest_version
 """
