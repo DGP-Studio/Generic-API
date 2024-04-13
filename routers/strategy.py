@@ -1,10 +1,9 @@
 import json
 import requests
-import os
-import redis
 from fastapi import Depends, APIRouter, HTTPException
 from sqlalchemy.orm import Session
 from utils.uigf import get_genshin_avatar_id
+from utils.redis_utils import redis_conn
 from mysql_app.database import SessionLocal
 from mysql_app.schemas import AvatarStrategy, StandardResponse
 from utils.authentication import verify_api_token
@@ -13,15 +12,6 @@ from base_logger import logger
 
 china_router = APIRouter(tags=["Strategy"], prefix="/strategy")
 global_router = APIRouter(tags=["Strategy"], prefix="/strategy")
-
-if os.getenv("NO_REDIS", "false").lower() == "true":
-    logger.info("Skipping Redis connection in Strategy module as NO_REDIS is set to true")
-    redis_conn = None
-else:
-    REDIS_HOST = os.getenv("REDIS_HOST", "redis")
-    logger.info(f"Connecting to Redis at {REDIS_HOST} for Wallpaper module")
-    redis_conn = redis.Redis(host=REDIS_HOST, port=6379, db=1, decode_responses=True)
-    logger.info("Redis connection established for Strategy module")
 
 
 def get_db():
