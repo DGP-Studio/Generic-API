@@ -1,9 +1,9 @@
 from fastapi import APIRouter, Depends, Request
 import pymysql
 from pydantic import BaseModel
-from utils.dgp_utils import validate_client_is_updated
-from mysql_app import crud, models, schemas
-from mysql_app.database import SessionLocal, engine
+from utils.redis_utils import redis_conn
+from mysql_app import crud, schemas
+from mysql_app.database import SessionLocal
 from mysql_app.schemas import Wallpaper, StandardResponse
 from base_logger import logging
 from utils.authentication import verify_api_token
@@ -12,8 +12,6 @@ import json
 from datetime import date
 import random
 import httpx
-import os
-import redis
 
 
 class WallpaperURL(BaseModel):
@@ -27,16 +25,6 @@ def get_db():
     finally:
         db.close()
 
-
-today_wallpaper = None
-if os.getenv("NO_REDIS", "false").lower() == "true":
-    logger.info("Skipping Redis connection in Wallpaper module as NO_REDIS is set to true")
-    redis_conn = None
-else:
-    REDIS_HOST = os.getenv("REDIS_HOST", "redis")
-    logger.info(f"Connecting to Redis at {REDIS_HOST} for Wallpaper module")
-    redis_conn = redis.Redis(host=REDIS_HOST, port=6379, db=1, decode_responses=True)
-    logger.info("Redis connection established for Wallpaper module")
 
 china_router = APIRouter(tags=["wallpaper"], prefix="/wallpaper")
 global_router = APIRouter(tags=["wallpaper"], prefix="/wallpaper")
@@ -137,20 +125,28 @@ def random_pick_wallpaper(db, force_refresh: bool = False) -> Wallpaper:
     :param force_refresh: True to force refresh the wallpaper, False to use the cached one
     :return: Wallpaper object
     """
-    global today_wallpaper
+    # Check wallpaper cache from Redis
+    today_wallpaper = redis_conn.get("hutao_today_wallpaper")
+    if today_wallpaper:
+        today_wallpaper = Wallpaper(**json.loads(today_wallpaper))
     if today_wallpaper and not force_refresh:
         return today_wallpaper
-    logging.info("Picking a new wallpaper...")
+
+    # Generate wallpaper pool
     all_new_wallpapers = crud.get_all_fresh_wallpaper(db)
     today_wallpaper_pool = [wall for wall in all_new_wallpapers if wall.display_date == date.today()]
     if today_wallpaper_pool:
         wallpaper_pool = today_wallpaper_pool
     else:
         wallpaper_pool = all_new_wallpapers
+
+    # Pick wallpaper from the pool
     random_index = random.randint(0, len(wallpaper_pool) - 1)
-    today_wallpaper = wallpaper_pool[random_index]
-    res = crud.set_last_display_date_with_index(db, today_wallpaper.id)
-    logging.info(f"Set last display date with index {today_wallpaper.id}: {res}")
+    today_wallpaper_model = wallpaper_pool[random_index]
+    res = crud.set_last_display_date_with_index(db, today_wallpaper_model.id)
+    today_wallpaper = Wallpaper(**today_wallpaper_model.dict())
+    redis_conn.set("hutao_today_wallpaper", today_wallpaper.json(), ex=60*60*24)
+    logging.info(f"Set last display date with index {today_wallpaper_model.id}: {res}")
     return today_wallpaper
 
 

@@ -14,6 +14,12 @@ class Wallpaper(Base):
     uploader = Column(String, index=True)
     disabled = Column(Integer, default=False)
 
+    def dict(self):
+        return {field.name: getattr(self, field.name) for field in self.__table__.c}
+
+    def __repr__(self):
+        return f"models.Wallpaper({self.dict()})"
+
 
 class AvatarStrategy(Base):
     __tablename__ = "avatar_strategies"
@@ -23,6 +29,8 @@ class AvatarStrategy(Base):
     mys_strategy_id = Column(Integer, nullable=True)
     hoyolab_strategy_id = Column(Integer, nullable=True)
 
+    def dict(self):
+        return {field.name: getattr(self, field.name) for field in self.__table__.c}
+
     def __repr__(self):
-        return (f"<AvatarStrategy(avatar_id={self.avatar_id}, mys_strategy_id={self.mys_strategy_id}, "
-                f"hoyolab_strategy_id={self.hoyolab_strategy_id})>")
+        return f"models.AvatarStrategy({self.dict()})"

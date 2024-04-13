@@ -18,6 +18,9 @@ class Wallpaper(BaseModel):
     uploader: str
     disabled: Optional[int | bool] = False
 
+    def __repr__(self):
+        return f"schema.Wallpaper({self.dict()})"
+
 
 class RedemptionCode(BaseModel):
     code: str
