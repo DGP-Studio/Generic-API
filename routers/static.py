@@ -1,13 +1,12 @@
 import logging
 import httpx
-import asyncio
-from fastapi import APIRouter, Depends, Response, Request, HTTPException
-from fastapi_utils.tasks import repeat_every
+import json
+from fastapi import APIRouter, Depends, Request, HTTPException
 from fastapi.responses import RedirectResponse
 from pydantic import BaseModel
-from mysql_app import schemas
 from mysql_app.schemas import StandardResponse
 from utils.authentication import verify_api_token
+from utils.redis_utils import redis_conn
 from base_logger import logger
 
 
@@ -20,7 +19,6 @@ china_router = APIRouter(tags=["Static"], prefix="/static")
 global_router = APIRouter(tags=["Static"], prefix="/static")
 
 CN_OSS_URL = "https://static-next.snapgenshin.com/d/tx/{file_path}"
-zip_size_data = {}
 
 
 @china_router.get("/zip/{file_path:path}")
@@ -144,9 +142,7 @@ async def global_get_raw_file(file_path: str, request: Request):
             raise HTTPException(status_code=404, detail="Invalid quality")
 
 
-@repeat_every(seconds=60 * 60 * 3)
 async def list_static_files_size():
-    global zip_size_data
     # Raw
     api_url = "https://static-next.snapgenshin.com/api/fs/list"
     payload = {
@@ -182,7 +178,8 @@ async def list_static_files_size():
         raise RuntimeError(
             f"Failed to list static files, \nstatus code: {response.status_code}, \ncontent: {response.text}")
     tiny_minimum = [f for f in data if f["name"] != "ItemIcon-tiny.zip" and f["name"] != "EmotionIcon-tiny.zip"]
-    tiny_full = [f for f in data if f["name"] != "ItemIcon-Minimum-tiny.zip" or f["name"] == "EmotionIcon-Minimum-tiny.zip"]
+    tiny_full = [f for f in data if
+                 f["name"] != "ItemIcon-Minimum-tiny.zip" or f["name"] == "EmotionIcon-Minimum-tiny.zip"]
     tiny_minimum_size = sum([f["size"] for f in tiny_minimum])
     tiny_full_size = sum([f["size"] for f in tiny_full])
     zip_size_data = {
@@ -191,21 +188,36 @@ async def list_static_files_size():
         "tiny_minimum": tiny_minimum_size,
         "tiny_full": tiny_full_size
     }
+    if redis_conn:
+        redis_conn.set("static_files_size", json.dumps(zip_size_data), ex=60 * 60 * 3)
     logger.info(f"Updated static files size data: {zip_size_data}")
     return zip_size_data
-
-
-asyncio.ensure_future(list_static_files_size())
 
 
 @china_router.get("/size", response_model=StandardResponse)
 @global_router.get("/size", response_model=StandardResponse)
 async def get_static_files_size():
-    if not zip_size_data:
-        await list_static_files_size()
+    static_files_size = redis_conn.get("static_files_size")
+    if static_files_size:
+        static_files_size = json.loads(static_files_size)
+    else:
+        logger.info("Redis cache for static files size not found, fetching from API")
+        static_files_size = await list_static_files_size()
     response = StandardResponse(
         retcode=0,
         message="Success",
-        data=zip_size_data
+        data=static_files_size
+    )
+    return response
+
+
+@china_router.get("/size/reset", response_model=StandardResponse, dependencies=[Depends(verify_api_token)])
+@global_router.get("/size/reset", response_model=StandardResponse, dependencies=[Depends(verify_api_token)])
+async def reset_static_files_size():
+    new_data = await list_static_files_size()
+    response = StandardResponse(
+        retcode=0,
+        message="Success",
+        data=new_data
     )
     return response
