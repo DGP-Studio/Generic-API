@@ -20,9 +20,10 @@ def get_banned_files() -> list[str]:
 
     :return: a list of censored files
     """
-    metadata_censored_files = redis_conn.get("metadata_censored_files")
-    if metadata_censored_files:
-        return json.loads(metadata_censored_files)
+    if redis_conn:
+        metadata_censored_files = redis_conn.get("metadata_censored_files")
+        if metadata_censored_files:
+            return json.loads(metadata_censored_files)
     return []
 
 
