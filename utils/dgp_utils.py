@@ -62,7 +62,7 @@ def update_recent_versions() -> list[str]:
     return new_user_agents
 
 
-async def validate_client_is_updated(user_agent: Annotated[str, Header()]):
+async def validate_client_is_updated(user_agent: Annotated[str, Header()]) -> bool:
     if BYPASS_CLIENT_VERIFICATION:
         return True
     logger.info(f"Received request from user agent: {user_agent}")

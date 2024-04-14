@@ -1,12 +1,9 @@
 import os
-import redis
 import json
 from fastapi import APIRouter, Depends
 from fastapi.responses import RedirectResponse
-from fastapi_utils.tasks import repeat_every
 from utils.dgp_utils import validate_client_is_updated
 from utils.redis_utils import redis_conn
-from base_logger import logger
 from mysql_app.schemas import StandardResponse
 
 scan_duration = int(os.getenv("CENSOR_FILE_SCAN_DURATION", 30)) / 2  # half of the duration
@@ -17,7 +14,7 @@ global_router = APIRouter(tags=["Hutao Metadata"], dependencies=[Depends(validat
                           prefix="/metadata")
 
 
-def get_banned_files() -> dict | None:
+def get_banned_files() -> list[str]:
     """
     Get the list of censored files.
 
@@ -26,7 +23,7 @@ def get_banned_files() -> dict | None:
     metadata_censored_files = redis_conn.get("metadata_censored_files")
     if metadata_censored_files:
         return json.loads(metadata_censored_files)
-    return None
+    return []
 
 
 @china_router.get("/ban", response_model=StandardResponse)
@@ -37,11 +34,11 @@ async def get_ban_files_endpoint() -> StandardResponse:
 
     :return: a list of censored files in StandardResponse format
     """
-    return StandardResponse(data=get_banned_files())
+    return StandardResponse(data={"ban": get_banned_files()})
 
 
 @china_router.get("/{file_path:path}")
-async def china_metadata_request_handler(file_path: str):
+async def china_metadata_request_handler(file_path: str) -> RedirectResponse:
     """
     Handle requests to metadata files.
 
@@ -59,7 +56,7 @@ async def china_metadata_request_handler(file_path: str):
 
 
 @global_router.get("/{file_path:path}")
-async def global_metadata_request_handler(file_path: str):
+async def global_metadata_request_handler(file_path: str) -> RedirectResponse:
     """
     Handle requests to metadata files.
 

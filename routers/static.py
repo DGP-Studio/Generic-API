@@ -22,7 +22,7 @@ CN_OSS_URL = "https://static-next.snapgenshin.com/d/tx/{file_path}"
 
 
 @china_router.get("/zip/{file_path:path}")
-async def cn_get_zipped_file(file_path: str, request: Request):
+async def cn_get_zipped_file(file_path: str, request: Request) -> RedirectResponse:
     """
     Endpoint used to redirect to the zipped static file in China server
 
@@ -61,7 +61,7 @@ async def cn_get_zipped_file(file_path: str, request: Request):
 
 
 @china_router.get("/raw/{file_path:path}")
-async def cn_get_raw_file(file_path: str, request: Request):
+async def cn_get_raw_file(file_path: str, request: Request) -> RedirectResponse:
     """
     Endpoint used to redirect to the raw static file in China server
 
@@ -85,7 +85,7 @@ async def cn_get_raw_file(file_path: str, request: Request):
 
 
 @global_router.get("/zip/{file_path:path}")
-async def global_get_zipped_file(file_path: str, request: Request):
+async def global_get_zipped_file(file_path: str, request: Request) -> RedirectResponse:
     """
     Endpoint used to redirect to the zipped static file in Global server
 
@@ -122,7 +122,7 @@ async def global_get_zipped_file(file_path: str, request: Request):
 
 
 @global_router.get("/raw/{file_path:path}")
-async def global_get_raw_file(file_path: str, request: Request):
+async def global_get_raw_file(file_path: str, request: Request) -> RedirectResponse:
     """
     Endpoint used to redirect to the raw static file in Global server
 
@@ -142,7 +142,7 @@ async def global_get_raw_file(file_path: str, request: Request):
             raise HTTPException(status_code=404, detail="Invalid quality")
 
 
-async def list_static_files_size():
+async def list_static_files_size() -> dict:
     # Raw
     api_url = "https://static-next.snapgenshin.com/api/fs/list"
     payload = {
@@ -196,7 +196,7 @@ async def list_static_files_size():
 
 @china_router.get("/size", response_model=StandardResponse)
 @global_router.get("/size", response_model=StandardResponse)
-async def get_static_files_size():
+async def get_static_files_size() -> StandardResponse:
     static_files_size = redis_conn.get("static_files_size")
     if static_files_size:
         static_files_size = json.loads(static_files_size)
@@ -213,7 +213,7 @@ async def get_static_files_size():
 
 @china_router.get("/size/reset", response_model=StandardResponse, dependencies=[Depends(verify_api_token)])
 @global_router.get("/size/reset", response_model=StandardResponse, dependencies=[Depends(verify_api_token)])
-async def reset_static_files_size():
+async def reset_static_files_size() -> StandardResponse:
     new_data = await list_static_files_size()
     response = StandardResponse(
         retcode=0,

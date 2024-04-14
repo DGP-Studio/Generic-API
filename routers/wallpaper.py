@@ -1,17 +1,16 @@
-from fastapi import APIRouter, Depends, Request
 import pymysql
+import json
+import random
+import httpx
+from fastapi import APIRouter, Depends, Request
 from pydantic import BaseModel
+from datetime import date
 from utils.redis_utils import redis_conn
+from utils.authentication import verify_api_token
 from mysql_app import crud, schemas
 from mysql_app.database import SessionLocal
 from mysql_app.schemas import Wallpaper, StandardResponse
-from base_logger import logging
-from utils.authentication import verify_api_token
 from base_logger import logger
-import json
-from datetime import date
-import random
-import httpx
 
 
 class WallpaperURL(BaseModel):
@@ -34,7 +33,7 @@ global_router = APIRouter(tags=["wallpaper"], prefix="/wallpaper")
                   tags=["admin"])
 @global_router.get("/all", response_model=list[schemas.Wallpaper], dependencies=[Depends(verify_api_token)],
                    tags=["admin"])
-async def get_all_wallpapers(db: SessionLocal = Depends(get_db)):
+async def get_all_wallpapers(db: SessionLocal = Depends(get_db)) -> list[schemas.Wallpaper]:
     """
     Get all wallpapers in database. **This endpoint requires API token verification**
 
@@ -77,9 +76,9 @@ async def add_wallpaper(wallpaper: schemas.Wallpaper, db: SessionLocal = Depends
     return response
 
 
-@china_router.post("/disable", dependencies=[Depends(verify_api_token)], tags=["admin"])
-@global_router.post("/disable", dependencies=[Depends(verify_api_token)], tags=["admin"])
-async def disable_wallpaper_with_url(request: Request, db: SessionLocal = Depends(get_db)):
+@china_router.post("/disable", dependencies=[Depends(verify_api_token)], tags=["admin"], response_model=StandardResponse)
+@global_router.post("/disable", dependencies=[Depends(verify_api_token)], tags=["admin"], response_model=StandardResponse)
+async def disable_wallpaper_with_url(request: Request, db: SessionLocal = Depends(get_db)) -> StandardResponse:
     """
     Disable a wallpaper with its URL, so it won't be picked by the random wallpaper picker.
     **This endpoint requires API token verification**
@@ -93,13 +92,17 @@ async def disable_wallpaper_with_url(request: Request, db: SessionLocal = Depend
     data = await request.json()
     url = data.get("url", "")
     if not url:
-        return False
-    return crud.disable_wallpaper_with_url(db, url)
+        return StandardResponse(data={
+            "result": False
+        })
+    db_result = crud.disable_wallpaper_with_url(db, url)
+    if db_result:
+        return StandardResponse(data=db_result.dict())
 
 
-@china_router.post("/enable", dependencies=[Depends(verify_api_token)], tags=["admin"])
-@global_router.post("/enable", dependencies=[Depends(verify_api_token)], tags=["admin"])
-async def enable_wallpaper_with_url(request: Request, db: SessionLocal = Depends(get_db)):
+@china_router.post("/enable", dependencies=[Depends(verify_api_token)], tags=["admin"], response_model=StandardResponse)
+@global_router.post("/enable", dependencies=[Depends(verify_api_token)], tags=["admin"], response_model=StandardResponse)
+async def enable_wallpaper_with_url(request: Request, db: SessionLocal = Depends(get_db)) -> StandardResponse:
     """
     Enable a wallpaper with its URL, so it will be picked by the random wallpaper picker.
     **This endpoint requires API token verification**
@@ -113,8 +116,12 @@ async def enable_wallpaper_with_url(request: Request, db: SessionLocal = Depends
     data = await request.json()
     url = data.get("url", "")
     if not url:
-        return False
-    return crud.enable_wallpaper_with_url(db, url)
+        return StandardResponse(data={
+            "result": False
+        })
+    db_result = crud.enable_wallpaper_with_url(db, url)
+    if db_result:
+        return StandardResponse(data=db_result.dict())
 
 
 def random_pick_wallpaper(db, force_refresh: bool = False) -> Wallpaper:
@@ -123,7 +130,7 @@ def random_pick_wallpaper(db, force_refresh: bool = False) -> Wallpaper:
 
     :param db: DB session
     :param force_refresh: True to force refresh the wallpaper, False to use the cached one
-    :return: Wallpaper object
+    :return: schema.Wallpaper object
     """
     # Check wallpaper cache from Redis
     today_wallpaper = redis_conn.get("hutao_today_wallpaper")
@@ -146,13 +153,13 @@ def random_pick_wallpaper(db, force_refresh: bool = False) -> Wallpaper:
     res = crud.set_last_display_date_with_index(db, today_wallpaper_model.id)
     today_wallpaper = Wallpaper(**today_wallpaper_model.dict())
     redis_conn.set("hutao_today_wallpaper", today_wallpaper.json(), ex=60*60*24)
-    logging.info(f"Set last display date with index {today_wallpaper_model.id}: {res}")
+    logger.info(f"Set last display date with index {today_wallpaper_model.id}: {res}")
     return today_wallpaper
 
 
 @china_router.get("/today", response_model=StandardResponse)
 @global_router.get("/today", response_model=StandardResponse)
-async def get_today_wallpaper(db: SessionLocal = Depends(get_db)):
+async def get_today_wallpaper(db: SessionLocal = Depends(get_db)) -> StandardResponse:
     """
     Get today's wallpaper
 
@@ -177,7 +184,7 @@ async def get_today_wallpaper(db: SessionLocal = Depends(get_db)):
                   tags=["admin"])
 @global_router.get("/refresh", response_model=StandardResponse, dependencies=[Depends(verify_api_token)],
                    tags=["admin"])
-async def get_today_wallpaper(db: SessionLocal = Depends(get_db)):
+async def get_today_wallpaper(db: SessionLocal = Depends(get_db)) -> StandardResponse:
     """
     Refresh today's wallpaper. **This endpoint requires API token verification**
 
@@ -207,7 +214,7 @@ async def get_today_wallpaper(db: SessionLocal = Depends(get_db)):
                   tags=["admin"])
 @global_router.get("/reset", response_model=StandardResponse, dependencies=[Depends(verify_api_token)],
                    tags=["admin"])
-async def reset_last_display(db: SessionLocal = Depends(get_db)):
+async def reset_last_display(db: SessionLocal = Depends(get_db)) -> StandardResponse:
     """
     Reset last display date of all wallpapers. **This endpoint requires API token verification**
 
@@ -224,7 +231,7 @@ async def reset_last_display(db: SessionLocal = Depends(get_db)):
 
 @china_router.get("/bing", response_model=StandardResponse)
 @global_router.get("/bing", response_model=StandardResponse)
-async def get_bing_wallpaper(request: Request):
+async def get_bing_wallpaper(request: Request) -> StandardResponse:
     """
     Get Bing wallpaper
 
@@ -274,7 +281,7 @@ async def get_bing_wallpaper(request: Request):
 
 @china_router.get("/genshin-launcher", response_model=StandardResponse)
 @global_router.get("/genshin-launcher", response_model=StandardResponse)
-async def get_genshin_launcher_wallpaper(request: Request, language: str = "en-us"):
+async def get_genshin_launcher_wallpaper(request: Request, language: str = "en-us") -> StandardResponse:
     """
     Get Genshin Impact launcher wallpaper
 

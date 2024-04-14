@@ -1,4 +1,4 @@
-import requests
+import httpx
 import redis
 import os
 import json
@@ -16,7 +16,7 @@ else:
 
 def refresh_uigf_dict() -> dict:
     url = "https://api.uigf.org/dict/genshin/all.json"
-    response = requests.get(url)
+    response = httpx.get(url)
     if response.status_code == 200:
         redis_conn.set("uigf_dict", response.text, ex=60 * 60 * 3)
         return response.json()
@@ -33,5 +33,3 @@ def get_genshin_avatar_id(name: str, lang: str) -> int | None:
         uigf_dict = refresh_uigf_dict()
     avatar_id = uigf_dict.get(lang, {}).get(name, None)
     return avatar_id
-
-

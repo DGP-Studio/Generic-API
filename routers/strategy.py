@@ -1,14 +1,13 @@
 import json
-import requests
+import httpx
 from fastapi import Depends, APIRouter, HTTPException
 from sqlalchemy.orm import Session
 from utils.uigf import get_genshin_avatar_id
 from utils.redis_utils import redis_conn
+from utils.authentication import verify_api_token
 from mysql_app.database import SessionLocal
 from mysql_app.schemas import AvatarStrategy, StandardResponse
-from utils.authentication import verify_api_token
 from mysql_app.crud import add_avatar_strategy, get_all_avatar_strategy, get_avatar_strategy_by_id
-from base_logger import logger
 
 china_router = APIRouter(tags=["Strategy"], prefix="/strategy")
 global_router = APIRouter(tags=["Strategy"], prefix="/strategy")
@@ -32,7 +31,7 @@ def refresh_miyoushe_avatar_strategy(db: Session = None) -> bool:
         db = SessionLocal()
     avatar_strategy = []
     url = "https://api-static.mihoyo.com/common/blackboard/ys_strategy/v1/home/content/list?app_sn=ys_strategy&channel_id=37"
-    response = requests.get(url)
+    response = httpx.get(url)
     if response.status_code == 200:
         data = response.json().get("data", {}).get("list", [])
     else:
@@ -62,7 +61,7 @@ def refresh_miyoushe_avatar_strategy(db: Session = None) -> bool:
     return True
 
 
-def refresh_hoyolab_avatar_strategy(db: Session = None):
+def refresh_hoyolab_avatar_strategy(db: Session = None) -> bool:
     """
     Refresh avatar strategy from Hoyolab
     :param db: Database session
@@ -72,7 +71,7 @@ def refresh_hoyolab_avatar_strategy(db: Session = None):
     if not db:
         db = SessionLocal()
     url = "https://bbs-api-os.hoyolab.com/community/painter/wapi/circle/channel/guide/second_page/info"
-    response = requests.post(url, json={
+    response = httpx.post(url, json={
         "id": "63b63aefc61f3cbe3ead18d9",
         "offset": "",
         "selector_id_list": [],
@@ -106,7 +105,7 @@ def refresh_hoyolab_avatar_strategy(db: Session = None):
 
 @china_router.get("/refresh", response_model=StandardResponse, dependencies=[Depends(verify_api_token)])
 @global_router.get("/refresh", response_model=StandardResponse, dependencies=[Depends(verify_api_token)])
-def refresh_avatar_strategy(channel: str, db: Session = Depends(get_db)):
+def refresh_avatar_strategy(channel: str, db: Session = Depends(get_db)) -> StandardResponse:
     """
     Refresh avatar strategy from Miyoushe or Hoyolab
     :param channel: one of `miyoushe`, `hoyolab`, `all`
@@ -146,7 +145,7 @@ def refresh_avatar_strategy(channel: str, db: Session = Depends(get_db)):
 
 @china_router.get("/item", response_model=StandardResponse)
 @global_router.get("/item", response_model=StandardResponse)
-def get_avatar_strategy_item(item_id: int, db: Session = Depends(get_db)):
+def get_avatar_strategy_item(item_id: int, db: Session = Depends(get_db)) -> StandardResponse:
     """
     Get avatar strategy item by avatar ID
     :param item_id: Genshin internal avatar ID (compatible with weapon id if available)

@@ -7,7 +7,7 @@ global_router = APIRouter(tags=["Enka Network"], prefix="/enka")
 
 
 @china_router.get("/{uid}", dependencies=[Depends(validate_client_is_updated)])
-async def cn_get_enka_raw_data(uid: str):
+async def cn_get_enka_raw_data(uid: str) -> RedirectResponse:
     """
     Handle requests to metadata files.
 
@@ -21,7 +21,7 @@ async def cn_get_enka_raw_data(uid: str):
 
 
 @global_router.get("/{uid}", dependencies=[Depends(validate_client_is_updated)])
-async def global_get_enka_raw_data(uid: str):
+async def global_get_enka_raw_data(uid: str) -> RedirectResponse:
     """
     Handle requests to metadata files.
 
