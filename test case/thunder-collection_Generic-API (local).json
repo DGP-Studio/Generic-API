@@ -1,7 +1,7 @@
 {
     "client": "Thunder Client",
     "collectionName": "Generic-API (local)",
-    "dateExported": "2024-03-07T23:50:58.093Z",
+    "dateExported": "2024-04-14T00:53:53.978Z",
     "version": "1.1",
     "folders": [
         {
@@ -38,6 +38,13 @@
             "containerId": "",
             "created": "2024-02-25T01:58:27.623Z",
             "sortNum": 60000
+        },
+        {
+            "_id": "e636b2b6-c5eb-4db7-b72d-8ef8e801d804",
+            "name": "strategy",
+            "containerId": "",
+            "created": "2024-04-11T01:17:40.479Z",
+            "sortNum": 70000
         }
     ],
     "requests": [
@@ -174,15 +181,59 @@
             "tests": []
         },
         {
+            "_id": "2f09b61b-15f7-4a68-adaa-298d5947598d",
+            "colId": "72d06ee6-01e6-4dac-a430-8c8ae665fdcd",
+            "containerId": "786f936d-f28d-4391-9dfd-4ddabb61186e",
+            "name": "Global patch check",
+            "url": "http://127.0.0.1:8080/global/patch/hutao",
+            "method": "GET",
+            "sortNum": 40000,
+            "created": "2024-03-09T20:49:19.131Z",
+            "modified": "2024-03-09T20:49:37.559Z",
+            "headers": [],
+            "params": [],
+            "reqType": "get",
+            "tests": []
+        },
+        {
             "_id": "bf3bcf40-4c7b-4c99-a644-90791d473f69",
             "colId": "72d06ee6-01e6-4dac-a430-8c8ae665fdcd",
             "containerId": "4c3ab557-b546-432b-b33d-6df6fe71bb88",
-            "name": "today",
-            "url": "http://127.0.0.1:8080/cn/wallpaper/refresh",
+            "name": "hutao today",
+            "url": "http://127.0.0.1:8080/global/wallpaper/genshin-launcher?language=en-us",
             "method": "GET",
             "sortNum": 55000,
             "created": "2024-02-25T01:58:07.703Z",
-            "modified": "2024-03-07T23:47:59.125Z",
+            "modified": "2024-04-14T00:53:14.614Z",
+            "headers": [
+                {
+                    "name": "User-Agent",
+                    "value": "Snap Hutao/1.9.6.0"
+                },
+                {
+                    "name": "API-Token",
+                    "value": "HY2d8jAw4EowpBqFrzzCwRusyfBbeiKa"
+                }
+            ],
+            "params": [
+                {
+                    "name": "language",
+                    "value": "en-us",
+                    "isPath": false
+                }
+            ],
+            "tests": []
+        },
+        {
+            "_id": "2264ad6f-b39a-4aad-be02-b30e5f393a05",
+            "colId": "72d06ee6-01e6-4dac-a430-8c8ae665fdcd",
+            "containerId": "4c3ab557-b546-432b-b33d-6df6fe71bb88",
+            "name": "ghenshin launcher",
+            "url": "http://127.0.0.1:8080/cn/wallpaper/today",
+            "method": "GET",
+            "sortNum": 66250,
+            "created": "2024-04-14T00:52:33.158Z",
+            "modified": "2024-04-14T00:52:33.158Z",
             "headers": [
                 {
                     "name": "User-Agent",
@@ -194,7 +245,6 @@
                 }
             ],
             "params": [],
-            "reqType": "get",
             "tests": []
         },
         {
@@ -219,6 +269,29 @@
             ],
             "params": [],
             "reqType": "get",
+            "tests": []
+        },
+        {
+            "_id": "c4f14c52-6fb2-46f9-b450-7ae4c8295d78",
+            "colId": "72d06ee6-01e6-4dac-a430-8c8ae665fdcd",
+            "containerId": "4c3ab557-b546-432b-b33d-6df6fe71bb88",
+            "name": "reset",
+            "url": "http://127.0.0.1:8080/cn/wallpaper/reset",
+            "method": "GET",
+            "sortNum": 88750,
+            "created": "2024-04-14T00:50:25.160Z",
+            "modified": "2024-04-14T00:50:35.243Z",
+            "headers": [
+                {
+                    "name": "User-Agent",
+                    "value": "Snap Hutao/1.9.6.0"
+                },
+                {
+                    "name": "API-Token",
+                    "value": "HY2d8jAw4EowpBqFrzzCwRusyfBbeiKa"
+                }
+            ],
+            "params": [],
             "tests": []
         },
         {
@@ -251,11 +324,11 @@
             "colId": "72d06ee6-01e6-4dac-a430-8c8ae665fdcd",
             "containerId": "f3c293dc-d223-4f83-a422-0c0c51924380",
             "name": "download zip package",
-            "url": "http://127.0.0.1:8080/cn/static/zip/EmotionIcon.zip",
+            "url": "http://127.0.0.1:8080/global/static/zip/ItemIcon.zip",
             "method": "GET",
             "sortNum": 110000,
             "created": "2024-02-25T01:58:32.535Z",
-            "modified": "2024-03-07T23:31:21.796Z",
+            "modified": "2024-03-09T00:46:43.605Z",
             "headers": [
                 {
                     "name": "User-Agent",
@@ -267,7 +340,8 @@
                 },
                 {
                     "name": "X-MINIMUM",
-                    "value": "true"
+                    "value": "true",
+                    "isDisabled": true
                 }
             ],
             "params": [],
@@ -294,6 +368,133 @@
             "body": {
                 "type": "json",
                 "raw": "{\n  \"type\": \"zip\",\n  \"url\": \"https://baidu.com{file_path}\"\n}",
+                "form": []
+            },
+            "tests": []
+        },
+        {
+            "_id": "a49bea7e-9296-4676-aa7f-74de348b12ad",
+            "colId": "72d06ee6-01e6-4dac-a430-8c8ae665fdcd",
+            "containerId": "e636b2b6-c5eb-4db7-b72d-8ef8e801d804",
+            "name": "refresh",
+            "url": "http://127.0.0.1:8080/cn/strategy/refresh?channel=all",
+            "method": "GET",
+            "sortNum": 130000,
+            "created": "2024-04-11T01:17:44.408Z",
+            "modified": "2024-04-11T01:20:13.400Z",
+            "headers": [
+                {
+                    "name": "API-Token",
+                    "value": "HY2d8jAw4EowpBqFrzzCwRusyfBbeiKa"
+                }
+            ],
+            "params": [
+                {
+                    "name": "channel",
+                    "value": "all",
+                    "isPath": false
+                }
+            ],
+            "tests": []
+        },
+        {
+            "_id": "8b120737-21b0-45d6-9e86-1edd1de42157",
+            "colId": "72d06ee6-01e6-4dac-a430-8c8ae665fdcd",
+            "containerId": "e636b2b6-c5eb-4db7-b72d-8ef8e801d804",
+            "name": "get_strategy",
+            "url": "http://127.0.0.1:8080/cn/strategy/item?item_id=10000087",
+            "method": "GET",
+            "sortNum": 140000,
+            "created": "2024-04-11T01:35:35.390Z",
+            "modified": "2024-04-11T01:37:12.581Z",
+            "headers": [
+                {
+                    "name": "API-Token",
+                    "value": "HY2d8jAw4EowpBqFrzzCwRusyfBbeiKa",
+                    "isDisabled": true
+                }
+            ],
+            "params": [
+                {
+                    "name": "item_id",
+                    "value": "10000087",
+                    "isPath": false
+                }
+            ],
+            "tests": []
+        },
+        {
+            "_id": "a888b6bd-7216-48e8-9476-78ed62442f76",
+            "colId": "72d06ee6-01e6-4dac-a430-8c8ae665fdcd",
+            "containerId": "f3c293dc-d223-4f83-a422-0c0c51924380",
+            "name": "size",
+            "url": "http://127.0.0.1:8080/global/static/size",
+            "method": "GET",
+            "sortNum": 150000,
+            "created": "2024-04-11T12:20:43.951Z",
+            "modified": "2024-04-11T12:20:52.729Z",
+            "headers": [],
+            "params": [],
+            "tests": []
+        },
+        {
+            "_id": "15e14f96-6329-4faa-873d-44759563a935",
+            "colId": "72d06ee6-01e6-4dac-a430-8c8ae665fdcd",
+            "containerId": "f28cd875-ba68-448a-bead-fdb1019312ea",
+            "name": "ban",
+            "url": "http://127.0.0.1:8080/cn/metadata/ban",
+            "method": "GET",
+            "sortNum": 160000,
+            "created": "2024-04-13T03:58:01.138Z",
+            "modified": "2024-04-13T03:58:10.114Z",
+            "headers": [],
+            "params": [],
+            "tests": []
+        },
+        {
+            "_id": "df8a3061-01c6-4b0a-8ec2-13184ec197e8",
+            "colId": "72d06ee6-01e6-4dac-a430-8c8ae665fdcd",
+            "containerId": "4c3ab557-b546-432b-b33d-6df6fe71bb88",
+            "name": "disable",
+            "url": "http://127.0.0.1:8080/global/wallpaper/disable",
+            "method": "POST",
+            "sortNum": 170000,
+            "created": "2024-04-14T00:42:10.638Z",
+            "modified": "2024-04-14T00:43:11.553Z",
+            "headers": [
+                {
+                    "name": "api-token",
+                    "value": "HY2d8jAw4EowpBqFrzzCwRusyfBbeiKa"
+                }
+            ],
+            "params": [],
+            "body": {
+                "type": "json",
+                "raw": "{\n  \"url\": \"https://img.alicdn.com/imgextra/i3/1797064093/O1CN01OYeLmJ1g6e1QuzRKm_!!1797064093.jpg\"\n}",
+                "form": []
+            },
+            "tests": []
+        },
+        {
+            "_id": "81eb1613-1622-4bab-8a3a-a770247aae64",
+            "colId": "72d06ee6-01e6-4dac-a430-8c8ae665fdcd",
+            "containerId": "4c3ab557-b546-432b-b33d-6df6fe71bb88",
+            "name": "enable",
+            "url": "http://127.0.0.1:8080/global/wallpaper/enable",
+            "method": "POST",
+            "sortNum": 180000,
+            "created": "2024-04-14T00:47:13.666Z",
+            "modified": "2024-04-14T00:48:05.781Z",
+            "headers": [
+                {
+                    "name": "api-token",
+                    "value": "HY2d8jAw4EowpBqFrzzCwRusyfBbeiKa"
+                }
+            ],
+            "params": [],
+            "body": {
+                "type": "json",
+                "raw": "{\n  \"url\": \"https://img.alicdn.com/imgextra/i3/1797064093/O1CN01OYeLmJ1g6e1QuzRKm_!!1797064093.jpg\"\n}",
                 "form": []
             },
             "tests": []
