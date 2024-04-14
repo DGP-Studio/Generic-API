@@ -72,11 +72,11 @@ async def validate_client_is_updated(user_agent: Annotated[str, Header()]) -> bo
         return True
 
     allowed_user_agents = redis_conn.get("allowed_user_agents")
-    if allowed_user_agents is None:
+    if allowed_user_agents:
+        allowed_user_agents = json.loads(allowed_user_agents)
+    else:
         # redis data is expired
         allowed_user_agents = update_recent_versions()
-    else:
-        allowed_user_agents = json.loads(allowed_user_agents)
 
     if user_agent not in allowed_user_agents:
         logger.info(f"Client is outdated: {user_agent}, not in the allowed list: {allowed_user_agents}")
