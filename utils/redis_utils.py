@@ -45,4 +45,10 @@ Redis data map
 - overwritten_china_url
 - snap_hutao_latest_version
 - snap_hutao_deployment_latest_version
+
+# dgp-utils Module
+
+- allowed_user_agents
+    - list of allowed user agents
+    - 5 minutes expiration
 """

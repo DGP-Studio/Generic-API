@@ -1,12 +1,11 @@
-import asyncio
 import json
 import logging
 import os
 import httpx
-from fastapi_utils.tasks import repeat_every
 from fastapi import HTTPException, status, Header
 from typing import Annotated
 from base_logger import logger
+from utils.redis_utils import redis_conn
 from config import github_headers
 
 WHITE_LIST_REPOSITORIES = json.loads(os.environ.get("WHITE_LIST_REPOSITORIES"))
@@ -15,7 +14,7 @@ if BYPASS_CLIENT_VERIFICATION:
     logger.warning("Client verification is bypassed in this server.")
 
 
-def update_recent_versions():
+def update_recent_versions() -> list[str]:
     new_user_agents = []
 
     # Stable version of software in white list
@@ -46,7 +45,6 @@ def update_recent_versions():
         this_repo_headers = list(set(this_repo_headers))
         new_user_agents += this_repo_headers
 
-
     # Snap Hutao Alpha
     # To be redesigned
 
@@ -59,20 +57,9 @@ def update_recent_versions():
         next_version = all_opened_pr_title[0].split(" ")[2] + ".0"
         new_user_agents.append(f"Snap Hutao/{next_version}")
 
+    redis_conn.set("allowed_user_agents", json.dumps(new_user_agents), ex=5 * 60)
     logging.info(f"Updated allowed user agents: {new_user_agents}")
     return new_user_agents
-
-
-allowed_user_agents = update_recent_versions()
-
-
-@repeat_every(seconds=5 * 60)
-def timely_update_allowed_ua():
-    global allowed_user_agents
-    allowed_user_agents = update_recent_versions()
-
-
-asyncio.ensure_future(timely_update_allowed_ua())
 
 
 async def validate_client_is_updated(user_agent: Annotated[str, Header()]):
@@ -83,6 +70,14 @@ async def validate_client_is_updated(user_agent: Annotated[str, Header()]):
         return True
     if user_agent.startswith("PaimonsNotebook/"):
         return True
+
+    allowed_user_agents = redis_conn.get("allowed_user_agents")
+    if allowed_user_agents is None:
+        # redis data is expired
+        allowed_user_agents = update_recent_versions()
+    else:
+        allowed_user_agents = json.loads(allowed_user_agents)
+
     if user_agent not in allowed_user_agents:
         logger.info(f"Client is outdated: {user_agent}, not in the allowed list: {allowed_user_agents}")
         raise HTTPException(status_code=status.HTTP_418_IM_A_TEAPOT, detail="Client is outdated.")
