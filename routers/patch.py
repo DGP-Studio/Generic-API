@@ -1,54 +1,32 @@
 import httpx
 import os
-from fastapi import APIRouter, Response, status, Request, Depends
-from fastapi.responses import RedirectResponse
-from datetime import datetime
-from utils.dgp_utils import timely_update_allowed_ua
-from utils.PatchMeta import PatchMeta
-from config import github_headers, VALID_PROJECT_KEYS
-from utils.authentication import verify_api_token
-from base_logger import logger
 import redis
 import json
 import re
+from fastapi import APIRouter, Response, status, Request, Depends
+from fastapi.responses import RedirectResponse
+from datetime import datetime
+from utils.dgp_utils import update_recent_versions
+from utils.PatchMeta import PatchMeta
+from utils.authentication import verify_api_token
+from utils.redis_utils import redis_conn
+from mysql_app.schemas import StandardResponse
+from config import github_headers, VALID_PROJECT_KEYS
+from base_logger import logger
 
-if os.getenv("NO_REDIS", "false").lower() == "true":
-    logger.info("Skipping Redis connection in Wallpaper module as NO_REDIS is set to true")
-    redis_conn = None
-else:
-    REDIS_HOST = os.getenv("REDIS_HOST", "redis")
-    logger.info(f"Connecting to Redis at {REDIS_HOST} for patch module")
-    redis_conn = redis.Redis(host=REDIS_HOST, port=6379, db=1, decode_responses=True)
-    logger.info("Redis connection established for patch module")
-
-try:
-    overwritten_china_url = json.loads(redis_conn.get("overwritten_china_url"))
-    logger.info(f"Got overwritten_china_url from Redis: {overwritten_china_url}")
-    # Temp fix for v2 format
-    if "snap-hutao" in overwritten_china_url.keys():
-        if type(overwritten_china_url["snap-hutao"]) is not dict:
-            logger.info("Detected v1 format of overwritten_china_url, converting to v2 format")
-            stored_url = overwritten_china_url["snap-hutao"]
-            overwritten_china_url["snap-hutao"] = {
-                "version": None,
-                "url": stored_url
-            }
-            overwritten_china_url["snap-hutao-deployment"] = {
+if redis_conn:
+    try:
+        logger.info(f"Got overwritten_china_url from Redis: {json.loads(redis_conn.get("overwritten_china_url"))}")
+    except (redis.exceptions.ConnectionError, TypeError, AttributeError):
+        logger.warning("Initialing overwritten_china_url in Redis")
+        new_overwritten_china_url = {}
+        for key in VALID_PROJECT_KEYS:
+            new_overwritten_china_url[key] = {
                 "version": None,
                 "url": None
             }
-            if redis_conn:
-                result = redis_conn.set("overwritten_china_url", json.dumps(overwritten_china_url))
-                logger.info(f"Set overwritten_china_url to Redis: {result}")
-    # End of temp fix
-except (redis.exceptions.ConnectionError, TypeError, AttributeError):
-    logger.warning("Failed to get overwritten_china_url from Redis, using empty dict")
-    overwritten_china_url = {}
-    for key in VALID_PROJECT_KEYS:
-        overwritten_china_url[key] = {
-            "version": None,
-            "url": None
-        }
+        r = redis_conn.set("overwritten_china_url", json.dumps(new_overwritten_china_url))
+        logger.info(f"Set overwritten_china_url to Redis: {r}")
 
 """
 sample_overwritten_china_url = {
@@ -130,7 +108,6 @@ def update_snap_hutao_latest_version() -> dict:
     Update Snap Hutao latest version from GitHub and Jihulab
     :return: dict of latest version metadata
     """
-    global overwritten_china_url
     gitlab_message = ""
     github_message = ""
 
@@ -162,18 +139,19 @@ def update_snap_hutao_latest_version() -> dict:
     logger.debug(f"JiHuLAB data fetched: {jihulab_patch_meta}")
 
     # Clear overwritten URL if the version is updated
+    overwritten_china_url = json.loads(redis_conn.get("overwritten_china_url"))
     if overwritten_china_url["snap-hutao"]["version"] != github_patch_meta.version:
         logger.info("Found unmatched version, clearing overwritten URL")
         overwritten_china_url["snap-hutao"]["version"] = None
         overwritten_china_url["snap-hutao"]["url"] = None
         if redis_conn:
-            r = redis_conn.set("overwritten_china_url", json.dumps(overwritten_china_url))
-            logger.info(f"Set overwritten_china_url to Redis: {r}")
+            logger.info(f"Set overwritten_china_url to Redis: {redis_conn.set("overwritten_china_url",
+                                                                              json.dumps(overwritten_china_url))}")
     else:
         gitlab_message += f"Using overwritten URL: {overwritten_china_url['snap-hutao']['url']}. "
         jihulab_patch_meta.url = [overwritten_china_url["snap-hutao"]["url"]] + jihulab_patch_meta.url
 
-    return {
+    return_data = {
         "global": {
             "version": github_patch_meta.version,
             "urls": github_patch_meta.url,
@@ -199,6 +177,10 @@ def update_snap_hutao_latest_version() -> dict:
         "github_message": github_message,
         "gitlab_message": gitlab_message
     }
+    if redis_conn:
+        logger.info(
+            f"Set Snap Hutao latest version to Redis: {redis_conn.set('snap_hutao_latest_version', json.dumps(return_data))}")
+    return return_data
 
 
 def update_snap_hutao_deployment_version() -> dict:
@@ -206,7 +188,6 @@ def update_snap_hutao_deployment_version() -> dict:
     Update Snap Hutao Deployment latest version from GitHub and Jihulab
     :return: dict of Snap Hutao Deployment latest version metadata
     """
-    global overwritten_china_url
     github_meta = httpx.get("https://api.github.com/repos/DGP-Studio/Snap.Hutao.Deployment/releases/latest",
                             headers=github_headers).json()
     github_msix_url = None
@@ -220,17 +201,18 @@ def update_snap_hutao_deployment_version() -> dict:
                           if a["link_type"] == "package"])[0]])
 
     # Clear overwritten URL if the version is updated
+    overwritten_china_url = json.loads(redis_conn.get("overwritten_china_url"))
     if overwritten_china_url["snap-hutao-deployment"]["version"] != jihulab_meta["tag_name"]:
         logger.info("Found unmatched version, clearing overwritten URL")
         overwritten_china_url["snap-hutao-deployment"]["version"] = None
         overwritten_china_url["snap-hutao-deployment"]["url"] = None
         if redis_conn:
-            r = redis_conn.set("overwritten_china_url", json.dumps(overwritten_china_url))
-            logger.info(f"Set overwritten_china_url to Redis: {r}")
+            logger.info(f"Set overwritten_china_url to Redis: {redis_conn.set("overwritten_china_url",
+                                                                              json.dumps(overwritten_china_url))}")
     else:
         cn_urls = [overwritten_china_url["snap-hutao-deployment"]["url"]] + cn_urls
 
-    return {
+    return_data = {
         "global": {
             "version": github_meta["tag_name"] + ".0",
             "urls": github_msix_url
@@ -240,113 +222,118 @@ def update_snap_hutao_deployment_version() -> dict:
             "urls": cn_urls
         }
     }
-
-
-snap_hutao_latest_version = update_snap_hutao_latest_version()
-snap_hutao_deployment_latest_version = update_snap_hutao_deployment_version()
+    if redis_conn:
+        logger.info(
+            f"Set Snap Hutao Deployment latest version to Redis: {redis_conn.set('snap_hutao_deployment_latest_version', json.dumps(return_data))}")
+    return return_data
 
 
 # Snap Hutao
-@china_router.get("/hutao")
-async def generic_get_snap_hutao_latest_version_china_endpoint():
+@china_router.get("/hutao", response_model=StandardResponse)
+async def generic_get_snap_hutao_latest_version_china_endpoint() -> StandardResponse:
     """
     Get Snap Hutao latest version from China endpoint
 
     :return: Standard response with latest version metadata in China endpoint
     """
-    return {
-        "retcode": 0,
-        "message": f"CN endpoint reached. {snap_hutao_latest_version["gitlab_message"]}",
-        "data": snap_hutao_latest_version["cn"]
-    }
+    snap_hutao_latest_version = json.loads(redis_conn.get("snap_hutao_latest_version"))
+    return StandardResponse(
+        retcode=0,
+        message=f"CN endpoint reached. {snap_hutao_latest_version["gitlab_message"]}",
+        data=snap_hutao_latest_version["cn"]
+    )
 
 
 @china_router.get("/hutao/download")
-async def get_snap_hutao_latest_download_direct_china_endpoint():
+async def get_snap_hutao_latest_download_direct_china_endpoint() -> RedirectResponse:
     """
     Redirect to Snap Hutao latest download link in China endpoint (use first link in the list)
 
     :return: 302 Redirect to the first download link
     """
+    snap_hutao_latest_version = json.loads(redis_conn.get("snap_hutao_latest_version"))
     return RedirectResponse(snap_hutao_latest_version["cn"]["urls"][0], status_code=302)
 
 
-@global_router.get("/hutao")
-async def generic_get_snap_hutao_latest_version_global_endpoint():
+@global_router.get("/hutao", response_model=StandardResponse)
+async def generic_get_snap_hutao_latest_version_global_endpoint() -> StandardResponse:
     """
     Get Snap Hutao latest version from Global endpoint (GitHub)
 
     :return: Standard response with latest version metadata in Global endpoint
     """
-    return {
-        "retcode": 0,
-        "message": f"Global endpoint reached. {snap_hutao_latest_version['github_message']}",
-        "data": snap_hutao_latest_version["global"]
-    }
+    snap_hutao_latest_version = json.loads(redis_conn.get("snap_hutao_latest_version"))
+    return StandardResponse(
+        retcode=0,
+        message=f"Global endpoint reached. {snap_hutao_latest_version['github_message']}",
+        data=snap_hutao_latest_version["global"]
+    )
 
 
 @global_router.get("/hutao/download")
-async def get_snap_hutao_latest_download_direct_china_endpoint():
+async def get_snap_hutao_latest_download_direct_china_endpoint() -> RedirectResponse:
     """
     Redirect to Snap Hutao latest download link in Global endpoint (use first link in the list)
 
     :return: 302 Redirect to the first download link
     """
+    snap_hutao_latest_version = json.loads(redis_conn.get("snap_hutao_latest_version"))
     return RedirectResponse(snap_hutao_latest_version["global"]["urls"][0], status_code=302)
 
 
 # Snap Hutao Deployment
-@china_router.get("/hutao-deployment")
-async def generic_get_snap_hutao_latest_version_china_endpoint():
+@china_router.get("/hutao-deployment", response_model=StandardResponse)
+async def generic_get_snap_hutao_latest_version_china_endpoint() -> StandardResponse:
     """
     Get Snap Hutao Deployment latest version from China endpoint
 
     :return: Standard response with latest version metadata in China endpoint
     """
-    return {
-        "retcode": 0,
-        "message": f"CN endpoint reached.",
-        "data": snap_hutao_deployment_latest_version["cn"]
-    }
+    snap_hutao_deployment_latest_version = json.loads(redis_conn.get("snap_hutao_deployment_latest_version"))
+    return StandardResponse(
+        retcode=0,
+        message="CN endpoint reached",
+        data=snap_hutao_deployment_latest_version["cn"]
+    )
 
 
 @china_router.get("/hutao-deployment/download")
-async def get_snap_hutao_latest_download_direct_china_endpoint():
+async def get_snap_hutao_latest_download_direct_china_endpoint() -> RedirectResponse:
     """
     Redirect to Snap Hutao Deployment latest download link in China endpoint (use first link in the list)
 
     :return: 302 Redirect to the first download link
     """
+    snap_hutao_deployment_latest_version = json.loads(redis_conn.get("snap_hutao_deployment_latest_version"))
     return RedirectResponse(snap_hutao_deployment_latest_version["cn"]["urls"][0], status_code=302)
 
 
-@global_router.get("/hutao-deployment")
-async def generic_get_snap_hutao_latest_version_global_endpoint():
+@global_router.get("/hutao-deployment", response_model=StandardResponse)
+async def generic_get_snap_hutao_latest_version_global_endpoint() -> StandardResponse:
     """
     Get Snap Hutao Deployment latest version from Global endpoint (GitHub)
 
     :return: Standard response with latest version metadata in Global endpoint
     """
-    return {
-        "retcode": 0,
-        "message": f"Global endpoint reached.",
-        "data": snap_hutao_deployment_latest_version["global"]
-    }
+    snap_hutao_deployment_latest_version = json.loads(redis_conn.get("snap_hutao_deployment_latest_version"))
+    return StandardResponse(message="Global endpoint reached",
+                            data=snap_hutao_deployment_latest_version["global"])
 
 
 @global_router.get("/hutao-deployment/download")
-async def get_snap_hutao_latest_download_direct_china_endpoint():
+async def get_snap_hutao_latest_download_direct_china_endpoint() -> RedirectResponse:
     """
     Redirect to Snap Hutao Deployment latest download link in Global endpoint (use first link in the list)
 
     :return: 302 Redirect to the first download link
     """
+    snap_hutao_deployment_latest_version = json.loads(redis_conn.get("snap_hutao_deployment_latest_version"))
     return RedirectResponse(snap_hutao_deployment_latest_version["global"]["urls"][0], status_code=302)
 
 
-@china_router.patch("/{project_key}", include_in_schema=True)
-@global_router.patch("/{project_key}", include_in_schema=True)
-async def generic_patch_latest_version(response: Response, project_key: str):
+@china_router.patch("/{project_key}", include_in_schema=True, response_model=StandardResponse)
+@global_router.patch("/{project_key}", include_in_schema=True, response_model=StandardResponse)
+async def generic_patch_latest_version(response: Response, project_key: str) -> StandardResponse:
     """
     Update latest version of a project
 
@@ -358,16 +345,12 @@ async def generic_patch_latest_version(response: Response, project_key: str):
     """
     new_version = None
     if project_key == "snap-hutao":
-        global snap_hutao_latest_version
-        snap_hutao_latest_version = update_snap_hutao_latest_version()
-        timely_update_allowed_ua()
-        new_version = snap_hutao_latest_version
+        new_version = update_snap_hutao_latest_version()
+        update_recent_versions()
     elif project_key == "snap-hutao-deployment":
-        global snap_hutao_deployment_latest_version
-        snap_hutao_deployment_latest_version = update_snap_hutao_deployment_version()
-        new_version = snap_hutao_deployment_latest_version
+        new_version = update_snap_hutao_deployment_version()
     response.status_code = status.HTTP_201_CREATED
-    return {"version": new_version}
+    return StandardResponse(data={"version": new_version})
 
 
 # Yae Patch API handled by https://github.com/Masterain98/SnapHutao-Yae-Patch-Backend
@@ -375,10 +358,10 @@ async def generic_patch_latest_version(response: Response, project_key: str):
 # @global_router.get("/yae") -> use Nginx reverse proxy instead
 
 @china_router.post("/cn-overwrite-url", tags=["admin"], include_in_schema=True,
-                   dependencies=[Depends(verify_api_token)])
+                   dependencies=[Depends(verify_api_token)], response_model=StandardResponse)
 @global_router.post("/cn-overwrite-url", tags=["admin"], include_in_schema=True,
-                    dependencies=[Depends(verify_api_token)])
-async def update_overwritten_china_url(response: Response, request: Request):
+                    dependencies=[Depends(verify_api_token)], response_model=StandardResponse)
+async def update_overwritten_china_url(response: Response, request: Request) -> StandardResponse:
     """
     Update overwritten China URL for a project, this url will be placed at first priority when fetching latest version.
     **This endpoint requires API token verification**
@@ -392,12 +375,13 @@ async def update_overwritten_china_url(response: Response, request: Request):
     data = await request.json()
     project_key = data.get("key", "").lower()
     overwrite_url = data.get("url", None)
+    overwritten_china_url = json.loads(redis_conn.get("overwritten_china_url"))
     if data["key"] in VALID_PROJECT_KEYS:
         if project_key == "snap-hutao":
-            global snap_hutao_latest_version
+            snap_hutao_latest_version = json.loads(redis_conn.get("snap_hutao_latest_version"))
             current_version = snap_hutao_latest_version["cn"]["version"]
         elif project_key == "snap-hutao-deployment":
-            global snap_hutao_deployment_latest_version
+            snap_hutao_deployment_latest_version = json.loads(redis_conn.get("snap_hutao_deployment_latest_version"))
             current_version = snap_hutao_deployment_latest_version["cn"]["version"]
         else:
             current_version = None
@@ -405,13 +389,23 @@ async def update_overwritten_china_url(response: Response, request: Request):
             "version": current_version,
             "url": overwrite_url
         }
+
+        # Overwrite overwritten_china_url to Redis
         if redis_conn:
-            r = redis_conn.set("overwritten_china_url", json.dumps(overwritten_china_url))
-            logger.info(f"Set overwritten_china_url to Redis: {r}")
+            update_result = redis_conn.set("overwritten_china_url", json.dumps(overwritten_china_url))
+            logger.info(f"Set overwritten_china_url to Redis: {update_result}")
+
+        # Refresh project patch
         if project_key == "snap-hutao":
-            snap_hutao_latest_version = update_snap_hutao_latest_version()
+            update_snap_hutao_latest_version()
         elif project_key == "snap-hutao-deployment":
-            snap_hutao_deployment_latest_version = update_snap_hutao_deployment_version()
+            update_snap_hutao_deployment_version()
         response.status_code = status.HTTP_201_CREATED
         logger.info(f"Latest overwritten URL data: {overwritten_china_url}")
-        return {"message": f"Successfully overwritten {project_key} url to {overwrite_url}"}
+        return StandardResponse(message=f"Successfully overwritten {project_key} url to {overwrite_url}",
+                                data=overwritten_china_url)
+
+
+# Initial patch metadata
+update_snap_hutao_latest_version()
+update_snap_hutao_deployment_version()

@@ -11,7 +11,7 @@ SMTP_USERNAME = os.getenv("SMTP_USERNAME")
 SMTP_PASSWORD = os.getenv("SMTP_PASSWORD")
 
 
-def send_system_email(subject, message, to_email):
+def send_system_email(subject, message, to_email) -> bool:
     # 创建邮件对象
     msg = MIMEMultipart()
     msg['From'] = FROM_EMAIL
