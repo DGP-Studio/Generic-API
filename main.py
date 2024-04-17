@@ -1,8 +1,10 @@
 from config import env_result
 import uvicorn
+import os
 from fastapi import FastAPI
 from fastapi.responses import RedirectResponse
 from fastapi.middleware.cors import CORSMiddleware
+from apitally.fastapi import ApitallyMiddleware
 from routers import enka_network, metadata, patch, static, net, wallpaper, strategy
 from base_logger import logger
 from config import (MAIN_SERVER_DESCRIPTION, API_VERSION, TOS_URL, CONTACT_INFO, LICENSE_INFO,
@@ -75,6 +77,13 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+)
+
+app.add_middleware(
+    ApitallyMiddleware,
+    client_id=os.getenv("APITALLY_CLIENT_ID"),
+    env="dev" if os.getenv("DEBUG") == "1" else "prod",
+    openapi_url="/openapi.json"
 )
 
 app.mount("/cn", china_app, name="Hutao Generic API (China Ver.)")
