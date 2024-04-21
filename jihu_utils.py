@@ -186,7 +186,7 @@ def dump_daily_active_user_data() -> None:
 
 
 if __name__ == "__main__":
-    schedule.every(scan_duration).hour.do(jihulab_regulatory_checker_task)
+    schedule.every(scan_duration).minute.do(jihulab_regulatory_checker_task)
     schedule.every().day.at("00:00", "Asia/Shanghai").do(dump_daily_active_user_data)
     while True:
         schedule.run_pending()
