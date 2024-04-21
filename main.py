@@ -82,7 +82,7 @@ app.add_middleware(
 app.add_middleware(
     ApitallyMiddleware,
     client_id=os.getenv("APITALLY_CLIENT_ID"),
-    env="dev" if os.getenv("DEBUG") == "1" else "prod",
+    env="dev" if os.getenv("DEBUG") == "1" or os.getenv("APITALLY_DEBUG") == "1" else "prod",
     openapi_url="/openapi.json"
 )
 
