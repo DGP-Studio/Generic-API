@@ -1,4 +1,5 @@
 import concurrent.futures
+import datetime
 import json
 import time
 import os
@@ -166,6 +167,7 @@ def jihulab_regulatory_checker_task() -> None:
                                                          "main")
     logger.info(f"Regulatory check result: {regulatory_check_result}")
     redis_conn.set("metadata_censored_files", json.dumps(regulatory_check_result), ex=60 * scan_duration * 2)
+    logger.info(f"Regulatory check task completed at {datetime.datetime.now()}.")
 
 
 def dump_daily_active_user_data() -> None:
@@ -180,15 +182,18 @@ def dump_daily_active_user_data() -> None:
         active_users_global = 0
     if active_users_unknown is None:
         active_users_unknown = 0
-    daily_active_user_data = DailyActiveUserStats(date=date.today() - timedelta(days=1), cn_user=active_users_cn,
+    yesterday_date = date.today() - timedelta(days=1)
+    daily_active_user_data = DailyActiveUserStats(date=yesterday_date, cn_user=active_users_cn,
                                                   global_user=active_users_global, unknown=active_users_unknown)
+    logger.info(f"Daily active data of {yesterday_date}: {daily_active_user_data}")
     dump_daily_active_user_stats(db, daily_active_user_data)
+    db.close()
+    logger.info(f"Daily active user data dumped at {datetime.datetime.now()}.")
 
 
 if __name__ == "__main__":
-    schedule.every(scan_duration).minute.do(jihulab_regulatory_checker_task)
+    schedule.every(scan_duration).minutes.do(jihulab_regulatory_checker_task)
     schedule.every().day.at("00:00", "Asia/Shanghai").do(dump_daily_active_user_data)
     while True:
         schedule.run_pending()
         time.sleep(1)
-

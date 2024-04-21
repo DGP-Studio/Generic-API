@@ -1,0 +1,10 @@
+httpx
+redis
+python-dotenv
+schedule
+sqlalchemy
+pydantic
+pymysql
+pytz
+cryptography
+pyinstaller
