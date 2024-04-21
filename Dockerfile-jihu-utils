@@ -6,6 +6,9 @@ ADD . /code
 RUN pip install httpx
 RUN pip install redis
 RUN pip install python-dotenv
+RUN pip install schedule
+RUN pip install sqlalchemy
+RUN pip install pydantic
 #RUN pip install --no-cache-dir -r /code/requirements.txt
 RUN pip install pyinstaller
 RUN pyinstaller -F jihu_utils.py

@@ -34,3 +34,18 @@ class AvatarStrategy(Base):
 
     def __repr__(self):
         return f"models.AvatarStrategy({self.dict()})"
+
+
+class DailyActiveUserStats(Base):
+    __tablename__ = "active_user_stats"
+
+    date = Column(Date, primary_key=True, index=True)
+    cn_user = Column(Integer, nullable=False)
+    global_user = Column(Integer, nullable=False)
+    unknown = Column(Integer, nullable=False)
+
+    def dict(self):
+        return {field.name: getattr(self, field.name) for field in self.__table__.c}
+
+    def __repr__(self):
+        return f"models.DailyActiveUserStats({self.dict()})"

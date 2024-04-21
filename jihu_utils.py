@@ -6,8 +6,13 @@ import httpx
 import tarfile
 import shutil
 import redis
-import config       # DO NOT REMOVE
+import schedule
+from datetime import date, timedelta
+import config  # DO NOT REMOVE
 from utils.email_utils import send_system_email
+from mysql_app.schemas import DailyActiveUserStats
+from mysql_app.database import SessionLocal
+from mysql_app.crud import dump_daily_active_user_stats
 from base_logger import logger
 
 scan_duration = int(os.getenv("CENSOR_FILE_SCAN_DURATION", 30))
@@ -25,8 +30,8 @@ def process_file(upstream_github_repo: str, jihulab_repo: str, branch: str, file
             headers = {
                 "Accept-Language": "zh-CN;q=0.8,zh;q=0.7"
             }
-            r = httpx.get(url, headers=headers)
-            text_raw = r.text
+            resp = httpx.get(url, headers=headers)
+            text_raw = resp.text
         except Exception:
             logger.exception(f"Failed to check file: {file}, retry after 3 seconds...")
             checked_time += 1
@@ -37,7 +42,7 @@ def process_file(upstream_github_repo: str, jihulab_repo: str, branch: str, file
             censored_files.append(file)
         elif file.endswith(".json"):
             try:
-                r.json()
+                resp.json()
             except json.JSONDecodeError:
                 logger.warning(f"Found non-json file: {file}")
                 broken_json_files.append(file)
@@ -72,9 +77,9 @@ def jihulab_regulatory_checker(upstream_github_repo: str, jihulab_repo: str, bra
     # Download and unzip upstream content
     os.makedirs("upstream", exist_ok=True)
     github_live_archive = f"https://codeload.github.com/{upstream_github_repo}/tar.gz/refs/heads/{branch}"
-    with httpx.stream("GET", github_live_archive) as r:
+    with httpx.stream("GET", github_live_archive) as resp:
         with open("upstream.tar.gz", "wb") as f:
-            for data in r.iter_bytes():
+            for data in resp.iter_bytes():
                 f.write(data)
     with tarfile.open("upstream.tar.gz") as f:
         f.extractall("upstream")
@@ -155,11 +160,35 @@ def jihulab_regulatory_checker(upstream_github_repo: str, jihulab_repo: str, bra
     return censored_files
 
 
+def jihulab_regulatory_checker_task() -> None:
+    redis_conn = redis.Redis(host="redis", port=6379, db=0)
+    regulatory_check_result = jihulab_regulatory_checker("DGP-Studio/Snap.Metadata", "DGP-Studio/Snap.Metadata",
+                                                         "main")
+    logger.info(f"Regulatory check result: {regulatory_check_result}")
+    redis_conn.set("metadata_censored_files", json.dumps(regulatory_check_result), ex=60 * scan_duration * 2)
+
+
+def dump_daily_active_user_data() -> None:
+    db = SessionLocal()
+    redis_conn = redis.Redis(host="redis", port=6379, db=1)
+    active_users_cn = redis_conn.getdel("active_users_cn")
+    active_users_global = redis_conn.getdel("active_users_global")
+    active_users_unknown = redis_conn.getdel("active_users_unknown")
+    if active_users_cn is None:
+        active_users_cn = 0
+    if active_users_global is None:
+        active_users_global = 0
+    if active_users_unknown is None:
+        active_users_unknown = 0
+    daily_active_user_data = DailyActiveUserStats(date=date.today() - timedelta(days=1), cn_user=active_users_cn,
+                                                  global_user=active_users_global, unknown=active_users_unknown)
+    dump_daily_active_user_stats(db, daily_active_user_data)
+
+
 if __name__ == "__main__":
-    r = redis.Redis(host="redis", port=6379, db=0)
+    schedule.every(scan_duration).hour.do(jihulab_regulatory_checker_task)
+    schedule.every().day.at("00:00", "Asia/Shanghai").do(dump_daily_active_user_data)
     while True:
-        regulatory_check_result = jihulab_regulatory_checker("DGP-Studio/Snap.Metadata", "DGP-Studio/Snap.Metadata",
-                                                             "main")
-        logger.info(f"Regulatory check result: {regulatory_check_result}")
-        r.set("metadata_censored_files", json.dumps(regulatory_check_result), ex=60 * scan_duration * 2)
-        time.sleep(60 * scan_duration)
+        schedule.run_pending()
+        time.sleep(1)
+
