@@ -193,9 +193,9 @@ def dump_daily_active_user_data() -> None:
 
 
 if __name__ == "__main__":
-    schedule = Scheduler()
+    schedule = Scheduler(tzinfo=tz_shanghai)
     schedule.daily(datetime.time(hour=0, minute=0, tzinfo=tz_shanghai), dump_daily_active_user_data)
-    schedule.minutely(datetime.time(second=15), jihulab_regulatory_checker_task)
+    schedule.minutely(datetime.time(second=15, tzinfo=tz_shanghai), jihulab_regulatory_checker_task)
     while True:
         schedule.exec_jobs()
         time.sleep(1)
