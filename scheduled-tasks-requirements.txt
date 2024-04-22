@@ -1,7 +1,7 @@
 httpx
 redis
 python-dotenv
-schedule
+scheduler
 sqlalchemy
 pydantic
 pymysql

@@ -7,8 +7,8 @@ import httpx
 import tarfile
 import shutil
 import redis
-import schedule
 from datetime import date, timedelta
+from scheduler import Scheduler
 import config  # DO NOT REMOVE
 from utils.email_utils import send_system_email
 from mysql_app.schemas import DailyActiveUserStats
@@ -17,6 +17,7 @@ from mysql_app.crud import dump_daily_active_user_stats
 from base_logger import logger
 
 scan_duration = int(os.getenv("CENSOR_FILE_SCAN_DURATION", 30))
+tz_shanghai = datetime.timezone(datetime.timedelta(hours=8))
 
 
 def process_file(upstream_github_repo: str, jihulab_repo: str, branch: str, file: str) -> tuple:
@@ -185,15 +186,16 @@ def dump_daily_active_user_data() -> None:
     yesterday_date = date.today() - timedelta(days=1)
     daily_active_user_data = DailyActiveUserStats(date=yesterday_date, cn_user=active_users_cn,
                                                   global_user=active_users_global, unknown=active_users_unknown)
-    logger.info(f"Daily active data of {yesterday_date}: {daily_active_user_data}")
+    logger.info(f"Daily active data of {yesterday_date}: {daily_active_user_data}; Data generated at {datetime.datetime.now()}.")
     dump_daily_active_user_stats(db, daily_active_user_data)
     db.close()
     logger.info(f"Daily active user data dumped at {datetime.datetime.now()}.")
 
 
 if __name__ == "__main__":
-    schedule.every(scan_duration).minutes.do(jihulab_regulatory_checker_task)
-    schedule.every().day.at("00:00", "Asia/Shanghai").do(dump_daily_active_user_data)
+    schedule = Scheduler()
+    schedule.daily(datetime.time(hour=0, minute=0, tzinfo=tz_shanghai), dump_daily_active_user_data)
+    schedule.minutely(datetime.time(second=15), jihulab_regulatory_checker_task)
     while True:
-        schedule.run_pending()
+        schedule.exec_jobs()
         time.sleep(1)
