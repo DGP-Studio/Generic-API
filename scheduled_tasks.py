@@ -16,7 +16,7 @@ from mysql_app.database import SessionLocal
 from mysql_app.crud import dump_daily_active_user_stats
 from base_logger import logger
 
-scan_duration = int(os.getenv("CENSOR_FILE_SCAN_DURATION", 30))
+scan_duration = int(os.getenv("CENSOR_FILE_SCAN_DURATION", 30))  # Scan duration in *minutes*
 tz_shanghai = datetime.timezone(datetime.timedelta(hours=8))
 
 
@@ -69,7 +69,7 @@ def jihulab_regulatory_checker(upstream_github_repo: str, jihulab_repo: str, bra
         older_censored_files = json.loads(content)
         # If last modified time is less than 30 minutes, skip this check
         if time.time() - os.path.getmtime("./cache/censored_files.json") < 60 * scan_duration:
-            logger.info(f"Last check is less than {60 * scan_duration} minutes, skip this check.")
+            logger.info(f"Last check is less than {scan_duration} minutes, skip this check.")
             return older_censored_files
     else:
         older_censored_files = []
@@ -163,7 +163,7 @@ def jihulab_regulatory_checker(upstream_github_repo: str, jihulab_repo: str, bra
 
 
 def jihulab_regulatory_checker_task() -> None:
-    redis_conn = redis.Redis(host="redis", port=6379, db=0)
+    redis_conn = redis.Redis(host="redis", port=6379, db=1)
     regulatory_check_result = jihulab_regulatory_checker("DGP-Studio/Snap.Metadata", "DGP-Studio/Snap.Metadata",
                                                          "main")
     logger.info(f"Regulatory check result: {regulatory_check_result}")
@@ -195,7 +195,7 @@ def dump_daily_active_user_data() -> None:
 if __name__ == "__main__":
     schedule = Scheduler(tzinfo=tz_shanghai)
     schedule.daily(datetime.time(hour=0, minute=0, tzinfo=tz_shanghai), dump_daily_active_user_data)
-    schedule.minutely(datetime.time(second=15, tzinfo=tz_shanghai), jihulab_regulatory_checker_task)
+    schedule.cyclic(datetime.timedelta(minutes=scan_duration), jihulab_regulatory_checker_task)
     while True:
         schedule.exec_jobs()
         time.sleep(1)
