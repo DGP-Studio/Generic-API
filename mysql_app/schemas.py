@@ -42,3 +42,10 @@ class AvatarStrategy(BaseModel):
     avatar_id: int
     mys_strategy_id: Optional[int | None] = None
     hoyolab_strategy_id: Optional[int | None] = None
+
+
+class DailyActiveUserStats(BaseModel):
+    date: datetime.date
+    cn_user: int
+    global_user: int
+    unknown: int

@@ -6,15 +6,11 @@ from utils.dgp_utils import validate_client_is_updated
 from utils.redis_utils import redis_conn
 from mysql_app.schemas import StandardResponse
 
-scan_duration = int(os.getenv("CENSOR_FILE_SCAN_DURATION", 30)) / 2  # half of the duration
-
-china_router = APIRouter(tags=["Hutao Metadata"], dependencies=[Depends(validate_client_is_updated)],
-                         prefix="/metadata")
-global_router = APIRouter(tags=["Hutao Metadata"], dependencies=[Depends(validate_client_is_updated)],
-                          prefix="/metadata")
+china_router = APIRouter(tags=["Hutao Metadata"], prefix="/metadata")
+global_router = APIRouter(tags=["Hutao Metadata"], prefix="/metadata")
 
 
-def get_banned_files() -> list[str]:
+def get_banned_files() -> dict:
     """
     Get the list of censored files.
 
@@ -23,8 +19,19 @@ def get_banned_files() -> list[str]:
     if redis_conn:
         metadata_censored_files = redis_conn.get("metadata_censored_files")
         if metadata_censored_files:
-            return json.loads(metadata_censored_files)
-    return []
+            return {
+                "source": "redis",
+                "data": json.loads(metadata_censored_files)
+            }
+        else:
+            return {
+                "source": "redis",
+                "data": []
+            }
+    return {
+        "source": "None",
+        "data": []
+    }
 
 
 @china_router.get("/ban", response_model=StandardResponse)
@@ -38,7 +45,7 @@ async def get_ban_files_endpoint() -> StandardResponse:
     return StandardResponse(data={"ban": get_banned_files()})
 
 
-@china_router.get("/{file_path:path}")
+@china_router.get("/{file_path:path}", dependencies=[Depends(validate_client_is_updated)])
 async def china_metadata_request_handler(file_path: str) -> RedirectResponse:
     """
     Handle requests to metadata files.
@@ -56,7 +63,7 @@ async def china_metadata_request_handler(file_path: str) -> RedirectResponse:
         return RedirectResponse(host_for_normal_files, status_code=302)
 
 
-@global_router.get("/{file_path:path}")
+@global_router.get("/{file_path:path}", dependencies=[Depends(validate_client_is_updated)])
 async def global_metadata_request_handler(file_path: str) -> RedirectResponse:
     """
     Handle requests to metadata files.

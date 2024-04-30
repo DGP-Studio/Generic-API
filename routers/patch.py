@@ -10,6 +10,7 @@ from utils.dgp_utils import update_recent_versions
 from utils.PatchMeta import PatchMeta
 from utils.authentication import verify_api_token
 from utils.redis_utils import redis_conn
+from utils.stats import record_device_id
 from mysql_app.schemas import StandardResponse
 from config import github_headers, VALID_PROJECT_KEYS
 from base_logger import logger
@@ -229,7 +230,7 @@ def update_snap_hutao_deployment_version() -> dict:
 
 
 # Snap Hutao
-@china_router.get("/hutao", response_model=StandardResponse)
+@china_router.get("/hutao", response_model=StandardResponse, dependencies=[Depends(record_device_id)])
 async def generic_get_snap_hutao_latest_version_china_endpoint() -> StandardResponse:
     """
     Get Snap Hutao latest version from China endpoint
@@ -255,7 +256,7 @@ async def get_snap_hutao_latest_download_direct_china_endpoint() -> RedirectResp
     return RedirectResponse(snap_hutao_latest_version["cn"]["urls"][0], status_code=302)
 
 
-@global_router.get("/hutao", response_model=StandardResponse)
+@global_router.get("/hutao", response_model=StandardResponse, dependencies=[Depends(record_device_id)])
 async def generic_get_snap_hutao_latest_version_global_endpoint() -> StandardResponse:
     """
     Get Snap Hutao latest version from Global endpoint (GitHub)

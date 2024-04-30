@@ -93,3 +93,11 @@ def get_avatar_strategy_by_id(avatar_id: str, db: Session) -> models.AvatarStrat
 
 def get_all_avatar_strategy(db: Session) -> list[models.AvatarStrategy]:
     return db.query(models.AvatarStrategy).all()
+
+
+def dump_daily_active_user_stats(db: Session, stats: schemas.DailyActiveUserStats) -> schemas.DailyActiveUserStats:
+    db_stats = models.DailyActiveUserStats(**stats.dict())
+    db.add(db_stats)
+    db.commit()
+    db.refresh(db_stats)
+    return db_stats
