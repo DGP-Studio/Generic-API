@@ -18,10 +18,10 @@ class StaticUpdateURL(BaseModel):
 china_router = APIRouter(tags=["Static"], prefix="/static")
 global_router = APIRouter(tags=["Static"], prefix="/static")
 
-CN_OSS_URL = "https://static-next.snapgenshin.com/d/tx/{file_path}"
+CN_OSS_URL = "https://open-7419b310-fc97-4a0c-bedf-b8faca13eb7e-s3.saturn.xxyy.co:8443/hutao/{file_path}"
 
 
-@china_router.get("/zip/{file_path:path}")
+#@china_router.get("/zip/{file_path:path}")
 async def cn_get_zipped_file(file_path: str, request: Request) -> RedirectResponse:
     """
     Endpoint used to redirect to the zipped static file in China server
@@ -33,8 +33,8 @@ async def cn_get_zipped_file(file_path: str, request: Request) -> RedirectRespon
     """
     # https://jihulab.com/DGP-Studio/Snap.Static.Zip/-/raw/main/{file_path}
     # https://static-next.snapgenshin.com/d/zip/{file_path}
-    quality = request.headers.get("x-quality", "raw").lower()
-    archive_type = request.headers.get("x-archive", "full").lower()
+    quality = request.headers.get("x-quality", "high").lower()
+    archive_type = request.headers.get("x-archive", "minimum").lower()
 
     if quality == "unknown" or archive_type == "unknown":
         raise HTTPException(status_code=418, detail="Invalid request")
@@ -71,7 +71,7 @@ async def cn_get_raw_file(file_path: str, request: Request) -> RedirectResponse:
 
     :return: 302 Redirect to the raw file
     """
-    quality = request.headers.get("x-quality", "raw").lower()
+    quality = request.headers.get("x-quality", "high").lower()
 
     match quality:
         case "high":
@@ -85,6 +85,7 @@ async def cn_get_raw_file(file_path: str, request: Request) -> RedirectResponse:
 
 
 @global_router.get("/zip/{file_path:path}")
+@china_router.get("/zip/{file_path:path}")
 async def global_get_zipped_file(file_path: str, request: Request) -> RedirectResponse:
     """
     Endpoint used to redirect to the zipped static file in Global server
@@ -94,8 +95,8 @@ async def global_get_zipped_file(file_path: str, request: Request) -> RedirectRe
 
     :return: Redirect to the zip file
     """
-    quality = request.headers.get("x-quality", "raw").lower()
-    archive_type = request.headers.get("x-archive", "full").lower()
+    quality = request.headers.get("x-quality", "high").lower()
+    archive_type = request.headers.get("x-archive", "minimum").lower()
 
     if quality == "unknown" or archive_type == "unknown":
         raise HTTPException(status_code=418, detail="Invalid request")
@@ -131,7 +132,7 @@ async def global_get_raw_file(file_path: str, request: Request) -> RedirectRespo
 
     :return: 302 Redirect to the raw file
     """
-    quality = request.headers.get("x-quality", "raw").lower()
+    quality = request.headers.get("x-quality", "high").lower()
 
     match quality:
         case "high":

@@ -15,7 +15,7 @@ API_TOKEN = os.environ.get("API_TOKEN")
 
 # FastAPI Config
 
-API_VERSION = "1.9.10"  # API Version follows the least supported version of Snap Hutao
+API_VERSION = "1.10.1"  # API Version follows the least supported version of Snap Hutao
 TOS_URL = "https://hut.ao/statements/tos.html"
 CONTACT_INFO = {
     "name": "Masterain",

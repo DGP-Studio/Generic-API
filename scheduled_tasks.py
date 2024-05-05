@@ -11,13 +11,15 @@ from datetime import date, timedelta
 from scheduler import Scheduler
 import config  # DO NOT REMOVE
 from utils.email_utils import send_system_email
+from base_logger import logger
 from mysql_app.schemas import DailyActiveUserStats
 from mysql_app.database import SessionLocal
 from mysql_app.crud import dump_daily_active_user_stats
-from base_logger import logger
+
 
 scan_duration = int(os.getenv("CENSOR_FILE_SCAN_DURATION", 30))  # Scan duration in *minutes*
 tz_shanghai = datetime.timezone(datetime.timedelta(hours=8))
+print(f"Scan duration: {scan_duration} minutes.")
 
 
 def process_file(upstream_github_repo: str, jihulab_repo: str, branch: str, file: str) -> tuple:
@@ -173,16 +175,20 @@ def jihulab_regulatory_checker_task() -> None:
 
 def dump_daily_active_user_data() -> None:
     db = SessionLocal()
-    redis_conn = redis.Redis(host="redis", port=6379, db=1)
-    active_users_cn = redis_conn.getdel("active_users_cn")
-    active_users_global = redis_conn.getdel("active_users_global")
-    active_users_unknown = redis_conn.getdel("active_users_unknown")
-    if active_users_cn is None:
-        active_users_cn = 0
-    if active_users_global is None:
-        active_users_global = 0
-    if active_users_unknown is None:
-        active_users_unknown = 0
+    redis_conn = redis.Redis(host="redis", port=6379, db=2)
+
+    active_users_cn = redis_conn.scard("active_users_cn")
+    delete_cn_result = redis_conn.delete("active_users_cn")
+    logger.info(f"active_user_cn: {active_users_cn}, delete result: {delete_cn_result}")
+
+    active_users_global = redis_conn.scard("active_users_global")
+    delete_global_result = redis_conn.delete("active_users_global")
+    logger.info(f"active_users_global: {active_users_global}, delete result: {delete_global_result}")
+
+    active_users_unknown = redis_conn.scard("active_users_unknown")
+    delete_unknown_result = redis_conn.delete("active_users_unknown")
+    logger.info(f"active_users_unknown: {active_users_unknown}, delete result: {delete_unknown_result}")
+
     yesterday_date = date.today() - timedelta(days=1)
     daily_active_user_data = DailyActiveUserStats(date=yesterday_date, cn_user=active_users_cn,
                                                   global_user=active_users_global, unknown=active_users_unknown)
@@ -199,3 +205,6 @@ if __name__ == "__main__":
     while True:
         schedule.exec_jobs()
         time.sleep(1)
+        current_minute = datetime.datetime.now().minute
+        if current_minute == 0 or current_minute == 30:
+            print(schedule)

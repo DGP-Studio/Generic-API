@@ -92,11 +92,22 @@ def fetch_snap_hutao_github_latest_version() -> PatchMeta:
 
         os.remove("cache/sha256sums")
 
+    """
+    # 没人写应用内显示更新日志的代码
     github_path_meta = PatchMeta(
         version=github_meta["tag_name"] + ".0",
         url=[github_msix_url],
         validation=sha256sums_value if sha256sums_value else None,
         patch_note={"cn": cn_description, "en": en_description, "full": full_description},
+        url_type="GitHub",
+        cache_time=datetime.now()
+    )
+    """
+    github_path_meta = PatchMeta(
+        version=github_meta["tag_name"] + ".0",
+        url=[github_msix_url],
+        validation=sha256sums_value if sha256sums_value else None,
+        patch_note={"cn": "", "en": "", "full": ""},
         url_type="GitHub",
         cache_time=datetime.now()
     )
@@ -257,13 +268,18 @@ async def get_snap_hutao_latest_download_direct_china_endpoint() -> RedirectResp
 
 
 @global_router.get("/hutao", response_model=StandardResponse, dependencies=[Depends(record_device_id)])
-async def generic_get_snap_hutao_latest_version_global_endpoint() -> StandardResponse:
+async def generic_get_snap_hutao_latest_version_global_endpoint(request: Request, response: Response) -> StandardResponse:
     """
     Get Snap Hutao latest version from Global endpoint (GitHub)
 
     :return: Standard response with latest version metadata in Global endpoint
     """
     snap_hutao_latest_version = json.loads(redis_conn.get("snap_hutao_latest_version"))
+    request_headers = request.headers
+    x_device_id = request_headers.get("x-device-id", "None")
+    x_region = request_headers.get("x-region", "None")
+    response.headers["x-device-id"] = x_device_id
+    response.headers["x-region"] = x_region
     return StandardResponse(
         retcode=0,
         message=f"Global endpoint reached. {snap_hutao_latest_version['github_message']}",
