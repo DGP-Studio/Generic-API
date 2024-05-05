@@ -268,18 +268,13 @@ async def get_snap_hutao_latest_download_direct_china_endpoint() -> RedirectResp
 
 
 @global_router.get("/hutao", response_model=StandardResponse, dependencies=[Depends(record_device_id)])
-async def generic_get_snap_hutao_latest_version_global_endpoint(request: Request, response: Response) -> StandardResponse:
+async def generic_get_snap_hutao_latest_version_global_endpoint() -> StandardResponse:
     """
     Get Snap Hutao latest version from Global endpoint (GitHub)
 
     :return: Standard response with latest version metadata in Global endpoint
     """
     snap_hutao_latest_version = json.loads(redis_conn.get("snap_hutao_latest_version"))
-    request_headers = request.headers
-    x_device_id = request_headers.get("x-device-id", "None")
-    x_region = request_headers.get("x-region", "None")
-    response.headers["x-device-id"] = x_device_id
-    response.headers["x-region"] = x_region
     return StandardResponse(
         retcode=0,
         message=f"Global endpoint reached. {snap_hutao_latest_version['github_message']}",
