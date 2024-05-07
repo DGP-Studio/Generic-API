@@ -101,3 +101,11 @@ def dump_daily_active_user_stats(db: Session, stats: schemas.DailyActiveUserStat
     db.commit()
     db.refresh(db_stats)
     return db_stats
+
+
+def dump_daily_version_stats(db: Session, stats: schemas.DailyVersionStats) -> schemas.DailyVersionStats:
+    db_stats = models.DailyVersionStats(**stats.dict())
+    db.add(db_stats)
+    db.commit()
+    db.refresh(db_stats)
+    return db_stats

@@ -12,9 +12,9 @@ from scheduler import Scheduler
 import config  # DO NOT REMOVE
 from utils.email_utils import send_system_email
 from base_logger import logger
-from mysql_app.schemas import DailyActiveUserStats
+from mysql_app.schemas import DailyActiveUserStats, DailyVersionStats
 from mysql_app.database import SessionLocal
-from mysql_app.crud import dump_daily_active_user_stats
+from mysql_app.crud import dump_daily_active_user_stats, dump_daily_version_stats
 
 
 scan_duration = int(os.getenv("CENSOR_FILE_SCAN_DURATION", 30))  # Scan duration in *minutes*
@@ -198,9 +198,26 @@ def dump_daily_active_user_data() -> None:
     logger.info(f"Daily active user data dumped at {datetime.datetime.now()}.")
 
 
+def dump_daily_version_stats_task() -> None:
+    db = SessionLocal()
+    daily_stats = {}
+    daily_stats_delete_result = {}
+    redis_conn = redis.Redis(host="redis", port=6379, db=3)
+    for key in redis_conn.scan_iter():
+        daily_stats[key] = redis_conn.scard(key)
+        delete_result = redis_conn.delete(key)
+        daily_stats_delete_result[key] = delete_result
+    logger.info(f"Daily stats: {daily_stats}")
+    daily_stats_json = json.dumps(daily_stats)
+    yesterday_date = date.today() - timedelta(days=1)
+    daily_stats_obj = DailyVersionStats(date=yesterday_date, stats=daily_stats_json)
+    dump_daily_version_stats(db, daily_stats_obj)
+
+
 if __name__ == "__main__":
     schedule = Scheduler(tzinfo=tz_shanghai)
     schedule.daily(datetime.time(hour=0, minute=0, tzinfo=tz_shanghai), dump_daily_active_user_data)
+    schedule.daily(datetime.time(hour=0, minute=0, tzinfo=tz_shanghai), dump_daily_version_stats_task)
     schedule.cyclic(datetime.timedelta(minutes=scan_duration), jihulab_regulatory_checker_task)
     while True:
         schedule.exec_jobs()

@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Json
 from typing import Optional
 import datetime
 
@@ -49,3 +49,8 @@ class DailyActiveUserStats(BaseModel):
     cn_user: int
     global_user: int
     unknown: int
+
+
+class DailyVersionStats(BaseModel):
+    date: datetime.date
+    stats: Json

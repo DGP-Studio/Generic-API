@@ -1,5 +1,5 @@
 from .database import Base
-from sqlalchemy import Column, Integer, String, Date
+from sqlalchemy import Column, Integer, String, Date, JSON
 
 
 class Wallpaper(Base):
@@ -49,3 +49,10 @@ class DailyActiveUserStats(Base):
 
     def __repr__(self):
         return f"models.DailyActiveUserStats({self.dict()})"
+
+
+class DailyVersionStats(Base):
+    __tablename__ = "version_stats"
+
+    date = Column(Date, primary_key=True, index=True)
+    stats = Column(JSON, primary_key=True, index=True)
