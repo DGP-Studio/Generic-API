@@ -56,3 +56,9 @@ class DailyVersionStats(Base):
 
     date = Column(Date, primary_key=True, index=True)
     stats = Column(JSON, primary_key=True, index=True)
+
+    def dict(self):
+        return {field.name: getattr(self, field.name) for field in self.__table__.c}
+
+    def __repr__(self):
+        return f"models.DailyVersionStats({self.dict()})"

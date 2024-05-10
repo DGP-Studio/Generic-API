@@ -36,8 +36,8 @@ def process_file(upstream_github_repo: str, jihulab_repo: str, branch: str, file
             }
             resp = httpx.get(url, headers=headers)
             text_raw = resp.text
-        except Exception:
-            logger.exception(f"Failed to check file: {file}, retry after 3 seconds...")
+        except (httpx.ReadTimeout, httpx.ConnectTimeout, httpx.ConnectError, httpx.RequestError) as e:
+            logger.exception(f"Failed to check file: {file}, error: {e}, retry after 3 seconds...")
             checked_time += 1
             time.sleep(3)
             continue
