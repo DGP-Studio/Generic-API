@@ -202,7 +202,7 @@ def dump_daily_version_stats_task() -> None:
     db = SessionLocal()
     daily_stats = {}
     daily_stats_delete_result = {}
-    redis_conn = redis.Redis(host="redis", port=6379, db=3)
+    redis_conn = redis.Redis(host="redis", port=6379, db=3, decode_responses=True)
     for key in redis_conn.scan_iter():
         daily_stats[key] = redis_conn.scard(key)
         delete_result = redis_conn.delete(key)
