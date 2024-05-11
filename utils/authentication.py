@@ -4,7 +4,7 @@ from config import API_TOKEN
 from base_logger import logger
 
 
-def verify_api_token(api_token: Annotated[str, Header()]) -> bool:
+async def verify_api_token(api_token: Annotated[str, Header()]) -> bool:
     if api_token == API_TOKEN:
         logger.info("API token is valid.")
         return True

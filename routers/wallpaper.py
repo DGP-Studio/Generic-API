@@ -4,6 +4,7 @@ import random
 import httpx
 from fastapi import APIRouter, Depends, Request
 from pydantic import BaseModel
+from typing import Annotated
 from datetime import date
 from utils.redis_utils import redis_conn
 from utils.authentication import verify_api_token
@@ -17,7 +18,7 @@ class WallpaperURL(BaseModel):
     url: str
 
 
-def get_db():
+async def get_db():
     db = SessionLocal()
     try:
         yield db
@@ -33,7 +34,7 @@ global_router = APIRouter(tags=["wallpaper"], prefix="/wallpaper")
                   tags=["admin"])
 @global_router.get("/all", response_model=list[schemas.Wallpaper], dependencies=[Depends(verify_api_token)],
                    tags=["admin"])
-async def get_all_wallpapers(db: SessionLocal = Depends(get_db)) -> list[schemas.Wallpaper]:
+async def get_all_wallpapers(db: Annotated[SessionLocal, Depends(get_db)]) -> list[schemas.Wallpaper]:
     """
     Get all wallpapers in database. **This endpoint requires API token verification**
 
@@ -48,7 +49,7 @@ async def get_all_wallpapers(db: SessionLocal = Depends(get_db)) -> list[schemas
                    tags=["admin"])
 @global_router.post("/add", response_model=schemas.StandardResponse, dependencies=[Depends(verify_api_token)],
                     tags=["admin"])
-async def add_wallpaper(wallpaper: schemas.Wallpaper, db: SessionLocal = Depends(get_db)):
+async def add_wallpaper(wallpaper: schemas.Wallpaper, db: Annotated[SessionLocal, Depends(get_db)]):
     """
     Add a new wallpaper to database. **This endpoint requires API token verification**
 
@@ -78,7 +79,7 @@ async def add_wallpaper(wallpaper: schemas.Wallpaper, db: SessionLocal = Depends
 
 @china_router.post("/disable", dependencies=[Depends(verify_api_token)], tags=["admin"], response_model=StandardResponse)
 @global_router.post("/disable", dependencies=[Depends(verify_api_token)], tags=["admin"], response_model=StandardResponse)
-async def disable_wallpaper_with_url(request: Request, db: SessionLocal = Depends(get_db)) -> StandardResponse:
+async def disable_wallpaper_with_url(request: Request, db: Annotated[SessionLocal, Depends(get_db)]) -> StandardResponse:
     """
     Disable a wallpaper with its URL, so it won't be picked by the random wallpaper picker.
     **This endpoint requires API token verification**
@@ -102,7 +103,7 @@ async def disable_wallpaper_with_url(request: Request, db: SessionLocal = Depend
 
 @china_router.post("/enable", dependencies=[Depends(verify_api_token)], tags=["admin"], response_model=StandardResponse)
 @global_router.post("/enable", dependencies=[Depends(verify_api_token)], tags=["admin"], response_model=StandardResponse)
-async def enable_wallpaper_with_url(request: Request, db: SessionLocal = Depends(get_db)) -> StandardResponse:
+async def enable_wallpaper_with_url(request: Request, db: Annotated[SessionLocal, Depends(get_db)]) -> StandardResponse:
     """
     Enable a wallpaper with its URL, so it will be picked by the random wallpaper picker.
     **This endpoint requires API token verification**
@@ -159,7 +160,7 @@ def random_pick_wallpaper(db, force_refresh: bool = False) -> Wallpaper:
 
 @china_router.get("/today", response_model=StandardResponse)
 @global_router.get("/today", response_model=StandardResponse)
-async def get_today_wallpaper(db: SessionLocal = Depends(get_db)) -> StandardResponse:
+async def get_today_wallpaper(db: Annotated[SessionLocal, Depends(get_db)]) -> StandardResponse:
     """
     Get today's wallpaper
 
@@ -184,7 +185,7 @@ async def get_today_wallpaper(db: SessionLocal = Depends(get_db)) -> StandardRes
                   tags=["admin"])
 @global_router.get("/refresh", response_model=StandardResponse, dependencies=[Depends(verify_api_token)],
                    tags=["admin"])
-async def get_today_wallpaper(db: SessionLocal = Depends(get_db)) -> StandardResponse:
+async def get_today_wallpaper(db: Annotated[SessionLocal, Depends(get_db)]) -> StandardResponse:
     """
     Refresh today's wallpaper. **This endpoint requires API token verification**
 
@@ -214,7 +215,7 @@ async def get_today_wallpaper(db: SessionLocal = Depends(get_db)) -> StandardRes
                   tags=["admin"])
 @global_router.get("/reset", response_model=StandardResponse, dependencies=[Depends(verify_api_token)],
                    tags=["admin"])
-async def reset_last_display(db: SessionLocal = Depends(get_db)) -> StandardResponse:
+async def reset_last_display(db: Annotated[SessionLocal, Depends(get_db)]) -> StandardResponse:
     """
     Reset last display date of all wallpapers. **This endpoint requires API token verification**
 
