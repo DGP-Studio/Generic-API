@@ -1,7 +1,7 @@
 import os
 import redis
 from fastapi import Header
-from typing import Annotated
+from typing import Optional
 from base_logger import logger
 
 if os.getenv("NO_REDIS", "false").lower() == "true":
@@ -15,8 +15,8 @@ else:
     logger.info("Redis connection established for Stats module (db=2)")
 
 
-async def record_device_id(x_device_id: Annotated[str, Header()], x_region: Annotated[str, Header()],
-                           x_hutao_device_id: Annotated[str, Header()], user_agent: Annotated[str, Header()]) -> bool:
+def record_device_id(x_device_id: Optional[str] = Header(None), x_region: Optional[str] = Header(None),
+                     x_hutao_device_id: Optional[str] = Header(None), user_agent: Optional[str] = Header(None)) -> bool:
     if x_hutao_device_id:
         captured_device_id = x_hutao_device_id
     elif x_device_id:
@@ -35,11 +35,11 @@ async def record_device_id(x_device_id: Annotated[str, Header()], x_region: Anno
                     redis_key_name = "active_users_unknown"
         else:
             redis_key_name = "active_users_unknown"
-        await redis_conn.sadd(redis_key_name, captured_device_id)
+        redis_conn.sadd(redis_key_name, captured_device_id)
 
         if user_agent:
             user_agent = user_agent.replace("Snap Hutao/", "")
-            await patch_redis_conn.sadd(user_agent, captured_device_id)
+            patch_redis_conn.sadd(user_agent, captured_device_id)
         return True
     else:
         logger.warning("Redis connection not established, not recording device ID")
