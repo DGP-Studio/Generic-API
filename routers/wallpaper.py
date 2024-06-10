@@ -340,3 +340,42 @@ async def get_genshin_launcher_wallpaper(request: Request, language: str = "en-u
     response.message = f"sourced: {redis_key}"
     response.data = data
     return response
+
+
+@china_router.get("/hoyoplay", response_model=StandardResponse)
+@global_router.get("/hoyoplay", response_model=StandardResponse)
+async def get_genshin_launcher_wallpaper(request: Request) -> StandardResponse:
+    """
+    Get HoYoPlay wallpaper
+
+    :param request: Request object from FastAPI
+
+    :return: StandardResponse object with HoYoPlay wallpaper data in data field
+    """
+    hoyoplay_api = "https://hyp-api.mihoyo.com/hyp/hyp-connect/api/getGames?launcher_id=jGHBHlcOq1&language=zh-cn"
+    redis_key = "hoyoplay_cn_wallpaper"
+    if redis_conn is not None:
+        try:
+            redis_data = json.loads(redis_conn.get(redis_key))
+        except (json.JSONDecodeError, TypeError):
+            redis_data = None
+        if redis_data is not None:
+            response = StandardResponse()
+            response.message = f"cached: {redis_key}"
+            response.data = redis_data
+            return response
+    # Get HoYoPlay wallpaper from API
+    hoyoplay_output = httpx.get(hoyoplay_api).json()
+    data = {
+        "url": hoyoplay_output["data"]["games"][2]["display"]["background"]["url"],
+        "source_url": "https://hoyoplay.hoyoverse.com/",
+        "author": "miHoYo",
+        "uploader": "miHoYo"
+    }
+    if redis_conn is not None:
+        res = redis_conn.set(redis_key, json.dumps(data), ex=3600)
+        logger.info(f"Set hoyoplay_wallpaper to Redis result: {res}")
+    response = StandardResponse()
+    response.message = f"sourced: {redis_key}"
+    response.data = data
+    return response
