@@ -7,7 +7,7 @@ from fastapi import APIRouter, Response, status, Request, Depends
 from fastapi.responses import RedirectResponse
 from datetime import datetime
 from utils.dgp_utils import update_recent_versions
-from utils.PatchMeta import PatchMeta
+from utils.PatchMeta import PatchMeta, PatchMirrorMetadata
 from utils.authentication import verify_api_token
 from utils.redis_utils import redis_conn
 from utils.stats import record_device_id
@@ -79,6 +79,8 @@ def fetch_snap_hutao_github_latest_version() -> PatchMeta:
             sha256sums_url = asset["browser_download_url"]
     if github_msix_url is None:
         raise ValueError("Failed to get Snap Hutao latest version from GitHub")
+    else:
+        github_mirror_metadata = PatchMirrorMetadata(mirror_name="GitHub", mirror_url=github_msix_url)
 
     # Handle checksum file
     if sha256sums_url:
@@ -109,7 +111,8 @@ def fetch_snap_hutao_github_latest_version() -> PatchMeta:
         validation=sha256sums_value if sha256sums_value else None,
         patch_note={"cn": "", "en": "", "full": ""},
         url_type="GitHub",
-        cache_time=datetime.now()
+        cache_time=datetime.now(),
+        mirrors={"GitHub": github_mirror_metadata}
     )
     logger.debug(f"GitHub data fetched: {github_path_meta}")
     return github_path_meta
@@ -144,6 +147,7 @@ def update_snap_hutao_latest_version() -> dict:
             archive_url = [a["direct_asset_url"] for a in jihulab_meta["assets"]["links"]
                            if a["name"] == "artifact_archive"][0]
             jihulab_patch_meta.url = [jihulab_url]
+            jihulab_patch_meta.mirrors["12345"] = PatchMirrorMetadata(mirror_name="JiHuLAB", mirror_url=jihulab_url)
             jihulab_patch_meta.archive_url = [archive_url]
         except (KeyError, IndexError) as e:
             gitlab_message = f"Error occurred when fetching Snap Hutao from JiHuLAB: {e}. "
@@ -173,7 +177,8 @@ def update_snap_hutao_latest_version() -> dict:
                 "cn": github_patch_meta.patch_note["cn"],
                 "en": github_patch_meta.patch_note["en"],
                 "full": github_patch_meta.patch_note["full"]
-            }
+            },
+            "mirrors": github_patch_meta.mirrors
         },
         "cn": {
             "version": jihulab_patch_meta.version,
@@ -184,7 +189,8 @@ def update_snap_hutao_latest_version() -> dict:
                 "cn": jihulab_patch_meta.patch_note["cn"],
                 "en": jihulab_patch_meta.patch_note["en"],
                 "full": jihulab_patch_meta.patch_note["full"]
-            }
+            },
+            "mirrors": jihulab_patch_meta.mirrors
         },
         "github_message": github_message,
         "gitlab_message": gitlab_message
