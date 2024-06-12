@@ -279,8 +279,6 @@ async def get_bing_wallpaper(request: Request) -> StandardResponse:
     return response
 
 
-@china_router.get("/genshin-launcher", response_model=StandardResponse)
-@global_router.get("/genshin-launcher", response_model=StandardResponse)
 async def get_genshin_launcher_wallpaper(request: Request, language: str = "en-us") -> StandardResponse:
     """
     Get Genshin Impact launcher wallpaper
@@ -344,7 +342,9 @@ async def get_genshin_launcher_wallpaper(request: Request, language: str = "en-u
 
 @china_router.get("/hoyoplay", response_model=StandardResponse)
 @global_router.get("/hoyoplay", response_model=StandardResponse)
-async def get_genshin_launcher_wallpaper(request: Request) -> StandardResponse:
+@china_router.get("/genshin-launcher", response_model=StandardResponse)
+@global_router.get("/genshin-launcher", response_model=StandardResponse)
+async def get_genshin_launcher_wallpaper() -> StandardResponse:
     """
     Get HoYoPlay wallpaper
 
