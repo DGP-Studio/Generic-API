@@ -147,7 +147,8 @@ def update_snap_hutao_latest_version() -> dict:
             archive_url = [a["direct_asset_url"] for a in jihulab_meta["assets"]["links"]
                            if a["name"] == "artifact_archive"][0]
             jihulab_patch_meta.url = [jihulab_url]
-            jihulab_patch_meta.mirrors["12345"] = PatchMirrorMetadata(mirror_name="JiHuLAB", mirror_url=jihulab_url)
+            jihulab_mirror_metadata = PatchMirrorMetadata(mirror_name="JiHuLAB", mirror_url=jihulab_url)
+            jihulab_patch_meta.add_mirror(jihulab_mirror_metadata)
             jihulab_patch_meta.archive_url = [archive_url]
         except (KeyError, IndexError) as e:
             gitlab_message = f"Error occurred when fetching Snap Hutao from JiHuLAB: {e}. "

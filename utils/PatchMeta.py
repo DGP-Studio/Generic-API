@@ -7,6 +7,14 @@ class PatchMirrorMetadata(TypedDict):
     mirror_name: Literal["GitHub", "JiHuLAB", "LenovoAppStore", "CodingAssets", "gh-proxy"]
     mirror_url: str
 
+    @field_validator('mirror_name', mode='before')
+    @staticmethod
+    def validate_mirror_name(value):
+        print(f"Validating mirror name: {value}")
+        if value not in ["GitHub", "JiHuLAB", "LenovoAppStore", "CodingAssets", "gh-proxy"]:
+            raise ValueError(f"Invalid mirror name: {value}")
+        return value
+
 
 class PatchMeta(BaseModel):
     version: str
@@ -24,8 +32,8 @@ class PatchMeta(BaseModel):
         if isinstance(value, dict):
             for key, val in value.items():
                 if not isinstance(val, dict) or 'mirror_name' not in val or 'mirror_url' not in val:
-                    raise ValueError(f"Each mirror must be a dict containing 'mirror_name' and 'mirror_url'. Invalid entry: {key}: {val}")
-                print(f"Comparing {val['mirror_name']} with {key}")
+                    raise ValueError(
+                        f"Each mirror must be a dict containing 'mirror_name' and 'mirror_url'. Invalid entry: {key}: {val}")
                 if val['mirror_name'] != key:
                     print(f"Mirror name in value ({val['mirror_name']}) does not match key ({key}).")
                     raise ValueError(f"Mirror name in value ({val['mirror_name']}) does not match key ({key}).")
@@ -33,11 +41,10 @@ class PatchMeta(BaseModel):
             raise ValueError("mirrors must be a dictionary")
         return value
 
-    def __setitem__(self, key, value):
-        print(f"Setting {key} to {value} directly")
-        super().__setitem__(key, value)
-        if key == 'mirrors':
-            self.validate_mirrors(value)
+    def add_mirror(self, mirror_metadata: PatchMirrorMetadata):
+        print(f"Adding mirror: {mirror_metadata}")
+        mirror_name = mirror_metadata['mirror_name']
+        self.mirrors[mirror_name] = PatchMirrorMetadata(**mirror_metadata)
 
     def __repr__(self):
         return f"schema.PatchMeta({self.dict()})"
