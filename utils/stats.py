@@ -49,3 +49,12 @@ def record_device_id(x_region: Optional[str] = Header(None), x_hutao_device_id: 
     print(f"Execution time[2]: {execution_time} ms")
 
     return False
+
+
+def record_email_sent() -> bool:
+    if not redis_conn:
+        logger.warning("Redis connection not established, not recording email sent")
+        return False
+
+    redis_conn.incr("email_sent")
+    return True

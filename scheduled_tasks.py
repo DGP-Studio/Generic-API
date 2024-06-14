@@ -12,9 +12,9 @@ from scheduler import Scheduler
 import config  # DO NOT REMOVE
 from utils.email_utils import send_system_email
 from base_logger import logger
-from mysql_app.schemas import DailyActiveUserStats
+from mysql_app.schemas import DailyActiveUserStats, DailyEmailSentStats
 from mysql_app.database import SessionLocal
-from mysql_app.crud import dump_daily_active_user_stats
+from mysql_app.crud import dump_daily_active_user_stats, dump_daily_email_sent_stats
 
 
 scan_duration = int(os.getenv("CENSOR_FILE_SCAN_DURATION", 30))  # Scan duration in *minutes*
@@ -196,6 +196,22 @@ def dump_daily_active_user_data() -> None:
     dump_daily_active_user_stats(db, daily_active_user_data)
     db.close()
     logger.info(f"Daily active user data dumped at {datetime.datetime.now()}.")
+
+
+def dump_daily_email_sent_data() -> None:
+    db = SessionLocal()
+    redis_conn = redis.Redis(host="redis", port=6379, db=2)
+
+    email_sent = redis_conn.get("email_sent")
+    delete_email_sent_result = redis_conn.delete("email_sent")
+    logger.info(f"email_sent: {email_sent}, delete result: {delete_email_sent_result}")
+
+    yesterday_date = date.today() - timedelta(days=1)
+    daily_email_sent_data = DailyEmailSentStats(date=yesterday_date, email_sent=email_sent)
+    logger.info(f"Daily email sent data of {yesterday_date}: {daily_email_sent_data}; Data generated at {datetime.datetime.now()}.")
+    dump_daily_email_sent_stats(db, daily_email_sent_data)
+    db.close()
+    logger.info(f"Daily email sent data dumped at {datetime.datetime.now()}.")
 
 
 if __name__ == "__main__":
