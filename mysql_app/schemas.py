@@ -53,4 +53,6 @@ class DailyActiveUserStats(BaseModel):
 
 class DailyEmailSentStats(BaseModel):
     date: datetime.date
-    sent_count: int
+    requested: int
+    sent: int
+    failed: int

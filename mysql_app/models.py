@@ -55,7 +55,9 @@ class DailyEmailSentStats(Base):
     __tablename__ = "email_sent_stats"
 
     date = Column(Date, primary_key=True, index=True)
-    sent_count = Column(Integer, nullable=False)
+    requested = Column(Integer, nullable=False)
+    sent = Column(Integer, nullable=False)
+    failed = Column(Integer, nullable=False)
 
     def dict(self):
         return {field.name: getattr(self, field.name) for field in self.__table__.c}

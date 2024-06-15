@@ -1,6 +1,6 @@
 import os
 from fastapi import APIRouter, Depends, Response
-from utils.stats import record_email_sent
+from utils.stats import record_email_requested, add_email_failed_count, add_email_sent_count
 from utils.authentication import verify_api_token
 from pydantic import BaseModel
 from concurrent.futures import ThreadPoolExecutor
@@ -80,15 +80,17 @@ smtp_pool = SMTPConnectionPool()
 executor = ThreadPoolExecutor(max_workers=10)
 
 
-@admin_router.post("/send", dependencies=[Depends(record_email_sent), Depends(verify_api_token)])
+@admin_router.post("/send", dependencies=[Depends(record_email_requested), Depends(verify_api_token)])
 async def send_email(email_request: EmailRequest, response: Response) -> StandardResponse:
     try:
         smtp_pool.send_email(email_request.subject, email_request.content, email_request.recipient)
+        add_email_sent_count()
         return StandardResponse(data={
             "code": 0,
             "message": "Email sent successfully"
         })
     except Exception as e:
+        add_email_failed_count()
         response.status_code = 500
         return StandardResponse(retcode=500, message=f"Failed to send email: {e}",
                                 data={

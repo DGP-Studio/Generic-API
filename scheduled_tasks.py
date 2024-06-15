@@ -202,12 +202,13 @@ def dump_daily_email_sent_data() -> None:
     db = SessionLocal()
     redis_conn = redis.Redis(host="redis", port=6379, db=2)
 
-    email_sent = redis_conn.get("email_sent")
-    delete_email_sent_result = redis_conn.delete("email_sent")
-    logger.info(f"email_sent: {email_sent}, delete result: {delete_email_sent_result}")
+    email_requested = redis_conn.getdel("email_requested")
+    email_sent = redis_conn.getdel("email_sent")
+    email_failed = redis_conn.getdel("email_failed")
+    logger.info(f"email_requested: {email_requested}; email_sent: {email_sent}; email_failed: {email_failed}")
 
     yesterday_date = date.today() - timedelta(days=1)
-    daily_email_sent_data = DailyEmailSentStats(date=yesterday_date, email_sent=email_sent)
+    daily_email_sent_data = DailyEmailSentStats(date=yesterday_date, requested=email_requested, sent=email_sent, failed=email_failed)
     logger.info(f"Daily email sent data of {yesterday_date}: {daily_email_sent_data}; Data generated at {datetime.datetime.now()}.")
     dump_daily_email_sent_stats(db, daily_email_sent_data)
     db.close()

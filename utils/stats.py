@@ -51,10 +51,28 @@ def record_device_id(x_region: Optional[str] = Header(None), x_hutao_device_id: 
     return False
 
 
-def record_email_sent() -> bool:
+def record_email_requested() -> bool:
+    if not redis_conn:
+        logger.warning("Redis connection not established, not recording email sent")
+        return False
+
+    redis_conn.incr("email_requested")
+    return True
+
+
+def add_email_sent_count() -> bool:
     if not redis_conn:
         logger.warning("Redis connection not established, not recording email sent")
         return False
 
     redis_conn.incr("email_sent")
+    return True
+
+
+def add_email_failed_count() -> bool:
+    if not redis_conn:
+        logger.warning("Redis connection not established, not recording email sent")
+        return False
+
+    redis_conn.incr("email_failed")
     return True
