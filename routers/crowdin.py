@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 from mysql_app.schemas import StandardResponse
-import requests
+import httpx
 import os
 
 china_router = APIRouter(tags=["Localization"], prefix="/localization")
@@ -20,11 +20,11 @@ def fetch_snap_hutao_translation_process():
     headers = {
         "Authorization": f"Bearer {API_KEY}"
     }
-    resp = requests.get(url, headers=headers).json()
+    resp = httpx.get(url, headers=headers).json()
     hutao_target_language_ids = resp["data"]["targetLanguageIds"]
     for language_id in hutao_target_language_ids:
         url = f"{CROWDIN_HOST}/projects/{SNAP_HUTAO_PROJECT_ID}/languages/{language_id}/progress"
-        resp = requests.get(url, headers=headers).json()
+        resp = httpx.get(url, headers=headers).json()
         total_count = resp["data"][0]["data"]["words"]["total"]
         translated_count = resp["data"][0]["data"]["words"]["translated"]
         result_output[language_id] = {
