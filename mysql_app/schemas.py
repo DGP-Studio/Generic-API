@@ -49,3 +49,10 @@ class DailyActiveUserStats(BaseModel):
     cn_user: int
     global_user: int
     unknown: int
+
+
+class DailyEmailSentStats(BaseModel):
+    date: datetime.date
+    requested: int
+    sent: int
+    failed: int

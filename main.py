@@ -5,7 +5,7 @@ from fastapi import FastAPI
 from fastapi.responses import RedirectResponse
 from fastapi.middleware.cors import CORSMiddleware
 from apitally.fastapi import ApitallyMiddleware
-from routers import enka_network, metadata, patch, static, net, wallpaper, strategy, crowdin
+from routers import enka_network, metadata, patch, static, net, wallpaper, strategy, crowdin, system_email
 from base_logger import logger
 from config import (MAIN_SERVER_DESCRIPTION, API_VERSION, TOS_URL, CONTACT_INFO, LICENSE_INFO,
                     CHINA_SERVER_DESCRIPTION, GLOBAL_SERVER_DESCRIPTION)
@@ -65,6 +65,10 @@ global_app.include_router(wallpaper.global_router)
 # Strategy API Routers
 china_app.include_router(strategy.china_router)
 global_app.include_router(strategy.global_router)
+
+
+# System Email Router
+app.include_router(system_email.admin_router)
 
 # Crowdin Localization API Routers
 china_app.include_router(crowdin.china_router)
