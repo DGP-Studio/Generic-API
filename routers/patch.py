@@ -264,7 +264,11 @@ async def get_snap_hutao_latest_download_direct_china_endpoint() -> RedirectResp
     :return: 302 Redirect to the first download link
     """
     snap_hutao_latest_version = json.loads(redis_conn.get("snap_hutao_latest_version"))
-    return RedirectResponse(snap_hutao_latest_version["cn"]["urls"][0], status_code=302)
+    checksum_value = snap_hutao_latest_version["cn"]["sha256"]
+    headers = {
+        "X-Checksum-Sha256": checksum_value
+    } if checksum_value else {}
+    return RedirectResponse(snap_hutao_latest_version["cn"]["urls"][0], status_code=302, headers=headers)
 
 
 @global_router.get("/hutao", response_model=StandardResponse, dependencies=[Depends(record_device_id)])
