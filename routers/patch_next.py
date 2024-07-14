@@ -2,12 +2,11 @@ import httpx
 import os
 import redis
 import json
-import re
 from fastapi import APIRouter, Response, status, Request, Depends
 from fastapi.responses import RedirectResponse
 from datetime import datetime
 from utils.dgp_utils import update_recent_versions
-from utils.PatchMeta import PatchMeta
+from utils.PatchMeta import PatchMeta, MirrorMeta
 from utils.authentication import verify_api_token
 from utils.redis_utils import redis_conn
 from utils.stats import record_device_id
@@ -17,7 +16,7 @@ from base_logger import logger
 
 if redis_conn:
     try:
-        logger.info(f"Got overwritten_china_url from Redis: {json.loads(redis_conn.get("overwritten_china_url"))}")
+        logger.info(f"Got overwritten_china_url from Redis: {json.loads(redis_conn.get("snap-hutao-mirror-list"))}")
     except (redis.exceptions.ConnectionError, TypeError, AttributeError):
         logger.warning("Initialing overwritten_china_url in Redis")
         new_overwritten_china_url = {}
@@ -28,19 +27,6 @@ if redis_conn:
             }
         r = redis_conn.set("overwritten_china_url", json.dumps(new_overwritten_china_url))
         logger.info(f"Set overwritten_china_url to Redis: {r}")
-
-"""
-sample_overwritten_china_url = {
-    "snap-hutao": {
-        "version": "1.2.3",
-        "url": "https://example.com/snap-hutao"
-    },
-    "snap-hutao-deployment": {
-        "version": "1.2.3",
-        "url": "https://example.com/snap-hutao-deployment"
-    }
-}
-"""
 
 china_router = APIRouter(tags=["Patch"], prefix="/patch")
 global_router = APIRouter(tags=["Patch"], prefix="/patch")
@@ -59,17 +45,6 @@ def fetch_snap_hutao_github_latest_version() -> PatchMeta:
 
     github_meta = httpx.get("https://api.github.com/repos/DGP-Studio/Snap.Hutao/releases/latest",
                             headers=github_headers).json()
-
-    # Patch Note
-    full_description = github_meta["body"]
-    try:
-        ending_desc = re.search(r"## 完整更新日志(.|\r|\n)+$", full_description).group(0)
-        full_description = full_description.replace(ending_desc, "")
-    except AttributeError:
-        pass
-    split_description = full_description.split("## Update Log")
-    cn_description = split_description[0].replace("## 更新日志", "") if len(split_description) > 1 else "获取日志失败"
-    en_description = split_description[1] if len(split_description) > 1 else "Failed to get log"
 
     # Release asset (MSIX)
     for asset in github_meta["assets"]:
@@ -92,24 +67,16 @@ def fetch_snap_hutao_github_latest_version() -> PatchMeta:
 
         os.remove("cache/sha256sums")
 
-    """
-    # 没人写应用内显示更新日志的代码
-    github_path_meta = PatchMeta(
-        version=github_meta["tag_name"] + ".0",
-        url=[github_msix_url],
-        validation=sha256sums_value if sha256sums_value else None,
-        patch_note={"cn": cn_description, "en": en_description, "full": full_description},
-        url_type="GitHub",
-        cache_time=datetime.now()
+    github_mirror = MirrorMeta(
+        url=github_msix_url,
+        mirror_name="GitHub"
     )
-    """
+
     github_path_meta = PatchMeta(
         version=github_meta["tag_name"] + ".0",
-        url=[github_msix_url],
         validation=sha256sums_value if sha256sums_value else None,
-        patch_note={"cn": "", "en": "", "full": ""},
-        url_type="GitHub",
-        cache_time=datetime.now()
+        cache_time=datetime.now(),
+        mirrors=[github_mirror]
     )
     logger.debug(f"GitHub data fetched: {github_path_meta}")
     return github_path_meta
@@ -125,10 +92,9 @@ def update_snap_hutao_latest_version() -> dict:
 
     # handle GitHub release
     github_patch_meta = fetch_snap_hutao_github_latest_version()
+    jihulab_patch_meta = github_patch_meta.model_copy()
 
     # handle Jihulab release
-    jihulab_patch_meta = github_patch_meta.model_copy()
-    jihulab_patch_meta.url_type = "JiHuLAB"
     jihulab_meta = httpx.get(
         "https://jihulab.com/api/v4/projects/DGP-Studio%2FSnap.Hutao/releases/permalink/latest",
         follow_redirects=True).json()
@@ -143,55 +109,47 @@ def update_snap_hutao_latest_version() -> dict:
                            if a["link_type"] == "package"][0]
             archive_url = [a["direct_asset_url"] for a in jihulab_meta["assets"]["links"]
                            if a["name"] == "artifact_archive"][0]
-            jihulab_patch_meta.url = [jihulab_url]
-            jihulab_patch_meta.archive_url = [archive_url]
+
+            jihulab_mirror_meta = MirrorMeta(
+                url=jihulab_url,
+                mirror_name="JiHuLAB"
+            )
+
+            jihulab_archive_mirror_meta = MirrorMeta(
+                url=archive_url,
+                mirror_name="JiHuLAB Archive"
+            )
+            jihulab_patch_meta.mirrors.append(jihulab_mirror_meta)
+            jihulab_patch_meta.mirrors.append(jihulab_archive_mirror_meta)
         except (KeyError, IndexError) as e:
             gitlab_message = f"Error occurred when fetching Snap Hutao from JiHuLAB: {e}. "
             logger.error(gitlab_message)
-    logger.debug(f"JiHuLAB data fetched: {jihulab_patch_meta}")
+    logger.debug(f"JiHuLAB data fetched: {github_patch_meta}")
 
     # Clear overwritten URL if the version is updated
-    overwritten_china_url = json.loads(redis_conn.get("overwritten_china_url"))
-    if overwritten_china_url["snap-hutao"]["version"] != github_patch_meta.version:
-        logger.info("Found unmatched version, clearing overwritten URL")
-        overwritten_china_url["snap-hutao"]["version"] = None
-        overwritten_china_url["snap-hutao"]["url"] = None
-        if redis_conn:
-            logger.info(f"Set overwritten_china_url to Redis: {redis_conn.set("overwritten_china_url",
-                                                                              json.dumps(overwritten_china_url))}")
-    else:
-        gitlab_message += f"Using overwritten URL: {overwritten_china_url['snap-hutao']['url']}. "
-        jihulab_patch_meta.url = [overwritten_china_url["snap-hutao"]["url"]] + jihulab_patch_meta.url
+    try:
+        hutao_mirror_list = redis_conn.get("snap-hutao-mirror-list").json()
+        if hutao_mirror_list[0]["version"] != github_patch_meta.version:
+            logger.info("Found unmatched version, clearing overwritten URL")
+            hutao_mirror_list = []
+            if redis_conn:
+                logger.info(f"Set snap-hutao-mirror-list to Redis: {redis_conn.set("snap-hutao-mirror-list",
+                                                                                   json.dumps(hutao_mirror_list))}")
+        else:
+            jihulab_patch_meta.mirrors.append(hutao_mirror_list)
+    except AttributeError:
+        pass
 
     return_data = {
-        "global": {
-            "version": github_patch_meta.version,
-            "urls": github_patch_meta.url,
-            "sha256": github_patch_meta.validation,
-            "archive_urls": [],
-            "release_description": {
-                "cn": github_patch_meta.patch_note["cn"],
-                "en": github_patch_meta.patch_note["en"],
-                "full": github_patch_meta.patch_note["full"]
-            }
-        },
-        "cn": {
-            "version": jihulab_patch_meta.version,
-            "urls": jihulab_patch_meta.url,
-            "sha256": jihulab_patch_meta.validation,
-            "archive_urls": jihulab_patch_meta.archive_url,
-            "release_description": {
-                "cn": jihulab_patch_meta.patch_note["cn"],
-                "en": jihulab_patch_meta.patch_note["en"],
-                "full": jihulab_patch_meta.patch_note["full"]
-            }
-        },
+        "global": github_patch_meta.model_dump(),
+        "cn": jihulab_patch_meta.model_dump(),
         "github_message": github_message,
         "gitlab_message": gitlab_message
     }
     if redis_conn:
         logger.info(
-            f"Set Snap Hutao latest version to Redis: {redis_conn.set('snap_hutao_latest_version', json.dumps(return_data))}")
+            f"Set Snap Hutao latest version to Redis: {redis_conn.set('snap_hutao_latest_version',
+                                                                      json.dumps(return_data, default=str))}")
     return return_data
 
 
@@ -268,7 +226,7 @@ async def get_snap_hutao_latest_download_direct_china_endpoint() -> RedirectResp
     headers = {
         "X-Checksum-Sha256": checksum_value
     } if checksum_value else {}
-    return RedirectResponse(snap_hutao_latest_version["cn"]["urls"][0], status_code=302, headers=headers)
+    return RedirectResponse(snap_hutao_latest_version["cn"]["mirrors"][0]["url"], status_code=302, headers=headers)
 
 
 @global_router.get("/hutao", response_model=StandardResponse, dependencies=[Depends(record_device_id)])
@@ -294,7 +252,7 @@ async def get_snap_hutao_latest_download_direct_china_endpoint() -> RedirectResp
     :return: 302 Redirect to the first download link
     """
     snap_hutao_latest_version = json.loads(redis_conn.get("snap_hutao_latest_version"))
-    return RedirectResponse(snap_hutao_latest_version["global"]["urls"][0], status_code=302)
+    return RedirectResponse(snap_hutao_latest_version["global"]["mirrors"][0]["url"], status_code=302)
 
 
 # Snap Hutao Deployment
@@ -373,11 +331,11 @@ async def generic_patch_latest_version(response: Response, project_key: str) -> 
 # @china_router.get("/yae") -> use Nginx reverse proxy instead
 # @global_router.get("/yae") -> use Nginx reverse proxy instead
 
-@china_router.post("/cn-overwrite-url", tags=["admin"], include_in_schema=True,
+@china_router.post("/mirror", tags=["admin"], include_in_schema=True,
                    dependencies=[Depends(verify_api_token)], response_model=StandardResponse)
-@global_router.post("/cn-overwrite-url", tags=["admin"], include_in_schema=True,
+@global_router.post("/mirror", tags=["admin"], include_in_schema=True,
                     dependencies=[Depends(verify_api_token)], response_model=StandardResponse)
-async def update_overwritten_china_url(response: Response, request: Request) -> StandardResponse:
+async def add_mirror_url(response: Response, request: Request) -> StandardResponse:
     """
     Update overwritten China URL for a project, this url will be placed at first priority when fetching latest version.
     **This endpoint requires API token verification**
@@ -390,36 +348,34 @@ async def update_overwritten_china_url(response: Response, request: Request) -> 
     """
     data = await request.json()
     project_key = data.get("key", "").lower()
-    overwrite_url = data.get("url", None)
-    overwritten_china_url = json.loads(redis_conn.get("overwritten_china_url"))
-    if data["key"] in VALID_PROJECT_KEYS:
-        if project_key == "snap-hutao":
-            snap_hutao_latest_version = json.loads(redis_conn.get("snap_hutao_latest_version"))
-            current_version = snap_hutao_latest_version["cn"]["version"]
-        elif project_key == "snap-hutao-deployment":
-            snap_hutao_deployment_latest_version = json.loads(redis_conn.get("snap_hutao_deployment_latest_version"))
-            current_version = snap_hutao_deployment_latest_version["cn"]["version"]
-        else:
-            current_version = None
-        overwritten_china_url[project_key] = {
-            "version": current_version,
-            "url": overwrite_url
-        }
+    mirror_url = data.get("url", None)
+    mirror_name = data.get("name", None)
+    project_mirror_redis_key = f"{project_key}_latest_version".replace("-", "_")
 
-        # Overwrite overwritten_china_url to Redis
-        if redis_conn:
-            update_result = redis_conn.set("overwritten_china_url", json.dumps(overwritten_china_url))
-            logger.info(f"Set overwritten_china_url to Redis: {update_result}")
+    if not mirror_url or not mirror_name or project_key not in VALID_PROJECT_KEYS:
+        response.status_code = status.HTTP_400_BAD_REQUEST
+        return StandardResponse(message="Invalid request")
 
-        # Refresh project patch
-        if project_key == "snap-hutao":
-            update_snap_hutao_latest_version()
-        elif project_key == "snap-hutao-deployment":
-            update_snap_hutao_deployment_version()
-        response.status_code = status.HTTP_201_CREATED
-        logger.info(f"Latest overwritten URL data: {overwritten_china_url}")
-        return StandardResponse(message=f"Successfully overwritten {project_key} url to {overwrite_url}",
-                                data=overwritten_china_url)
+    current_version = json.loads(redis_conn.get(project_mirror_redis_key)).get("version")
+
+    mirror_list = json.loads(redis_conn.get(project_mirror_redis_key)).get("mirrors")
+    print(mirror_list)
+    mirror_list.append(MirrorMeta(name=mirror_name, url=mirror_url, version=current_version))
+
+    # Overwrite overwritten_china_url to Redis
+    if redis_conn:
+        update_result = redis_conn.set(project_mirror_redis_key, json.dumps(mirror_list))
+        logger.info(f"Set overwritten_china_url to Redis: {update_result}")
+
+    # Refresh project patch
+    if project_key == "snap-hutao":
+        update_snap_hutao_latest_version()
+    elif project_key == "snap-hutao-deployment":
+        update_snap_hutao_deployment_version()
+    response.status_code = status.HTTP_201_CREATED
+    logger.info(f"Latest overwritten URL data: {mirror_list}")
+    return StandardResponse(message=f"Successfully added {mirror_name} mirror URL for {project_key}",
+                            data=mirror_list)
 
 
 # Initial patch metadata

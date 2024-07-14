@@ -5,7 +5,7 @@ from fastapi import FastAPI
 from fastapi.responses import RedirectResponse
 from fastapi.middleware.cors import CORSMiddleware
 from apitally.fastapi import ApitallyMiddleware
-from routers import enka_network, metadata, patch, static, net, wallpaper, strategy, crowdin, system_email
+from routers import enka_network, metadata, patch_next, static, net, wallpaper, strategy, crowdin, system_email
 from base_logger import logger
 from config import (MAIN_SERVER_DESCRIPTION, API_VERSION, TOS_URL, CONTACT_INFO, LICENSE_INFO,
                     CHINA_SERVER_DESCRIPTION, GLOBAL_SERVER_DESCRIPTION)
@@ -47,8 +47,8 @@ china_app.include_router(metadata.china_router)
 global_app.include_router(metadata.global_router)
 
 # Patch API Routers
-china_app.include_router(patch.china_router)
-global_app.include_router(patch.global_router)
+china_app.include_router(patch_next.china_router)
+global_app.include_router(patch_next.global_router)
 
 # Static API Routers
 china_app.include_router(static.china_router)
@@ -87,12 +87,14 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+"""
 app.add_middleware(
     ApitallyMiddleware,
     client_id=os.getenv("APITALLY_CLIENT_ID"),
     env="dev" if os.getenv("DEBUG") == "1" or os.getenv("APITALLY_DEBUG") == "1" else "prod",
     openapi_url="/openapi.json"
 )
+"""
 
 app.mount("/cn", china_app, name="Hutao Generic API (China Ver.)")
 app.mount("/global", global_app, name="Hutao Generic API (Global Ver.)")
