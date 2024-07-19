@@ -16,17 +16,12 @@ from base_logger import logger
 
 if redis_conn:
     try:
-        logger.info(f"Got overwritten_china_url from Redis: {json.loads(redis_conn.get("snap-hutao-mirror-list"))}")
+        logger.info(f"Got overwritten_china_url from Redis: {json.loads(redis_conn.get("snap-hutao:mirrors"))}")
     except (redis.exceptions.ConnectionError, TypeError, AttributeError):
         logger.warning("Initialing overwritten_china_url in Redis")
-        new_overwritten_china_url = {}
         for key in VALID_PROJECT_KEYS:
-            new_overwritten_china_url[key] = {
-                "version": None,
-                "url": None
-            }
-        r = redis_conn.set("overwritten_china_url", json.dumps(new_overwritten_china_url))
-        logger.info(f"Set overwritten_china_url to Redis: {r}")
+            r = redis_conn.set(f"{key}:mirrors", json.dumps({"version": None, "mirrors": []}))
+            logger.info(f"Set [{key}:mirrors] to Redis: {r}")
 
 china_router = APIRouter(tags=["Patch"], prefix="/patch")
 global_router = APIRouter(tags=["Patch"], prefix="/patch")
@@ -121,22 +116,27 @@ def update_snap_hutao_latest_version() -> dict:
             )
             jihulab_patch_meta.mirrors.append(jihulab_mirror_meta)
             jihulab_patch_meta.mirrors.append(jihulab_archive_mirror_meta)
+            logger.debug(f"JiHuLAB data fetched: {jihulab_patch_meta}")
         except (KeyError, IndexError) as e:
             gitlab_message = f"Error occurred when fetching Snap Hutao from JiHuLAB: {e}. "
             logger.error(gitlab_message)
-    logger.debug(f"JiHuLAB data fetched: {github_patch_meta}")
+    logger.debug(f"GitHub data: {github_patch_meta}")
 
     # Clear overwritten URL if the version is updated
     try:
-        hutao_mirror_list = redis_conn.get("snap-hutao-mirror-list").json()
-        if hutao_mirror_list[0]["version"] != github_patch_meta.version:
+        hutao_mirror_list = redis_conn.get("snap-hutao:mirrors").json()
+        if hutao_mirror_list["version"] != github_patch_meta.version:
+            # Re-initial the mirror list with empty data
             logger.info("Found unmatched version, clearing overwritten URL")
-            hutao_mirror_list = []
+            new_mirror_meta = {
+                "version": github_patch_meta.version,
+                "mirrors": []
+            }
             if redis_conn:
-                logger.info(f"Set snap-hutao-mirror-list to Redis: {redis_conn.set("snap-hutao-mirror-list",
-                                                                                   json.dumps(hutao_mirror_list))}")
+                logger.info(f"Set snap-hutao:mirrors to Redis: {redis_conn.set("snap-hutao:mirrors",
+                                                                               json.dumps(new_mirror_meta))}")
         else:
-            jihulab_patch_meta.mirrors.append(hutao_mirror_list)
+            jihulab_patch_meta.mirrors.append(hutao_mirror_list.get("mirrors"))
     except AttributeError:
         pass
 
@@ -148,7 +148,7 @@ def update_snap_hutao_latest_version() -> dict:
     }
     if redis_conn:
         logger.info(
-            f"Set Snap Hutao latest version to Redis: {redis_conn.set('snap_hutao_latest_version',
+            f"Set Snap Hutao latest version to Redis: {redis_conn.set('snap-hutao:patch',
                                                                       json.dumps(return_data, default=str))}")
     return return_data
 
@@ -347,12 +347,12 @@ async def add_mirror_url(response: Response, request: Request) -> StandardRespon
     :return: Json response with message
     """
     data = await request.json()
-    project_key = data.get("key", "").lower()
-    mirror_url = data.get("url", None)
-    mirror_name = data.get("name", None)
-    project_mirror_redis_key = f"{project_key}_latest_version".replace("-", "_")
+    PROJECT_KEY = data.get("key", "").lower()
+    MIRROR_URL = data.get("url", None)
+    MIRROR_NAME = data.get("name", None)
+    project_mirror_redis_key = f"{PROJECT_KEY}:mirrors"
 
-    if not mirror_url or not mirror_name or project_key not in VALID_PROJECT_KEYS:
+    if not MIRROR_URL or not MIRROR_NAME or PROJECT_KEY not in VALID_PROJECT_KEYS:
         response.status_code = status.HTTP_400_BAD_REQUEST
         return StandardResponse(message="Invalid request")
 
@@ -360,7 +360,7 @@ async def add_mirror_url(response: Response, request: Request) -> StandardRespon
 
     mirror_list = json.loads(redis_conn.get(project_mirror_redis_key)).get("mirrors")
     print(mirror_list)
-    mirror_list.append(MirrorMeta(name=mirror_name, url=mirror_url, version=current_version))
+    mirror_list.append(MirrorMeta(name=MIRROR_NAME, url=MIRROR_URL, version=current_version))
 
     # Overwrite overwritten_china_url to Redis
     if redis_conn:
@@ -368,13 +368,13 @@ async def add_mirror_url(response: Response, request: Request) -> StandardRespon
         logger.info(f"Set overwritten_china_url to Redis: {update_result}")
 
     # Refresh project patch
-    if project_key == "snap-hutao":
+    if PROJECT_KEY == "snap-hutao":
         update_snap_hutao_latest_version()
-    elif project_key == "snap-hutao-deployment":
+    elif PROJECT_KEY == "snap-hutao-deployment":
         update_snap_hutao_deployment_version()
     response.status_code = status.HTTP_201_CREATED
     logger.info(f"Latest overwritten URL data: {mirror_list}")
-    return StandardResponse(message=f"Successfully added {mirror_name} mirror URL for {project_key}",
+    return StandardResponse(message=f"Successfully added {MIRROR_NAME} mirror URL for {PROJECT_KEY}",
                             data=mirror_list)
 
 
