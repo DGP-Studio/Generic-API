@@ -220,7 +220,7 @@ async def generic_get_snap_hutao_latest_version_china_endpoint() -> StandardResp
 
     # For compatibility purposes
     return_data = snap_hutao_latest_version["cn"]
-    urls = [m["url"] for m in snap_hutao_latest_version["cn"]["mirrors"]]
+    urls = [m["url"] for m in snap_hutao_latest_version["cn"]["mirrors"] if "archive" not in m["url"]]
     urls.reverse()
     return_data["urls"] = urls
 
@@ -257,7 +257,7 @@ async def generic_get_snap_hutao_latest_version_global_endpoint() -> StandardRes
 
     # For compatibility purposes
     return_data = snap_hutao_latest_version["global"]
-    urls = [m["url"] for m in snap_hutao_latest_version["global"]["mirrors"]]
+    urls = [m["url"] for m in snap_hutao_latest_version["global"]["mirrors"] if "archive" not in m["url"]]
     urls.reverse()
     return_data["urls"] = urls
 
@@ -291,7 +291,7 @@ async def generic_get_snap_hutao_latest_version_china_endpoint() -> StandardResp
 
     # For compatibility purposes
     return_data = snap_hutao_deployment_latest_version["cn"]
-    urls = [m["url"] for m in snap_hutao_deployment_latest_version["cn"]["mirrors"]]
+    urls = [m["url"] for m in snap_hutao_deployment_latest_version["cn"]["mirrors"] if "archive" not in m["url"]]
     urls.reverse()
     return_data["urls"] = urls
 
@@ -324,7 +324,7 @@ async def generic_get_snap_hutao_latest_version_global_endpoint() -> StandardRes
 
     # For compatibility purposes
     return_data = snap_hutao_deployment_latest_version["global"]
-    urls = [m["url"] for m in snap_hutao_deployment_latest_version["global"]["mirrors"]]
+    urls = [m["url"] for m in snap_hutao_deployment_latest_version["global"]["mirrors"] if "archive" not in m["url"]]
     urls.reverse()
     return_data["urls"] = urls
 
