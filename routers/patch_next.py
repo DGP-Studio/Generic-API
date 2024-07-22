@@ -64,7 +64,8 @@ def fetch_snap_hutao_github_latest_version() -> PatchMeta:
 
     github_mirror = MirrorMeta(
         url=github_msix_url,
-        mirror_name="GitHub"
+        mirror_name="GitHub",
+        mirror_type="direct"
     )
 
     github_path_meta = PatchMeta(
@@ -107,12 +108,14 @@ def update_snap_hutao_latest_version() -> dict:
 
             jihulab_mirror_meta = MirrorMeta(
                 url=jihulab_url,
-                mirror_name="JiHuLAB"
+                mirror_name="JiHuLAB",
+                mirror_type="direct"
             )
 
             jihulab_archive_mirror_meta = MirrorMeta(
                 url=archive_url,
-                mirror_name="JiHuLAB Archive"
+                mirror_name="JiHuLAB Archive",
+                mirror_type="archive"
             )
             jihulab_patch_meta.mirrors.append(jihulab_mirror_meta)
             jihulab_patch_meta.mirrors.append(jihulab_archive_mirror_meta)
@@ -171,7 +174,7 @@ def update_snap_hutao_deployment_version() -> dict:
         version=github_meta["tag_name"] + ".0",
         validation="",
         cache_time=datetime.now(),
-        mirrors=[MirrorMeta(url=github_exe_url, mirror_name="GitHub")]
+        mirrors=[MirrorMeta(url=github_exe_url, mirror_name="GitHub", mirror_type="direct")]
     )
     jihulab_meta = httpx.get(
         "https://jihulab.com/api/v4/projects/DGP-Studio%2FSnap.Hutao.Deployment/releases/permalink/latest",
@@ -184,7 +187,7 @@ def update_snap_hutao_deployment_version() -> dict:
         version=jihulab_meta["tag_name"] + ".0",
         validation="",
         cache_time=datetime.now(),
-        mirrors=[MirrorMeta(url=cn_urls[0], mirror_name="JiHuLAB")]
+        mirrors=[MirrorMeta(url=cn_urls[0], mirror_name="JiHuLAB", mirror_type="direct")]
     )
 
     current_cached_version = redis_conn.get("snap-hutao-deployment:version")
@@ -223,6 +226,7 @@ async def generic_get_snap_hutao_latest_version_china_endpoint() -> StandardResp
     urls = [m["url"] for m in snap_hutao_latest_version["cn"]["mirrors"] if "archive" not in m["url"]]
     urls.reverse()
     return_data["urls"] = urls
+    return_data["sha256"] = snap_hutao_latest_version["cn"]["validation"]
 
     return StandardResponse(
         retcode=0,
@@ -260,6 +264,7 @@ async def generic_get_snap_hutao_latest_version_global_endpoint() -> StandardRes
     urls = [m["url"] for m in snap_hutao_latest_version["global"]["mirrors"] if "archive" not in m["url"]]
     urls.reverse()
     return_data["urls"] = urls
+    return_data["sha256"] = snap_hutao_latest_version["cn"]["validation"]
 
     return StandardResponse(
         retcode=0,
@@ -294,6 +299,7 @@ async def generic_get_snap_hutao_latest_version_china_endpoint() -> StandardResp
     urls = [m["url"] for m in snap_hutao_deployment_latest_version["cn"]["mirrors"] if "archive" not in m["url"]]
     urls.reverse()
     return_data["urls"] = urls
+    return_data["sha256"] = snap_hutao_deployment_latest_version["cn"]["validation"]
 
     return StandardResponse(
         retcode=0,
@@ -327,6 +333,7 @@ async def generic_get_snap_hutao_latest_version_global_endpoint() -> StandardRes
     urls = [m["url"] for m in snap_hutao_deployment_latest_version["global"]["mirrors"] if "archive" not in m["url"]]
     urls.reverse()
     return_data["urls"] = urls
+    return_data["sha256"] = snap_hutao_deployment_latest_version["cn"]["validation"]
 
     return StandardResponse(message="Global endpoint reached",
                             data=return_data)
@@ -387,11 +394,12 @@ async def add_mirror_url(response: Response, request: Request) -> StandardRespon
     data = await request.json()
     PROJECT_KEY = data.get("key", "").lower()
     MIRROR_URL = data.get("url", None)
-    MIRROR_NAME = data.get("name", None)
+    MIRROR_NAME = data.get("mirror_name", None)
+    MIRROR_TYPE = data.get("mirror_type", None)
     current_version = redis_conn.get(f"{PROJECT_KEY}:version")
     project_mirror_redis_key = f"{PROJECT_KEY}:mirrors:{current_version}"
 
-    if not MIRROR_URL or not MIRROR_NAME or PROJECT_KEY not in VALID_PROJECT_KEYS:
+    if not MIRROR_URL or not MIRROR_NAME or not MIRROR_TYPE or PROJECT_KEY not in VALID_PROJECT_KEYS:
         response.status_code = status.HTTP_400_BAD_REQUEST
         return StandardResponse(message="Invalid request")
 
@@ -408,7 +416,7 @@ async def add_mirror_url(response: Response, request: Request) -> StandardRespon
                 m["url"] = MIRROR_URL
     else:
         method = "added"
-        mirror_list.append(MirrorMeta(mirror_name=MIRROR_NAME, url=MIRROR_URL))
+        mirror_list.append(MirrorMeta(mirror_name=MIRROR_NAME, url=MIRROR_URL, mirror_type=MIRROR_TYPE))
     logger.info(f"{method.capitalize()} {MIRROR_NAME} mirror URL for {PROJECT_KEY} to {MIRROR_URL}")
 
     # Overwrite overwritten_china_url to Redis
