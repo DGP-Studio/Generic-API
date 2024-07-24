@@ -1,4 +1,3 @@
-import os
 import json
 from fastapi import APIRouter, Depends
 from fastapi.responses import RedirectResponse
