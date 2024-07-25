@@ -6,7 +6,7 @@ china_router = APIRouter(tags=["Client Feature"], prefix="/client")
 global_router = APIRouter(tags=["Client Feature"], prefix="/client")
 
 
-@china_router.get("/{file_path:path}", dependencies=[Depends(validate_client_is_updated)])
+@china_router.get("/{file_path:path}")
 async def china_client_feature_request_handler(file_path: str) -> RedirectResponse:
     """
     Handle requests to client feature metadata files.
@@ -20,7 +20,7 @@ async def china_client_feature_request_handler(file_path: str) -> RedirectRespon
     return RedirectResponse(host_for_normal_files, status_code=302)
 
 
-@global_router.get("/{file_path:path}", dependencies=[Depends(validate_client_is_updated)])
+@global_router.get("/{file_path:path}")
 async def global_client_feature_request_handler(file_path: str) -> RedirectResponse:
     """
     Handle requests to client feature metadata files.
