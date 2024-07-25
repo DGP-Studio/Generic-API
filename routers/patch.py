@@ -127,7 +127,7 @@ def update_snap_hutao_latest_version() -> dict:
     github_patch_meta = fetch_snap_hutao_github_latest_version()
 
     # handle Jihulab release
-    jihulab_patch_meta = github_patch_meta.copy()
+    jihulab_patch_meta = github_patch_meta.model_copy()
     jihulab_patch_meta.url_type = "JiHuLAB"
     jihulab_meta = httpx.get(
         "https://jihulab.com/api/v4/projects/DGP-Studio%2FSnap.Hutao/releases/permalink/latest",

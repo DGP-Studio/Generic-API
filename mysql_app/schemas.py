@@ -56,3 +56,11 @@ class DailyEmailSentStats(BaseModel):
     requested: int
     sent: int
     failed: int
+
+class PatchMetadata(BaseModel):
+    version: str
+    release_date: datetime.date
+    description: str
+    download_url: str
+    patch_notes: str
+    disabled: Optional[bool] = False
