@@ -194,7 +194,8 @@ def update_snap_hutao_deployment_version() -> dict:
     if current_cached_version != jihulab_meta["tag_name"]:
         logger.info(
             f"Found unmatched version, clearing mirrors. Setting Snap Hutao Deployment latest version to Redis: {redis_conn.set('snap-hutao-deployment:version', jihulab_patch_meta.version)}")
-        logger.info(f"Reinitializing mirrors for Snap Hutao Deployment: {redis_conn.set(f'snap-hutao-deployment:mirrors:{jihulab_patch_meta.version}', json.dumps([]))}")
+        logger.info(
+            f"Reinitializing mirrors for Snap Hutao Deployment: {redis_conn.set(f'snap-hutao-deployment:mirrors:{jihulab_patch_meta.version}', json.dumps([]))}")
     else:
         current_mirrors = json.loads(redis_conn.get(f"snap-hutao-deployment:mirrors:{jihulab_patch_meta.version}"))
         for m in current_mirrors:
@@ -418,6 +419,62 @@ async def add_mirror_url(response: Response, request: Request) -> StandardRespon
         method = "added"
         mirror_list.append(MirrorMeta(mirror_name=MIRROR_NAME, url=MIRROR_URL, mirror_type=MIRROR_TYPE))
     logger.info(f"{method.capitalize()} {MIRROR_NAME} mirror URL for {PROJECT_KEY} to {MIRROR_URL}")
+
+    # Overwrite overwritten_china_url to Redis
+    if redis_conn:
+        update_result = redis_conn.set(project_mirror_redis_key, json.dumps(mirror_list, default=pydantic_encoder))
+        logger.info(f"Set {project_mirror_redis_key} to Redis: {update_result}")
+
+    # Refresh project patch
+    if PROJECT_KEY == "snap-hutao":
+        update_snap_hutao_latest_version()
+    elif PROJECT_KEY == "snap-hutao-deployment":
+        update_snap_hutao_deployment_version()
+    response.status_code = status.HTTP_201_CREATED
+    logger.info(f"Latest overwritten URL data: {mirror_list}")
+    return StandardResponse(message=f"Successfully {method} {MIRROR_NAME} mirror URL for {PROJECT_KEY}",
+                            data=mirror_list)
+
+
+@china_router.delete("/mirror", tags=["admin"], include_in_schema=True,
+                     dependencies=[Depends(verify_api_token)], response_model=StandardResponse)
+@global_router.delete("/mirror", tags=["admin"], include_in_schema=True,
+                      dependencies=[Depends(verify_api_token)], response_model=StandardResponse)
+async def delete_mirror_url(response: Response, request: Request) -> StandardResponse:
+    """
+    Delete overwritten China URL for a project, this url will be placed at first priority when fetching latest version.
+    **This endpoint requires API token verification**
+
+    :param response: Response model from FastAPI
+
+    :param request: Request model from FastAPI
+
+    :return: Json response with message
+    """
+    data = await request.json()
+    PROJECT_KEY = data.get("key", "").lower()
+    MIRROR_NAME = data.get("mirror_name", None)
+    current_version = redis_conn.get(f"{PROJECT_KEY}:version")
+    project_mirror_redis_key = f"{PROJECT_KEY}:mirrors:{current_version}"
+
+    if not MIRROR_NAME or PROJECT_KEY not in VALID_PROJECT_KEYS:
+        response.status_code = status.HTTP_400_BAD_REQUEST
+        return StandardResponse(message="Invalid request")
+
+    try:
+        mirror_list = json.loads(redis_conn.get(project_mirror_redis_key))
+    except TypeError:
+        mirror_list = []
+    current_mirror_names = [m["mirror_name"] for m in mirror_list]
+    if MIRROR_NAME in current_mirror_names:
+        method = "deleted"
+        # Remove the url
+        for m in mirror_list:
+            if m["mirror_name"] == MIRROR_NAME:
+                mirror_list.remove(m)
+    else:
+        method = "not found"
+    logger.info(f"{method.capitalize()} {MIRROR_NAME} mirror URL for {PROJECT_KEY}")
 
     # Overwrite overwritten_china_url to Redis
     if redis_conn:
