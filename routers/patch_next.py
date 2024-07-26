@@ -244,7 +244,7 @@ async def get_snap_hutao_latest_download_direct_china_endpoint() -> RedirectResp
     :return: 302 Redirect to the first download link
     """
     snap_hutao_latest_version = json.loads(redis_conn.get("snap-hutao:patch"))
-    checksum_value = snap_hutao_latest_version["cn"]["sha256"]
+    checksum_value = snap_hutao_latest_version["cn"]["validation"]
     headers = {
         "X-Checksum-Sha256": checksum_value
     } if checksum_value else {}
@@ -282,7 +282,11 @@ async def get_snap_hutao_latest_download_direct_china_endpoint() -> RedirectResp
     :return: 302 Redirect to the first download link
     """
     snap_hutao_latest_version = json.loads(redis_conn.get("snap-hutao:patch"))
-    return RedirectResponse(snap_hutao_latest_version["global"]["mirrors"][-1]["url"], status_code=302)
+    checksum_value = snap_hutao_latest_version["global"]["validation"]
+    headers = {
+        "X-Checksum-Sha256": checksum_value
+    } if checksum_value else {}
+    return RedirectResponse(snap_hutao_latest_version["global"]["mirrors"][-1]["url"], status_code=302, headers=headers)
 
 
 # Snap Hutao Deployment
@@ -317,7 +321,7 @@ async def get_snap_hutao_latest_download_direct_china_endpoint() -> RedirectResp
     :return: 302 Redirect to the first download link
     """
     snap_hutao_deployment_latest_version = json.loads(redis_conn.get("snap-hutao-deployment:patch"))
-    return RedirectResponse(snap_hutao_deployment_latest_version["cn"]["urls"][-1], status_code=302)
+    return RedirectResponse(snap_hutao_deployment_latest_version["cn"]["mirrors"][-1]["url"], status_code=302)
 
 
 @global_router.get("/hutao-deployment", response_model=StandardResponse)
@@ -348,7 +352,7 @@ async def get_snap_hutao_latest_download_direct_china_endpoint() -> RedirectResp
     :return: 302 Redirect to the first download link
     """
     snap_hutao_deployment_latest_version = json.loads(redis_conn.get("snap-hutao-deployment:patch"))
-    return RedirectResponse(snap_hutao_deployment_latest_version["global"]["urls"][-1], status_code=302)
+    return RedirectResponse(snap_hutao_deployment_latest_version["global"]["mirrors"][-1]["url"], status_code=302)
 
 
 @china_router.patch("/{project_key}", include_in_schema=True, response_model=StandardResponse)
