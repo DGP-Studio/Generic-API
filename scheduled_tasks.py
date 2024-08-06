@@ -218,7 +218,7 @@ def dump_daily_email_sent_data() -> None:
 if __name__ == "__main__":
     schedule = Scheduler(tzinfo=tz_shanghai)
     schedule.daily(datetime.time(hour=0, minute=0, tzinfo=tz_shanghai), dump_daily_active_user_data)
-    schedule.cyclic(datetime.timedelta(minutes=scan_duration), jihulab_regulatory_checker_task)
+    #schedule.cyclic(datetime.timedelta(minutes=scan_duration), jihulab_regulatory_checker_task)
     while True:
         schedule.exec_jobs()
         time.sleep(1)
