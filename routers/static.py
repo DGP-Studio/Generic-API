@@ -33,8 +33,8 @@ async def cn_get_zipped_file(file_path: str, request: Request) -> RedirectRespon
     """
     # https://jihulab.com/DGP-Studio/Snap.Static.Zip/-/raw/main/{file_path}
     # https://static-next.snapgenshin.com/d/zip/{file_path}
-    quality = request.headers.get("x-quality", "high").lower()
-    archive_type = request.headers.get("x-archive", "minimum").lower()
+    quality = request.headers.get("x-hutao-quality", "high").lower()
+    archive_type = request.headers.get("x-hutao-archive", "minimum").lower()
 
     if quality == "unknown" or archive_type == "unknown":
         raise HTTPException(status_code=418, detail="Invalid request")
@@ -71,7 +71,7 @@ async def cn_get_raw_file(file_path: str, request: Request) -> RedirectResponse:
 
     :return: 302 Redirect to the raw file
     """
-    quality = request.headers.get("x-quality", "high").lower()
+    quality = request.headers.get("x-hutao-quality", "high").lower()
 
     match quality:
         case "high":
@@ -95,8 +95,8 @@ async def global_get_zipped_file(file_path: str, request: Request) -> RedirectRe
 
     :return: Redirect to the zip file
     """
-    quality = request.headers.get("x-quality", "high").lower()
-    archive_type = request.headers.get("x-archive", "minimum").lower()
+    quality = request.headers.get("x-hutao-quality", "high").lower()
+    archive_type = request.headers.get("x-hutao-archive", "minimum").lower()
 
     if quality == "unknown" or archive_type == "unknown":
         raise HTTPException(status_code=418, detail="Invalid request")
@@ -132,7 +132,7 @@ async def global_get_raw_file(file_path: str, request: Request) -> RedirectRespo
 
     :return: 302 Redirect to the raw file
     """
-    quality = request.headers.get("x-quality", "high").lower()
+    quality = request.headers.get("x-hutao-quality", "high").lower()
 
     match quality:
         case "high":
