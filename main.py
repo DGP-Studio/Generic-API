@@ -1,17 +1,21 @@
 from config import env_result
 import uvicorn
 import os
-from fastapi import FastAPI
+import redis.asyncio as redis
+from fastapi import FastAPI, APIRouter
 from fastapi.responses import RedirectResponse
 from fastapi.middleware.cors import CORSMiddleware
 from apitally.fastapi import ApitallyMiddleware
+from contextlib import asynccontextmanager
 from routers import enka_network, metadata, patch_next, static, net, wallpaper, strategy, crowdin, system_email, client_feature
 from base_logger import logger
 from config import (MAIN_SERVER_DESCRIPTION, API_VERSION, TOS_URL, CONTACT_INFO, LICENSE_INFO,
                     CHINA_SERVER_DESCRIPTION, GLOBAL_SERVER_DESCRIPTION)
+from routers.client_feature import china_router
+from mysql_app.database import SessionLocal
 
 app = FastAPI(redoc_url=None,
-              title="Hutao Generic API (Main Server)",
+              title="Hutao Generic API",
               summary="Generic API to support various services for Snap Hutao project.",
               version=API_VERSION,
               description=MAIN_SERVER_DESCRIPTION,
@@ -19,64 +23,66 @@ app = FastAPI(redoc_url=None,
               contact=CONTACT_INFO,
               license_info=LICENSE_INFO,
               openapi_url="/openapi.json")
-china_app = FastAPI(title="Hutao Generic API (China Ver.)",
-                    summary="Generic API to support various services for Snap Hutao project, specifically for "
-                            "Mainland China region.",
-                    version=API_VERSION,
-                    description=CHINA_SERVER_DESCRIPTION,
-                    terms_of_service=TOS_URL,
-                    contact=CONTACT_INFO,
-                    license_info=LICENSE_INFO,
-                    openapi_url="/openapi.json")
-global_app = FastAPI(title="Hutao Generic API (Global Ver.)",
-                     summary="Generic API to support various services for Snap Hutao project, specifically for "
-                             "Global region.",
-                     version=API_VERSION,
-                     description=GLOBAL_SERVER_DESCRIPTION,
-                     terms_of_service=TOS_URL,
-                     contact=CONTACT_INFO,
-                     license_info=LICENSE_INFO,
-                     openapi_url="/openapi.json")
+
+china_root_router = APIRouter(tags=["China Router"], prefix="/cn")
+global_root_router = APIRouter(tags=["Global Router"], prefix="/global")
+
+app.include_router(china_root_router)
+app.include_router(global_root_router)
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    logger.info("enter lifespan")
+    # Redis connection
+    REDIS_HOST = os.getenv("REDIS_HOST", "redis")
+    redis_pool = redis.ConnectionPool.from_url(f"redis://{REDIS_HOST}")
+    app.state.redis = redis_pool
+    logger.info("Redis connection established")
+    # MySQL connection
+    app.state.mysql = SessionLocal()
+    logger.info("ending lifespan startup")
+    yield
+    logger.info("entering lifespan shutdown")
 
 # Enka Network API Routers
-china_app.include_router(enka_network.china_router)
-global_app.include_router(enka_network.global_router)
+china_root_router.include_router(enka_network.china_router)
+global_root_router.include_router(enka_network.global_router)
 
 # Hutao Metadata API Routers
-china_app.include_router(metadata.china_router)
-global_app.include_router(metadata.global_router)
+china_root_router.include_router(metadata.china_router)
+global_root_router.include_router(metadata.global_router)
 
 # Patch API Routers
-china_app.include_router(patch_next.china_router)
-global_app.include_router(patch_next.global_router)
+china_root_router.include_router(patch_next.china_router)
+global_root_router.include_router(patch_next.global_router)
 
 # Static API Routers
-china_app.include_router(static.china_router)
-global_app.include_router(static.global_router)
+china_root_router.include_router(static.china_router)
+global_root_router.include_router(static.global_router)
 
 # Network API Routers
-china_app.include_router(net.china_router)
-global_app.include_router(net.global_router)
+china_root_router.include_router(net.china_router)
+global_root_router.include_router(net.global_router)
 
 # Wallpaper API Routers
-china_app.include_router(wallpaper.china_router)
-global_app.include_router(wallpaper.global_router)
+china_root_router.include_router(wallpaper.china_router)
+global_root_router.include_router(wallpaper.global_router)
 
 # Strategy API Routers
-china_app.include_router(strategy.china_router)
-global_app.include_router(strategy.global_router)
+china_root_router.include_router(strategy.china_router)
+global_root_router.include_router(strategy.global_router)
 
 
 # System Email Router
 app.include_router(system_email.admin_router)
 
 # Crowdin Localization API Routers
-china_app.include_router(crowdin.china_router)
-global_app.include_router(crowdin.global_router)
+china_root_router.include_router(crowdin.china_router)
+global_root_router.include_router(crowdin.global_router)
 
 # Client feature routers
-china_app.include_router(client_feature.china_router)
-global_app.include_router(client_feature.global_router)
+china_root_router.include_router(client_feature.china_router)
+global_root_router.include_router(client_feature.global_router)
 
 
 origins = [
@@ -101,13 +107,10 @@ app.add_middleware(
 )
 """
 
-app.mount("/cn", china_app, name="Hutao Generic API (China Ver.)")
-app.mount("/global", global_app, name="Hutao Generic API (Global Ver.)")
-
 
 @app.get("/", response_class=RedirectResponse, status_code=301)
-@china_app.get("/", response_class=RedirectResponse, status_code=301)
-@global_app.get("/", response_class=RedirectResponse, status_code=301)
+@china_root_router.get("/", response_class=RedirectResponse, status_code=301)
+@global_root_router.get("/", response_class=RedirectResponse, status_code=301)
 async def root():
     return "https://hut.ao"
 

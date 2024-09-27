@@ -15,7 +15,8 @@ async def china_client_feature_request_handler(file_path: str) -> RedirectRespon
 
     :return: HTTP 302 redirect to the file based on censorship status of the file
     """
-    host_for_normal_files = f"https://client-feature.snapgenshin.com/{file_path}"
+    #host_for_normal_files = f"https://client-feature.snapgenshin.com/{file_path}"
+    host_for_normal_files = f"https://static-next.snapgenshin.com/d/meta/client-feature/{file_path}"
 
     return RedirectResponse(host_for_normal_files, status_code=302)
 

@@ -9,7 +9,6 @@ from datetime import datetime
 from utils.dgp_utils import update_recent_versions
 from utils.PatchMeta import PatchMeta
 from utils.authentication import verify_api_token
-from utils.redis_utils import redis_conn
 from utils.stats import record_device_id
 from mysql_app.schemas import StandardResponse
 from config import github_headers, VALID_PROJECT_KEYS
