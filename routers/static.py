@@ -1,12 +1,12 @@
 import logging
 import httpx
 import json
+from redis import asyncio as redis
 from fastapi import APIRouter, Depends, Request, HTTPException
 from fastapi.responses import RedirectResponse
 from pydantic import BaseModel
 from mysql_app.schemas import StandardResponse
 from utils.authentication import verify_api_token
-from utils.redis_utils import redis_conn
 from base_logger import logger
 
 
@@ -21,7 +21,7 @@ global_router = APIRouter(tags=["Static"], prefix="/static")
 CN_OSS_URL = "https://open-7419b310-fc97-4a0c-bedf-b8faca13eb7e-s3.saturn.xxyy.co:8443/hutao/{file_path}"
 
 
-#@china_router.get("/zip/{file_path:path}")
+# @china_router.get("/zip/{file_path:path}")
 async def cn_get_zipped_file(file_path: str, request: Request) -> RedirectResponse:
     """
     Endpoint used to redirect to the zipped static file in China server
@@ -143,7 +143,7 @@ async def global_get_raw_file(file_path: str, request: Request) -> RedirectRespo
             raise HTTPException(status_code=404, detail="Invalid quality")
 
 
-async def list_static_files_size() -> dict:
+async def list_static_files_size(redis_client) -> dict:
     # Raw
     api_url = "https://static-next.snapgenshin.com/api/fs/list"
     payload = {
@@ -189,21 +189,21 @@ async def list_static_files_size() -> dict:
         "tiny_minimum": tiny_minimum_size,
         "tiny_full": tiny_full_size
     }
-    if redis_conn:
-        redis_conn.set("static_files_size", json.dumps(zip_size_data), ex=60 * 60 * 3)
+    await redis_client.set("static_files_size", json.dumps(zip_size_data), ex=60 * 60 * 3)
     logger.info(f"Updated static files size data: {zip_size_data}")
     return zip_size_data
 
 
 @china_router.get("/size", response_model=StandardResponse)
 @global_router.get("/size", response_model=StandardResponse)
-async def get_static_files_size() -> StandardResponse:
-    static_files_size = redis_conn.get("static_files_size")
+async def get_static_files_size(request: Request) -> StandardResponse:
+    redis_client = redis.Redis.from_pool(request.app.state.redis_pool)
+    static_files_size = await redis_client.get("static_files_size")
     if static_files_size:
         static_files_size = json.loads(static_files_size)
     else:
         logger.info("Redis cache for static files size not found, fetching from API")
-        static_files_size = await list_static_files_size()
+        static_files_size = await list_static_files_size(redis_client)
     response = StandardResponse(
         retcode=0,
         message="Success",
@@ -214,8 +214,9 @@ async def get_static_files_size() -> StandardResponse:
 
 @china_router.get("/size/reset", response_model=StandardResponse, dependencies=[Depends(verify_api_token)])
 @global_router.get("/size/reset", response_model=StandardResponse, dependencies=[Depends(verify_api_token)])
-async def reset_static_files_size() -> StandardResponse:
-    new_data = await list_static_files_size()
+async def reset_static_files_size(request: Request) -> StandardResponse:
+    redis_client = redis.Redis.from_pool(request.app.state.redis_pool)
+    new_data = await list_static_files_size(redis_client)
     response = StandardResponse(
         retcode=0,
         message="Success",

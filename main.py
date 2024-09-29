@@ -1,16 +1,18 @@
 from config import env_result
 import uvicorn
 import os
+import json
 import redis.asyncio as redis
 from fastapi import FastAPI, APIRouter
 from fastapi.responses import RedirectResponse
 from fastapi.middleware.cors import CORSMiddleware
 from apitally.fastapi import ApitallyMiddleware
 from contextlib import asynccontextmanager
-from routers import enka_network, metadata, patch_next, static, net, wallpaper, strategy, crowdin, system_email, client_feature
+from routers import enka_network, metadata, patch_next, static, net, wallpaper, strategy, crowdin, system_email, \
+    client_feature
 from base_logger import logger
 from config import (MAIN_SERVER_DESCRIPTION, API_VERSION, TOS_URL, CONTACT_INFO, LICENSE_INFO,
-                    CHINA_SERVER_DESCRIPTION, GLOBAL_SERVER_DESCRIPTION)
+                    CHINA_SERVER_DESCRIPTION, GLOBAL_SERVER_DESCRIPTION, VALID_PROJECT_KEYS)
 from routers.client_feature import china_router
 from mysql_app.database import SessionLocal
 
@@ -30,6 +32,7 @@ global_root_router = APIRouter(tags=["Global Router"], prefix="/global")
 app.include_router(china_root_router)
 app.include_router(global_root_router)
 
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     logger.info("enter lifespan")
@@ -37,12 +40,28 @@ async def lifespan(app: FastAPI):
     REDIS_HOST = os.getenv("REDIS_HOST", "redis")
     redis_pool = redis.ConnectionPool.from_url(f"redis://{REDIS_HOST}")
     app.state.redis = redis_pool
+    redis_client = redis.Redis.from_pool(connection_pool=redis_pool)
+    print("type of redis connection", type(redis_client))
     logger.info("Redis connection established")
     # MySQL connection
     app.state.mysql = SessionLocal()
+
+    # Patch module lifespan
+    try:
+        logger.info(f"Got mirrors from Redis: {redis_client.get("snap-hutao:version")}")
+    except (redis.exceptions.ConnectionError, TypeError, AttributeError):
+        for key in VALID_PROJECT_KEYS:
+            r = redis_client.set(f"{key}:version", json.dumps({"version": None}))
+            logger.info(f"Set [{key}:mirrors] to Redis: {r}")
+    # Initial patch metadata
+    from routers.patch import update_snap_hutao_latest_version, update_snap_hutao_deployment_version
+    update_snap_hutao_latest_version(redis_client)
+    update_snap_hutao_deployment_version(redis_client)
+
     logger.info("ending lifespan startup")
     yield
     logger.info("entering lifespan shutdown")
+
 
 # Enka Network API Routers
 china_root_router.include_router(enka_network.china_router)
@@ -72,7 +91,6 @@ global_root_router.include_router(wallpaper.global_router)
 china_root_router.include_router(strategy.china_router)
 global_root_router.include_router(strategy.global_router)
 
-
 # System Email Router
 app.include_router(system_email.admin_router)
 
@@ -83,7 +101,6 @@ global_root_router.include_router(crowdin.global_router)
 # Client feature routers
 china_root_router.include_router(client_feature.china_router)
 global_root_router.include_router(client_feature.global_router)
-
 
 origins = [
     "http://localhost",

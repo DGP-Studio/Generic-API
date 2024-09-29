@@ -1,9 +1,9 @@
 import json
 import httpx
-from fastapi import Depends, APIRouter, HTTPException
+from fastapi import Depends, APIRouter, HTTPException, Request
 from sqlalchemy.orm import Session
 from utils.uigf import get_genshin_avatar_id
-from utils.redis_utils import redis_conn
+from redis import asyncio as redis
 from utils.authentication import verify_api_token
 from mysql_app.database import SessionLocal
 from mysql_app.schemas import AvatarStrategy, StandardResponse
@@ -21,9 +21,10 @@ def get_db():
         db.close()
 
 
-def refresh_miyoushe_avatar_strategy(db: Session = None) -> bool:
+def refresh_miyoushe_avatar_strategy(redis_client, db: Session = None) -> bool:
     """
     Refresh avatar strategy from Miyoushe
+    :param redis_client: redis client object
     :param db: Database session
     :return: True if successful else raise RuntimeError
     """
@@ -42,7 +43,7 @@ def refresh_miyoushe_avatar_strategy(db: Session = None) -> bool:
             for item in top_menu["children"]:
                 if item["id"] == 39:
                     for avatar in item["children"]:
-                        avatar_id = get_genshin_avatar_id(avatar["name"], "chs")
+                        avatar_id = get_genshin_avatar_id(redis_client, avatar["name"], "chs")
                         if avatar_id:
                             avatar_strategy.append(
                                 AvatarStrategy(
@@ -61,9 +62,10 @@ def refresh_miyoushe_avatar_strategy(db: Session = None) -> bool:
     return True
 
 
-def refresh_hoyolab_avatar_strategy(db: Session = None) -> bool:
+def refresh_hoyolab_avatar_strategy(redis_client, db: Session = None) -> bool:
     """
     Refresh avatar strategy from Hoyolab
+    :param redis_client: redis client object
     :param db: Database session
     :return: true if successful else raise RuntimeError
     """
@@ -87,7 +89,7 @@ def refresh_hoyolab_avatar_strategy(db: Session = None) -> bool:
         raise RuntimeError(
             f"Failed to refresh Hoyolab avatar strategy, \nstatus code: {response.status_code}, \ncontent: {response.text}")
     for item in data:
-        avatar_id = get_genshin_avatar_id(item["title"], "chs")
+        avatar_id = get_genshin_avatar_id(redis_client, item["title"], "chs")
         if avatar_id:
             avatar_strategy.append(
                 AvatarStrategy(
@@ -105,19 +107,21 @@ def refresh_hoyolab_avatar_strategy(db: Session = None) -> bool:
 
 @china_router.get("/refresh", response_model=StandardResponse, dependencies=[Depends(verify_api_token)])
 @global_router.get("/refresh", response_model=StandardResponse, dependencies=[Depends(verify_api_token)])
-def refresh_avatar_strategy(channel: str, db: Session = Depends(get_db)) -> StandardResponse:
+async def refresh_avatar_strategy(request: Request, channel: str, db: Session = Depends(get_db)) -> StandardResponse:
     """
     Refresh avatar strategy from Miyoushe or Hoyolab
+    :param request: request object from FastAPI
     :param channel: one of `miyoushe`, `hoyolab`, `all`
     :param db: Database session
     :return: StandardResponse with DB operation result and full cached strategy dict
     """
+    redis_client = redis.Redis.from_pool(request.app.state.redis_pool)
     if channel == "miyoushe":
-        result = {"mys": refresh_miyoushe_avatar_strategy(db)}
+        result = {"mys": refresh_miyoushe_avatar_strategy(redis_client, db)}
     elif channel == "hoyolab":
         result = {"hoyolab": refresh_hoyolab_avatar_strategy(db)}
     elif channel == "all":
-        result = {"mys": refresh_miyoushe_avatar_strategy(db),
+        result = {"mys": refresh_miyoushe_avatar_strategy(redis_client, db),
                   "hoyolab": refresh_hoyolab_avatar_strategy(db)
                   }
     else:
@@ -130,8 +134,7 @@ def refresh_avatar_strategy(channel: str, db: Session = Depends(get_db)) -> Stan
             "mys_strategy_id": strategy.mys_strategy_id,
             "hoyolab_strategy_id": strategy.hoyolab_strategy_id
         }
-    if redis_conn:
-        redis_conn.set("avatar_strategy", json.dumps(strategy_dict))
+    await redis_client.set("avatar_strategy", json.dumps(strategy_dict))
 
     return StandardResponse(
         retcode=0,
@@ -145,22 +148,24 @@ def refresh_avatar_strategy(channel: str, db: Session = Depends(get_db)) -> Stan
 
 @china_router.get("/item", response_model=StandardResponse)
 @global_router.get("/item", response_model=StandardResponse)
-def get_avatar_strategy_item(item_id: int, db: Session = Depends(get_db)) -> StandardResponse:
+def get_avatar_strategy_item(request: Request, item_id: int, db: Session = Depends(get_db)) -> StandardResponse:
     """
     Get avatar strategy item by avatar ID
+    :param request: request object from FastAPI
     :param item_id: Genshin internal avatar ID (compatible with weapon id if available)
     :param db: Database session
     :return: strategy URLs for Miyoushe and Hoyolab
     """
     MIYOUSHE_STRATEGY_URL = "https://bbs.mihoyo.com/ys/strategy/channel/map/39/{mys_strategy_id}?bbs_presentation_style=no_header"
     HOYOLAB_STRATEGY_URL = "https://www.hoyolab.com/guidelist?game_id=2&guide_id={hoyolab_strategy_id}"
+    redis_client = redis.Redis.from_pool(request.app.state.redis_pool)
 
-    if redis_conn:
+    if redis_client:
         try:
-            strategy_dict = json.loads(redis_conn.get("avatar_strategy"))
+            strategy_dict = json.loads(redis_client.get("avatar_strategy"))
         except TypeError:
             refresh_avatar_strategy("all", db)
-            strategy_dict = json.loads(redis_conn.get("avatar_strategy"))
+            strategy_dict = json.loads(redis_client.get("avatar_strategy"))
         strategy_set = strategy_dict.get(str(item_id), {})
         if strategy_set:
             miyoushe_url = MIYOUSHE_STRATEGY_URL.format(mys_strategy_id=strategy_set.get("mys_strategy_id"))
