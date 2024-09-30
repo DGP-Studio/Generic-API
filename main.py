@@ -49,8 +49,10 @@ def get_version():
     if os.path.exists("build_number.txt"):
         with open("build_number.txt", 'r') as f:
             build_number = f"Build {f.read().strip()}"
+        logger.info(f"Server is running with Build number: {build_number}")
     else:
-        build_number = 'Runtime' + datetime.now().strftime('%Y.%m.%d.%H%M%S')
+        build_number = f"Runtime {datetime.now().strftime('%Y.%m.%d.%H%M%S')}"
+        logger.info(f"Server is running with Runtime version: {build_number}")
     return build_number
 
 

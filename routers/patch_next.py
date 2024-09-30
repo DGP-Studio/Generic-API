@@ -1,5 +1,7 @@
 import httpx
 import os
+
+from apitally.client.base import RequestInfo
 from redis import asyncio as redis
 import json
 from fastapi import APIRouter, Response, status, Request, Depends
@@ -202,12 +204,13 @@ async def update_snap_hutao_deployment_version(redis_client: redis.client.Redis)
 
 # Snap Hutao
 @china_router.get("/hutao", response_model=StandardResponse, dependencies=[Depends(record_device_id)])
-async def generic_get_snap_hutao_latest_version_china_endpoint(redis_client: redis.client.Redis) -> StandardResponse:
+async def generic_get_snap_hutao_latest_version_china_endpoint(request: Request) -> StandardResponse:
     """
     Get Snap Hutao latest version from China endpoint
 
     :return: Standard response with latest version metadata in China endpoint
     """
+    redis_client = redis.Redis.from_pool(request.app.state.redis)
     snap_hutao_latest_version = json.loads(redis_client.get("snap-hutao:patch"))
 
     # For compatibility purposes

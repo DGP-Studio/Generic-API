@@ -28,17 +28,7 @@ LICENSE_INFO = {
 MAIN_SERVER_DESCRIPTION = """
 ## Hutao Generic API
 
-You reached this page as you are trying to access the Hutao Generic API in manage purpose.
+You reached this page as you are trying to access the Hutao Generic API in developing purpose.
 
-There is no actual API endpoint on this page. Please use the following links to access the API documentation.
-
-### China API Application
-China API is hosted on the `/cn` path.
-
-Click **[here](../cn/docs)** to enter Swagger UI for the China version of the API.
-
-### Global API Application
-Global API is hosted on the `/global` path.
-
-Click **[here](../global/docs)** to enter Swagger UI for the Global version of the API.
+[**Snap Hutao**](https://hut.ao) is a project by DGP Studio, and this API is designed to support various services for Snap Hutao project.
 """
