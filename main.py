@@ -70,9 +70,6 @@ app = FastAPI(redoc_url=None,
 china_root_router = APIRouter(tags=["China Router"], prefix="/cn")
 global_root_router = APIRouter(tags=["Global Router"], prefix="/global")
 
-app.include_router(china_root_router)
-app.include_router(global_root_router)
-
 # Enka Network API Routers
 china_root_router.include_router(enka_network.china_router)
 global_root_router.include_router(enka_network.global_router)
@@ -111,6 +108,9 @@ global_root_router.include_router(crowdin.global_router)
 # Client feature routers
 china_root_router.include_router(client_feature.china_router)
 global_root_router.include_router(client_feature.global_router)
+
+app.include_router(china_root_router)
+app.include_router(global_root_router)
 
 origins = [
     "http://localhost",
