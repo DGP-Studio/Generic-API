@@ -2,7 +2,7 @@ from config import env_result
 import uvicorn
 import os
 import json
-import redis.asyncio as redis
+from redis import asyncio as redis
 from fastapi import FastAPI, APIRouter
 from fastapi.responses import RedirectResponse
 from fastapi.middleware.cors import CORSMiddleware
@@ -15,22 +15,6 @@ from config import (MAIN_SERVER_DESCRIPTION, API_VERSION, TOS_URL, CONTACT_INFO,
                     CHINA_SERVER_DESCRIPTION, GLOBAL_SERVER_DESCRIPTION, VALID_PROJECT_KEYS)
 from routers.client_feature import china_router
 from mysql_app.database import SessionLocal
-
-app = FastAPI(redoc_url=None,
-              title="Hutao Generic API",
-              summary="Generic API to support various services for Snap Hutao project.",
-              version=API_VERSION,
-              description=MAIN_SERVER_DESCRIPTION,
-              terms_of_service=TOS_URL,
-              contact=CONTACT_INFO,
-              license_info=LICENSE_INFO,
-              openapi_url="/openapi.json")
-
-china_root_router = APIRouter(tags=["China Router"], prefix="/cn")
-global_root_router = APIRouter(tags=["Global Router"], prefix="/global")
-
-app.include_router(china_root_router)
-app.include_router(global_root_router)
 
 
 @asynccontextmanager
@@ -48,20 +32,37 @@ async def lifespan(app: FastAPI):
 
     # Patch module lifespan
     try:
-        logger.info(f"Got mirrors from Redis: {redis_client.get("snap-hutao:version")}")
-    except (redis.exceptions.ConnectionError, TypeError, AttributeError):
+        logger.info(f"Got mirrors from Redis: {await redis_client.get("snap-hutao:version")}")
+    except (TypeError, AttributeError):
         for key in VALID_PROJECT_KEYS:
             r = redis_client.set(f"{key}:version", json.dumps({"version": None}))
             logger.info(f"Set [{key}:mirrors] to Redis: {r}")
     # Initial patch metadata
-    from routers.patch import update_snap_hutao_latest_version, update_snap_hutao_deployment_version
-    update_snap_hutao_latest_version(redis_client)
-    update_snap_hutao_deployment_version(redis_client)
+    from routers.patch_next import update_snap_hutao_latest_version, update_snap_hutao_deployment_version
+    await update_snap_hutao_latest_version(redis_client)
+    await update_snap_hutao_deployment_version(redis_client)
 
     logger.info("ending lifespan startup")
     yield
     logger.info("entering lifespan shutdown")
 
+
+app = FastAPI(redoc_url=None,
+              title="Hutao Generic API",
+              summary="Generic API to support various services for Snap Hutao project.",
+              version=API_VERSION,
+              description=MAIN_SERVER_DESCRIPTION,
+              terms_of_service=TOS_URL,
+              contact=CONTACT_INFO,
+              license_info=LICENSE_INFO,
+              openapi_url="/openapi.json",
+              lifespan=lifespan)
+
+china_root_router = APIRouter(tags=["China Router"], prefix="/cn")
+global_root_router = APIRouter(tags=["Global Router"], prefix="/global")
+
+app.include_router(china_root_router)
+app.include_router(global_root_router)
 
 # Enka Network API Routers
 china_root_router.include_router(enka_network.china_router)

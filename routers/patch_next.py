@@ -69,7 +69,7 @@ def fetch_snap_hutao_github_latest_version() -> PatchMeta:
     return github_path_meta
 
 
-def update_snap_hutao_latest_version(redis_client) -> dict:
+async def update_snap_hutao_latest_version(redis_client) -> dict:
     """
     Update Snap Hutao latest version from GitHub and Jihulab
     :return: dict of latest version metadata
@@ -122,13 +122,13 @@ def update_snap_hutao_latest_version(redis_client) -> dict:
         if redis_cached_version != github_patch_meta.version:
             # Re-initial the mirror list with empty data
             logger.info(
-                f"Found unmatched version, clearing mirrors URL. Deleting version [{redis_cached_version}]: {redis_client.delete(f'snap-hutao:mirrors:{redis_cached_version}')}")
+                f"Found unmatched version, clearing mirrors URL. Deleting version [{redis_cached_version}]: {await redis_client.delete(f'snap-hutao:mirrors:{redis_cached_version}')}")
             logger.info(
-                f"Set Snap Hutao latest version to Redis: {redis_client.set('snap-hutao:version', github_patch_meta.version)}")
+                f"Set Snap Hutao latest version to Redis: {await redis_client.set('snap-hutao:version', github_patch_meta.version)}")
             logger.info(
-                f"Set snap-hutao:mirrors:{jihulab_patch_meta.version} to Redis: {redis_client.set(f'snap-hutao:mirrors:{jihulab_patch_meta.version}', json.dumps([]))}")
+                f"Set snap-hutao:mirrors:{jihulab_patch_meta.version} to Redis: {await redis_client.set(f'snap-hutao:mirrors:{jihulab_patch_meta.version}', json.dumps([]))}")
         else:
-            current_mirrors = json.loads(redis_client.get(f"snap-hutao:mirrors:{jihulab_patch_meta.version}"))
+            current_mirrors = json.loads(await redis_client.get(f"snap-hutao:mirrors:{jihulab_patch_meta.version}"))
             for m in current_mirrors:
                 this_mirror = MirrorMeta(**m)
                 jihulab_patch_meta.mirrors.append(this_mirror)
@@ -141,12 +141,12 @@ def update_snap_hutao_latest_version(redis_client) -> dict:
         "github_message": github_message,
         "gitlab_message": gitlab_message
     }
-    logger.info(f"Set Snap Hutao latest version to Redis: {redis_client.set('snap-hutao:patch',
-                                                                            json.dumps(return_data, default=str))}")
+    logger.info(f"Set Snap Hutao latest version to Redis: {await redis_client.set('snap-hutao:patch',
+                                                                                  json.dumps(return_data, default=str))}")
     return return_data
 
 
-def update_snap_hutao_deployment_version(redis_client) -> dict:
+async def update_snap_hutao_deployment_version(redis_client) -> dict:
     """
     Update Snap Hutao Deployment latest version from GitHub and Jihulab
     :return: dict of Snap Hutao Deployment latest version metadata
@@ -182,9 +182,9 @@ def update_snap_hutao_deployment_version(redis_client) -> dict:
     current_cached_version = redis_client.get("snap-hutao-deployment:version")
     if current_cached_version != jihulab_meta["tag_name"]:
         logger.info(
-            f"Found unmatched version, clearing mirrors. Setting Snap Hutao Deployment latest version to Redis: {redis_client.set('snap-hutao-deployment:version', jihulab_patch_meta.version)}")
+            f"Found unmatched version, clearing mirrors. Setting Snap Hutao Deployment latest version to Redis: {await redis_client.set('snap-hutao-deployment:version', jihulab_patch_meta.version)}")
         logger.info(
-            f"Reinitializing mirrors for Snap Hutao Deployment: {redis_client.set(f'snap-hutao-deployment:mirrors:{jihulab_patch_meta.version}', json.dumps([]))}")
+            f"Reinitializing mirrors for Snap Hutao Deployment: {await redis_client.set(f'snap-hutao-deployment:mirrors:{await jihulab_patch_meta.version}', json.dumps([]))}")
     else:
         current_mirrors = json.loads(redis_client.get(f"snap-hutao-deployment:mirrors:{jihulab_patch_meta.version}"))
         for m in current_mirrors:
@@ -196,7 +196,7 @@ def update_snap_hutao_deployment_version(redis_client) -> dict:
         "cn": jihulab_patch_meta.model_dump()
     }
     logger.info(f"Set Snap Hutao Deployment latest version to Redis: "
-                f"{redis_client.set('snap-hutao-deployment:patch', json.dumps(return_data, default=pydantic_encoder))}")
+                f"{await redis_client.set('snap-hutao-deployment:patch', json.dumps(return_data, default=pydantic_encoder))}")
     return return_data
 
 
