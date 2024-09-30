@@ -7,11 +7,12 @@ from fastapi import FastAPI, APIRouter
 from fastapi.responses import RedirectResponse
 from fastapi.middleware.cors import CORSMiddleware
 from apitally.fastapi import ApitallyMiddleware
+from datetime import datetime
 from contextlib import asynccontextmanager
 from routers import enka_network, metadata, patch_next, static, net, wallpaper, strategy, crowdin, system_email, \
     client_feature
 from base_logger import logger
-from config import (MAIN_SERVER_DESCRIPTION, API_VERSION, TOS_URL, CONTACT_INFO, LICENSE_INFO, VALID_PROJECT_KEYS)
+from config import (MAIN_SERVER_DESCRIPTION, TOS_URL, CONTACT_INFO, LICENSE_INFO, VALID_PROJECT_KEYS)
 from mysql_app.database import SessionLocal
 
 
@@ -32,7 +33,7 @@ async def lifespan(app: FastAPI):
         logger.info(f"Got mirrors from Redis: {await redis_client.get("snap-hutao:version")}")
     except (TypeError, AttributeError):
         for key in VALID_PROJECT_KEYS:
-            r = redis_client.set(f"{key}:version", json.dumps({"version": None}))
+            r = await redis_client.set(f"{key}:version", json.dumps({"version": None}))
             logger.info(f"Set [{key}:mirrors] to Redis: {r}")
     # Initial patch metadata
     from routers.patch_next import update_snap_hutao_latest_version, update_snap_hutao_deployment_version
@@ -44,10 +45,19 @@ async def lifespan(app: FastAPI):
     logger.info("entering lifespan shutdown")
 
 
+def get_version():
+    if os.path.exists("build_number.txt"):
+        with open("build_number.txt", 'r') as f:
+            build_number = f"Build {f.read().strip()}"
+    else:
+        build_number = 'Runtime' + datetime.now().strftime('%Y.%m.%d.%H%M%S')
+    return build_number
+
+
 app = FastAPI(redoc_url=None,
               title="Hutao Generic API",
               summary="Generic API to support various services for Snap Hutao project.",
-              version=API_VERSION,
+              version=get_version(),
               description=MAIN_SERVER_DESCRIPTION,
               terms_of_service=TOS_URL,
               contact=CONTACT_INFO,
