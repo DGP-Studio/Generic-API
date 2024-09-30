@@ -13,23 +13,13 @@ china_router = APIRouter(tags=["Strategy"], prefix="/strategy")
 global_router = APIRouter(tags=["Strategy"], prefix="/strategy")
 
 
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
-
-
-def refresh_miyoushe_avatar_strategy(redis_client: redis.client.Redis, db: Session = None) -> bool:
+def refresh_miyoushe_avatar_strategy(redis_client: redis.client.Redis, db: Session) -> bool:
     """
     Refresh avatar strategy from Miyoushe
     :param redis_client: redis client object
     :param db: Database session
     :return: True if successful else raise RuntimeError
     """
-    if not db:
-        db = SessionLocal()
     avatar_strategy = []
     url = "https://api-static.mihoyo.com/common/blackboard/ys_strategy/v1/home/content/list?app_sn=ys_strategy&channel_id=37"
     response = httpx.get(url)
@@ -62,7 +52,7 @@ def refresh_miyoushe_avatar_strategy(redis_client: redis.client.Redis, db: Sessi
     return True
 
 
-def refresh_hoyolab_avatar_strategy(redis_client: redis.client.Redis, db: Session = None) -> bool:
+def refresh_hoyolab_avatar_strategy(redis_client: redis.client.Redis, db: Session) -> bool:
     """
     Refresh avatar strategy from Hoyolab
     :param redis_client: redis client object
@@ -70,8 +60,6 @@ def refresh_hoyolab_avatar_strategy(redis_client: redis.client.Redis, db: Sessio
     :return: true if successful else raise RuntimeError
     """
     avatar_strategy = []
-    if not db:
-        db = SessionLocal()
     url = "https://bbs-api-os.hoyolab.com/community/painter/wapi/circle/channel/guide/second_page/info"
     response = httpx.post(url, json={
         "id": "63b63aefc61f3cbe3ead18d9",
@@ -107,14 +95,14 @@ def refresh_hoyolab_avatar_strategy(redis_client: redis.client.Redis, db: Sessio
 
 @china_router.get("/refresh", response_model=StandardResponse, dependencies=[Depends(verify_api_token)])
 @global_router.get("/refresh", response_model=StandardResponse, dependencies=[Depends(verify_api_token)])
-async def refresh_avatar_strategy(request: Request, channel: str, db: Session = Depends(get_db)) -> StandardResponse:
+async def refresh_avatar_strategy(request: Request, channel: str) -> StandardResponse:
     """
     Refresh avatar strategy from Miyoushe or Hoyolab
     :param request: request object from FastAPI
     :param channel: one of `miyoushe`, `hoyolab`, `all`
-    :param db: Database session
     :return: StandardResponse with DB operation result and full cached strategy dict
     """
+    db = request.app.state.mysql
     redis_client = redis.Redis.from_pool(request.app.state.redis_pool)
     if channel == "miyoushe":
         result = {"mys": refresh_miyoushe_avatar_strategy(redis_client, db)}
@@ -148,17 +136,17 @@ async def refresh_avatar_strategy(request: Request, channel: str, db: Session = 
 
 @china_router.get("/item", response_model=StandardResponse)
 @global_router.get("/item", response_model=StandardResponse)
-def get_avatar_strategy_item(request: Request, item_id: int, db: Session = Depends(get_db)) -> StandardResponse:
+def get_avatar_strategy_item(request: Request, item_id: int) -> StandardResponse:
     """
     Get avatar strategy item by avatar ID
     :param request: request object from FastAPI
     :param item_id: Genshin internal avatar ID (compatible with weapon id if available)
-    :param db: Database session
     :return: strategy URLs for Miyoushe and Hoyolab
     """
     MIYOUSHE_STRATEGY_URL = "https://bbs.mihoyo.com/ys/strategy/channel/map/39/{mys_strategy_id}?bbs_presentation_style=no_header"
     HOYOLAB_STRATEGY_URL = "https://www.hoyolab.com/guidelist?game_id=2&guide_id={hoyolab_strategy_id}"
     redis_client = redis.Redis.from_pool(request.app.state.redis_pool)
+    db = request.app.state.mysql
 
     if redis_client:
         try:
