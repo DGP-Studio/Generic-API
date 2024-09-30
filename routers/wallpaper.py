@@ -124,7 +124,7 @@ async def enable_wallpaper_with_url(request: Request, db: SessionLocal = Depends
         return StandardResponse(data=db_result.dict())
 
 
-def random_pick_wallpaper(db, request: Request, force_refresh: bool = False) -> Wallpaper:
+async def random_pick_wallpaper(db, request: Request, force_refresh: bool = False) -> Wallpaper:
     """
     Randomly pick a wallpaper from the database
 
@@ -135,7 +135,7 @@ def random_pick_wallpaper(db, request: Request, force_refresh: bool = False) -> 
     """
     redis_client = redis.Redis.from_pool(request.app.state.redis_pool)
     # Check wallpaper cache from Redis
-    today_wallpaper = redis_client.get("hutao_today_wallpaper")
+    today_wallpaper = await redis_client.get("hutao_today_wallpaper")
     if today_wallpaper:
         today_wallpaper = Wallpaper(**json.loads(today_wallpaper))
     if today_wallpaper and not force_refresh:
@@ -154,22 +154,24 @@ def random_pick_wallpaper(db, request: Request, force_refresh: bool = False) -> 
     today_wallpaper_model = wallpaper_pool[random_index]
     res = crud.set_last_display_date_with_index(db, today_wallpaper_model.id)
     today_wallpaper = Wallpaper(**today_wallpaper_model.dict())
-    redis_client.set("hutao_today_wallpaper", today_wallpaper.json(), ex=60*60*24)
+    await redis_client.set("hutao_today_wallpaper", today_wallpaper.model_dump_json(), ex=60*60*24)
     logger.info(f"Set last display date with index {today_wallpaper_model.id}: {res}")
     return today_wallpaper
 
 
 @china_router.get("/today", response_model=StandardResponse)
 @global_router.get("/today", response_model=StandardResponse)
-async def get_today_wallpaper(db: SessionLocal = Depends(get_db)) -> StandardResponse:
+async def get_today_wallpaper(request: Request, db: SessionLocal = Depends(get_db)) -> StandardResponse:
     """
     Get today's wallpaper
+
+    :param request: request object from FastAPI
 
     :param db: DB session
 
     :return: StandardResponse object with wallpaper data in data field
     """
-    wallpaper = random_pick_wallpaper(db, False)
+    wallpaper = await random_pick_wallpaper(db, request, False)
     response = StandardResponse()
     response.retcode = 0
     response.message = "ok"
@@ -186,9 +188,11 @@ async def get_today_wallpaper(db: SessionLocal = Depends(get_db)) -> StandardRes
                   tags=["admin"])
 @global_router.get("/refresh", response_model=StandardResponse, dependencies=[Depends(verify_api_token)],
                    tags=["admin"])
-async def get_today_wallpaper(db: SessionLocal = Depends(get_db)) -> StandardResponse:
+async def get_today_wallpaper(request: Request, db: SessionLocal = Depends(get_db)) -> StandardResponse:
     """
     Refresh today's wallpaper. **This endpoint requires API token verification**
+
+    :param request: Request object from FastAPI
 
     :param db: DB session
 
@@ -196,7 +200,7 @@ async def get_today_wallpaper(db: SessionLocal = Depends(get_db)) -> StandardRes
     """
     while True:
         try:
-            wallpaper = random_pick_wallpaper(db, True)
+            wallpaper = await random_pick_wallpaper(db, request, True)
             response = StandardResponse()
             response.retcode = 0
             response.message = "Wallpaper refreshed"

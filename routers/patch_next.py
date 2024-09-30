@@ -202,7 +202,7 @@ async def update_snap_hutao_deployment_version(redis_client: redis.client.Redis)
 
 # Snap Hutao
 @china_router.get("/hutao", response_model=StandardResponse, dependencies=[Depends(record_device_id)])
-async def generic_get_snap_hutao_latest_version_china_endpoint(redis_client) -> StandardResponse:
+async def generic_get_snap_hutao_latest_version_china_endpoint(redis_client: redis.client.Redis) -> StandardResponse:
     """
     Get Snap Hutao latest version from China endpoint
 
@@ -429,9 +429,9 @@ async def add_mirror_url(response: Response, request: Request) -> StandardRespon
 
     # Refresh project patch
     if PROJECT_KEY == "snap-hutao":
-        update_snap_hutao_latest_version(redis_client)
+        await update_snap_hutao_latest_version(redis_client)
     elif PROJECT_KEY == "snap-hutao-deployment":
-        update_snap_hutao_deployment_version(redis_client)
+        await update_snap_hutao_deployment_version(redis_client)
     response.status_code = status.HTTP_201_CREATED
     logger.info(f"Latest overwritten URL data: {mirror_list}")
     return StandardResponse(message=f"Successfully {method} {MIRROR_NAME} mirror URL for {PROJECT_KEY}",
@@ -485,9 +485,9 @@ async def delete_mirror_url(response: Response, request: Request) -> StandardRes
 
     # Refresh project patch
     if PROJECT_KEY == "snap-hutao":
-        update_snap_hutao_latest_version(redis_client)
+        await update_snap_hutao_latest_version(redis_client)
     elif PROJECT_KEY == "snap-hutao-deployment":
-        update_snap_hutao_deployment_version(redis_client)
+        await update_snap_hutao_deployment_version(redis_client)
     response.status_code = status.HTTP_201_CREATED
     logger.info(f"Latest overwritten URL data: {mirror_list}")
     return StandardResponse(message=f"Successfully {method} {MIRROR_NAME} mirror URL for {PROJECT_KEY}",

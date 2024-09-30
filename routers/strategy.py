@@ -21,7 +21,7 @@ def get_db():
         db.close()
 
 
-def refresh_miyoushe_avatar_strategy(redis_client, db: Session = None) -> bool:
+def refresh_miyoushe_avatar_strategy(redis_client: redis.client.Redis, db: Session = None) -> bool:
     """
     Refresh avatar strategy from Miyoushe
     :param redis_client: redis client object
@@ -62,7 +62,7 @@ def refresh_miyoushe_avatar_strategy(redis_client, db: Session = None) -> bool:
     return True
 
 
-def refresh_hoyolab_avatar_strategy(redis_client, db: Session = None) -> bool:
+def refresh_hoyolab_avatar_strategy(redis_client: redis.client.Redis, db: Session = None) -> bool:
     """
     Refresh avatar strategy from Hoyolab
     :param redis_client: redis client object
@@ -119,10 +119,10 @@ async def refresh_avatar_strategy(request: Request, channel: str, db: Session = 
     if channel == "miyoushe":
         result = {"mys": refresh_miyoushe_avatar_strategy(redis_client, db)}
     elif channel == "hoyolab":
-        result = {"hoyolab": refresh_hoyolab_avatar_strategy(db)}
+        result = {"hoyolab": refresh_hoyolab_avatar_strategy(redis_client, db)}
     elif channel == "all":
         result = {"mys": refresh_miyoushe_avatar_strategy(redis_client, db),
-                  "hoyolab": refresh_hoyolab_avatar_strategy(db)
+                  "hoyolab": refresh_hoyolab_avatar_strategy(redis_client, db)
                   }
     else:
         raise HTTPException(status_code=400, detail="Invalid channel")
@@ -164,7 +164,7 @@ def get_avatar_strategy_item(request: Request, item_id: int, db: Session = Depen
         try:
             strategy_dict = json.loads(redis_client.get("avatar_strategy"))
         except TypeError:
-            refresh_avatar_strategy("all", db)
+            refresh_avatar_strategy(request, "all", db)
             strategy_dict = json.loads(redis_client.get("avatar_strategy"))
         strategy_set = strategy_dict.get(str(item_id), {})
         if strategy_set:

@@ -9,7 +9,7 @@ china_router = APIRouter(tags=["Hutao Metadata"], prefix="/metadata")
 global_router = APIRouter(tags=["Hutao Metadata"], prefix="/metadata")
 
 
-def get_banned_files(redis_client) -> dict:
+async def get_banned_files(redis_client: redis.client.Redis) -> dict:
     """
     Get the list of censored files.
 
@@ -17,7 +17,7 @@ def get_banned_files(redis_client) -> dict:
 
     :return: a list of censored files
     """
-    metadata_censored_files = redis_client.get("metadata_censored_files")
+    metadata_censored_files = await redis_client.get("metadata_censored_files")
     if metadata_censored_files:
         return {
             "source": "redis",
