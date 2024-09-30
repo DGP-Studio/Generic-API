@@ -15,7 +15,7 @@ API_TOKEN = os.environ.get("API_TOKEN")
 
 # FastAPI Config
 
-API_VERSION = "1.10.1"  # API Version follows the least supported version of Snap Hutao
+API_VERSION = "1.11.1"  # API Version follows the least supported version of Snap Hutao
 TOS_URL = "https://hut.ao/statements/tos.html"
 CONTACT_INFO = {
     "name": "Masterain",
@@ -43,27 +43,4 @@ Click **[here](../cn/docs)** to enter Swagger UI for the China version of the AP
 Global API is hosted on the `/global` path.
 
 Click **[here](../global/docs)** to enter Swagger UI for the Global version of the API.
-"""
-
-CHINA_SERVER_DESCRIPTION = """
-## Hutao Generic API (China Ver.)
-
-All the API endpoints in this application are designed to support the services in the China region.
-
-To access the Global version of the API, please visit the `/global` path from management server, or use a network in 
-the Global region.
-
-Click **[here](../global/docs)** to enter Swagger UI for the Global version of the API **(if you are in management 
-server)**."""
-
-GLOBAL_SERVER_DESCRIPTION = """
-## Hutao Generic API (Global Ver.)
-
-All the API endpoints in this application are designed to support the services in the Global region.
-
-To access the China version of the API, please visit the `/cn` path from management server, or use a network in the 
-China region.
-
-Click **[here](../cn/docs)** to enter Swagger UI for the China version of the API **(if you are in management server)**.
-    
 """

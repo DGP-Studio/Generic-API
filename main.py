@@ -11,9 +11,7 @@ from contextlib import asynccontextmanager
 from routers import enka_network, metadata, patch_next, static, net, wallpaper, strategy, crowdin, system_email, \
     client_feature
 from base_logger import logger
-from config import (MAIN_SERVER_DESCRIPTION, API_VERSION, TOS_URL, CONTACT_INFO, LICENSE_INFO,
-                    CHINA_SERVER_DESCRIPTION, GLOBAL_SERVER_DESCRIPTION, VALID_PROJECT_KEYS)
-from routers.client_feature import china_router
+from config import (MAIN_SERVER_DESCRIPTION, API_VERSION, TOS_URL, CONTACT_INFO, LICENSE_INFO, VALID_PROJECT_KEYS)
 from mysql_app.database import SessionLocal
 
 
@@ -25,7 +23,6 @@ async def lifespan(app: FastAPI):
     redis_pool = redis.ConnectionPool.from_url(f"redis://{REDIS_HOST}")
     app.state.redis = redis_pool
     redis_client = redis.Redis.from_pool(connection_pool=redis_pool)
-    print("type of redis connection", type(redis_client))
     logger.info("Redis connection established")
     # MySQL connection
     app.state.mysql = SessionLocal()
