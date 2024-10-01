@@ -5,6 +5,7 @@ import os
 
 china_router = APIRouter(tags=["Localization"], prefix="/localization")
 global_router = APIRouter(tags=["Localization"], prefix="/localization")
+fujian_router = APIRouter(tags=["Localization"], prefix="/localization")
 
 API_KEY = os.environ.get("CROWDIN_API_KEY", None)
 CROWDIN_HOST = "https://api.crowdin.com/api/v2"
@@ -36,6 +37,7 @@ def fetch_snap_hutao_translation_process():
 
 @china_router.get("/status", response_model=StandardResponse)
 @global_router.get("/status", response_model=StandardResponse)
+@fujian_router.get("/status", response_model=StandardResponse)
 async def get_latest_status() -> StandardResponse:
     status = fetch_snap_hutao_translation_process()
     return StandardResponse(

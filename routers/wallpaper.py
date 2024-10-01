@@ -27,12 +27,15 @@ def get_db():
 
 china_router = APIRouter(tags=["wallpaper"], prefix="/wallpaper")
 global_router = APIRouter(tags=["wallpaper"], prefix="/wallpaper")
+fujian_router = APIRouter(tags=["wallpaper"], prefix="/wallpaper")
 
 
 @china_router.get("/all", response_model=list[schemas.Wallpaper], dependencies=[Depends(verify_api_token)],
                   tags=["admin"])
 @global_router.get("/all", response_model=list[schemas.Wallpaper], dependencies=[Depends(verify_api_token)],
                    tags=["admin"])
+@fujian_router.get("/all", response_model=list[schemas.Wallpaper], dependencies=[Depends(verify_api_token)],
+                    tags=["admin"])
 async def get_all_wallpapers(db: SessionLocal = Depends(get_db)) -> list[schemas.Wallpaper]:
     """
     Get all wallpapers in database. **This endpoint requires API token verification**
@@ -48,6 +51,8 @@ async def get_all_wallpapers(db: SessionLocal = Depends(get_db)) -> list[schemas
                    tags=["admin"])
 @global_router.post("/add", response_model=schemas.StandardResponse, dependencies=[Depends(verify_api_token)],
                     tags=["admin"])
+@fujian_router.post("/add", response_model=schemas.StandardResponse, dependencies=[Depends(verify_api_token)],
+                     tags=["admin"])
 async def add_wallpaper(wallpaper: schemas.Wallpaper, db: SessionLocal = Depends(get_db)):
     """
     Add a new wallpaper to database. **This endpoint requires API token verification**
@@ -78,6 +83,7 @@ async def add_wallpaper(wallpaper: schemas.Wallpaper, db: SessionLocal = Depends
 
 @china_router.post("/disable", dependencies=[Depends(verify_api_token)], tags=["admin"], response_model=StandardResponse)
 @global_router.post("/disable", dependencies=[Depends(verify_api_token)], tags=["admin"], response_model=StandardResponse)
+@fujian_router.post("/disable", dependencies=[Depends(verify_api_token)], tags=["admin"], response_model=StandardResponse)
 async def disable_wallpaper_with_url(request: Request, db: SessionLocal = Depends(get_db)) -> StandardResponse:
     """
     Disable a wallpaper with its URL, so it won't be picked by the random wallpaper picker.
@@ -102,6 +108,7 @@ async def disable_wallpaper_with_url(request: Request, db: SessionLocal = Depend
 
 @china_router.post("/enable", dependencies=[Depends(verify_api_token)], tags=["admin"], response_model=StandardResponse)
 @global_router.post("/enable", dependencies=[Depends(verify_api_token)], tags=["admin"], response_model=StandardResponse)
+@fujian_router.post("/enable", dependencies=[Depends(verify_api_token)], tags=["admin"], response_model=StandardResponse)
 async def enable_wallpaper_with_url(request: Request, db: SessionLocal = Depends(get_db)) -> StandardResponse:
     """
     Enable a wallpaper with its URL, so it will be picked by the random wallpaper picker.
@@ -161,6 +168,7 @@ async def random_pick_wallpaper(db, request: Request, force_refresh: bool = Fals
 
 @china_router.get("/today", response_model=StandardResponse)
 @global_router.get("/today", response_model=StandardResponse)
+@fujian_router.get("/today", response_model=StandardResponse)
 async def get_today_wallpaper(request: Request, db: SessionLocal = Depends(get_db)) -> StandardResponse:
     """
     Get today's wallpaper
@@ -188,6 +196,8 @@ async def get_today_wallpaper(request: Request, db: SessionLocal = Depends(get_d
                   tags=["admin"])
 @global_router.get("/refresh", response_model=StandardResponse, dependencies=[Depends(verify_api_token)],
                    tags=["admin"])
+@fujian_router.get("/refresh", response_model=StandardResponse, dependencies=[Depends(verify_api_token)],
+                    tags=["admin"])
 async def get_today_wallpaper(request: Request, db: SessionLocal = Depends(get_db)) -> StandardResponse:
     """
     Refresh today's wallpaper. **This endpoint requires API token verification**
@@ -220,6 +230,8 @@ async def get_today_wallpaper(request: Request, db: SessionLocal = Depends(get_d
                   tags=["admin"])
 @global_router.get("/reset", response_model=StandardResponse, dependencies=[Depends(verify_api_token)],
                    tags=["admin"])
+@fujian_router.get("/reset", response_model=StandardResponse, dependencies=[Depends(verify_api_token)],
+                    tags=["admin"])
 async def reset_last_display(db: SessionLocal = Depends(get_db)) -> StandardResponse:
     """
     Reset last display date of all wallpapers. **This endpoint requires API token verification**
@@ -237,6 +249,7 @@ async def reset_last_display(db: SessionLocal = Depends(get_db)) -> StandardResp
 
 @china_router.get("/bing", response_model=StandardResponse)
 @global_router.get("/bing", response_model=StandardResponse)
+@china_router.get("/bing-wallpaper", response_model=StandardResponse)
 async def get_bing_wallpaper(request: Request) -> StandardResponse:
     """
     Get Bing wallpaper
@@ -346,8 +359,10 @@ async def get_genshin_launcher_wallpaper(request: Request, language: str = "en-u
 
 @china_router.get("/hoyoplay", response_model=StandardResponse)
 @global_router.get("/hoyoplay", response_model=StandardResponse)
+@fujian_router.get("/hoyoplay", response_model=StandardResponse)
 @china_router.get("/genshin-launcher", response_model=StandardResponse)
 @global_router.get("/genshin-launcher", response_model=StandardResponse)
+@fujian_router.get("/genshin-launcher", response_model=StandardResponse)
 async def get_genshin_launcher_wallpaper(request: Request) -> StandardResponse:
     """
     Get HoYoPlay wallpaper

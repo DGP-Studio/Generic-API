@@ -17,6 +17,7 @@ class StaticUpdateURL(BaseModel):
 
 china_router = APIRouter(tags=["Static"], prefix="/static")
 global_router = APIRouter(tags=["Static"], prefix="/static")
+fujian_router = APIRouter(tags=["Static"], prefix="/static")
 
 CN_OSS_URL = "https://open-7419b310-fc97-4a0c-bedf-b8faca13eb7e-s3.saturn.xxyy.co:8443/hutao/{file_path}"
 
@@ -61,6 +62,7 @@ async def cn_get_zipped_file(file_path: str, request: Request) -> RedirectRespon
 
 
 @china_router.get("/raw/{file_path:path}")
+@fujian_router.get("/raw/{file_path:path}")
 async def cn_get_raw_file(file_path: str, request: Request) -> RedirectResponse:
     """
     Endpoint used to redirect to the raw static file in China server
@@ -86,6 +88,7 @@ async def cn_get_raw_file(file_path: str, request: Request) -> RedirectResponse:
 
 @global_router.get("/zip/{file_path:path}")
 @china_router.get("/zip/{file_path:path}")
+@fujian_router.get("/zip/{file_path:path}")
 async def global_get_zipped_file(file_path: str, request: Request) -> RedirectResponse:
     """
     Endpoint used to redirect to the zipped static file in Global server
@@ -196,6 +199,7 @@ async def list_static_files_size(redis_client) -> dict:
 
 @china_router.get("/size", response_model=StandardResponse)
 @global_router.get("/size", response_model=StandardResponse)
+@fujian_router.get("/size", response_model=StandardResponse)
 async def get_static_files_size(request: Request) -> StandardResponse:
     redis_client = redis.Redis.from_pool(request.app.state.redis_pool)
     static_files_size = await redis_client.get("static_files_size")
@@ -214,6 +218,7 @@ async def get_static_files_size(request: Request) -> StandardResponse:
 
 @china_router.get("/size/reset", response_model=StandardResponse, dependencies=[Depends(verify_api_token)])
 @global_router.get("/size/reset", response_model=StandardResponse, dependencies=[Depends(verify_api_token)])
+@fujian_router.get("/size/reset", response_model=StandardResponse, dependencies=[Depends(verify_api_token)])
 async def reset_static_files_size(request: Request) -> StandardResponse:
     redis_client = redis.Redis.from_pool(request.app.state.redis_pool)
     new_data = await list_static_files_size(redis_client)

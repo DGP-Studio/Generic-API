@@ -18,6 +18,7 @@ from base_logger import logger
 
 china_router = APIRouter(tags=["Patch"], prefix="/patch")
 global_router = APIRouter(tags=["Patch"], prefix="/patch")
+fujian_router = APIRouter(tags=["Patch"], prefix="/patch")
 
 
 def fetch_snap_hutao_github_latest_version() -> PatchMeta:
@@ -204,6 +205,7 @@ async def update_snap_hutao_deployment_version(redis_client: redis.client.Redis)
 
 # Snap Hutao
 @china_router.get("/hutao", response_model=StandardResponse, dependencies=[Depends(record_device_id)])
+@fujian_router.get("/hutao", response_model=StandardResponse, dependencies=[Depends(record_device_id)])
 async def generic_get_snap_hutao_latest_version_china_endpoint(request: Request) -> StandardResponse:
     """
     Get Snap Hutao latest version from China endpoint
@@ -228,6 +230,7 @@ async def generic_get_snap_hutao_latest_version_china_endpoint(request: Request)
 
 
 @china_router.get("/hutao/download")
+@fujian_router.get("/hutao/download")
 async def get_snap_hutao_latest_download_direct_china_endpoint(request: Request) -> RedirectResponse:
     """
     Redirect to Snap Hutao latest download link in China endpoint (use first link in the list)
@@ -285,6 +288,7 @@ async def get_snap_hutao_latest_download_direct_china_endpoint(request: Request)
 
 # Snap Hutao Deployment
 @china_router.get("/hutao-deployment", response_model=StandardResponse)
+@fujian_router.get("/hutao-deployment", response_model=StandardResponse)
 async def generic_get_snap_hutao_latest_version_china_endpoint(request: Request) -> StandardResponse:
     """
     Get Snap Hutao Deployment latest version from China endpoint
@@ -309,6 +313,7 @@ async def generic_get_snap_hutao_latest_version_china_endpoint(request: Request)
 
 
 @china_router.get("/hutao-deployment/download")
+@fujian_router.get("/hutao-deployment/download")
 async def get_snap_hutao_latest_download_direct_china_endpoint(request: Request) -> RedirectResponse:
     """
     Redirect to Snap Hutao Deployment latest download link in China endpoint (use first link in the list)
@@ -355,6 +360,7 @@ async def get_snap_hutao_latest_download_direct_china_endpoint(request: Request)
 
 @china_router.patch("/{project_key}", include_in_schema=True, response_model=StandardResponse)
 @global_router.patch("/{project_key}", include_in_schema=True, response_model=StandardResponse)
+@fujian_router.patch("/{project_key}", include_in_schema=True, response_model=StandardResponse)
 async def generic_patch_latest_version(request: Request, response: Response, project_key: str) -> StandardResponse:
     """
     Update latest version of a project
@@ -385,6 +391,8 @@ async def generic_patch_latest_version(request: Request, response: Response, pro
 @china_router.post("/mirror", tags=["admin"], include_in_schema=True,
                    dependencies=[Depends(verify_api_token)], response_model=StandardResponse)
 @global_router.post("/mirror", tags=["admin"], include_in_schema=True,
+                    dependencies=[Depends(verify_api_token)], response_model=StandardResponse)
+@fujian_router.post("/mirror", tags=["admin"], include_in_schema=True,
                     dependencies=[Depends(verify_api_token)], response_model=StandardResponse)
 async def add_mirror_url(response: Response, request: Request) -> StandardResponse:
     """
@@ -445,6 +453,8 @@ async def add_mirror_url(response: Response, request: Request) -> StandardRespon
                      dependencies=[Depends(verify_api_token)], response_model=StandardResponse)
 @global_router.delete("/mirror", tags=["admin"], include_in_schema=True,
                       dependencies=[Depends(verify_api_token)], response_model=StandardResponse)
+@fujian_router.delete("/mirror", tags=["admin"], include_in_schema=True,
+                        dependencies=[Depends(verify_api_token)], response_model=StandardResponse)
 async def delete_mirror_url(response: Response, request: Request) -> StandardResponse:
     """
     Delete overwritten China URL for a project, this url will be placed at first priority when fetching latest version.

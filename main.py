@@ -69,34 +69,42 @@ app = FastAPI(redoc_url=None,
 
 china_root_router = APIRouter(tags=["China Router"], prefix="/cn")
 global_root_router = APIRouter(tags=["Global Router"], prefix="/global")
+fujian_root_router = APIRouter(tags=["Fujian Router"], prefix="/fj")
 
 # Enka Network API Routers
 china_root_router.include_router(enka_network.china_router)
 global_root_router.include_router(enka_network.global_router)
+fujian_root_router.include_router(enka_network.fujian_router)
 
 # Hutao Metadata API Routers
 china_root_router.include_router(metadata.china_router)
 global_root_router.include_router(metadata.global_router)
+fujian_root_router.include_router(metadata.fujian_router)
 
 # Patch API Routers
 china_root_router.include_router(patch_next.china_router)
 global_root_router.include_router(patch_next.global_router)
+fujian_root_router.include_router(patch_next.fujian_router)
 
 # Static API Routers
 china_root_router.include_router(static.china_router)
 global_root_router.include_router(static.global_router)
+fujian_root_router.include_router(static.fujian_router)
 
 # Network API Routers
 china_root_router.include_router(net.china_router)
 global_root_router.include_router(net.global_router)
+fujian_root_router.include_router(net.fujian_router)
 
 # Wallpaper API Routers
 china_root_router.include_router(wallpaper.china_router)
 global_root_router.include_router(wallpaper.global_router)
+fujian_root_router.include_router(wallpaper.fujian_router)
 
 # Strategy API Routers
 china_root_router.include_router(strategy.china_router)
 global_root_router.include_router(strategy.global_router)
+fujian_root_router.include_router(strategy.fujian_router)
 
 # System Email Router
 app.include_router(system_email.admin_router)
@@ -104,13 +112,16 @@ app.include_router(system_email.admin_router)
 # Crowdin Localization API Routers
 china_root_router.include_router(crowdin.china_router)
 global_root_router.include_router(crowdin.global_router)
+fujian_root_router.include_router(crowdin.fujian_router)
 
 # Client feature routers
 china_root_router.include_router(client_feature.china_router)
 global_root_router.include_router(client_feature.global_router)
+fujian_root_router.include_router(client_feature.fujian_router)
 
 app.include_router(china_root_router)
 app.include_router(global_root_router)
+app.include_router(fujian_root_router)
 
 origins = [
     "http://localhost",
