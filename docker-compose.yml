@@ -38,11 +38,3 @@ services:
       - ./.env:/app/.env
     depends_on:
       - redis
-
-  tunnel:
-    container_name: Snap-Hutao-Generic-API-Tunnel
-    image: cloudflare/cloudflared:latest
-    restart: unless-stopped
-    command: tunnel --no-autoupdate run
-    environment:
-      - TUNNEL_TOKEN=snap-hutao-generic-api-tunnel-token
