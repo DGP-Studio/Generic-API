@@ -14,11 +14,11 @@ class Wallpaper(Base):
     uploader = Column(String, index=True)
     disabled = Column(Integer, default=False)
 
-    def dict(self):
+    def __dict__(self):
         return {field.name: getattr(self, field.name) for field in self.__table__.c}
 
     def __repr__(self):
-        return f"models.Wallpaper({self.dict()})"
+        return f"models.Wallpaper({self.__dict__()})"
 
 
 class AvatarStrategy(Base):
@@ -29,11 +29,11 @@ class AvatarStrategy(Base):
     mys_strategy_id = Column(Integer, nullable=True)
     hoyolab_strategy_id = Column(Integer, nullable=True)
 
-    def dict(self):
+    def __dict__(self):
         return {field.name: getattr(self, field.name) for field in self.__table__.c}
 
     def __repr__(self):
-        return f"models.AvatarStrategy({self.dict()})"
+        return f"models.AvatarStrategy({self.__dict__()})"
 
 
 class DailyActiveUserStats(Base):
@@ -44,11 +44,11 @@ class DailyActiveUserStats(Base):
     global_user = Column(Integer, nullable=False)
     unknown = Column(Integer, nullable=False)
 
-    def dict(self):
+    def __dict__(self):
         return {field.name: getattr(self, field.name) for field in self.__table__.c}
 
     def __repr__(self):
-        return f"models.DailyActiveUserStats({self.dict()})"
+        return f"models.DailyActiveUserStats({self.__dict__()})"
 
 
 class DailyEmailSentStats(Base):
@@ -59,8 +59,8 @@ class DailyEmailSentStats(Base):
     sent = Column(Integer, nullable=False)
     failed = Column(Integer, nullable=False)
 
-    def dict(self):
+    def __dict__(self):
         return {field.name: getattr(self, field.name) for field in self.__table__.c}
 
     def __repr__(self):
-        return f"models.DailyEmailSentStats({self.dict()})"
+        return f"models.DailyEmailSentStats({self.__dict__()})"
