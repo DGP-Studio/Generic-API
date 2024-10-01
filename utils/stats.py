@@ -1,43 +1,32 @@
-import os
-import redis
 import time
-from fastapi import Header
+from fastapi import Header, Request
+from redis import asyncio as aioredis
 from typing import Optional
+from sqlalchemy.testing.config import db_url
 from base_logger import logger
 
-if os.getenv("NO_REDIS", "false").lower() == "true":
-    logger.info("Skipping Redis connection in Stats module as NO_REDIS is set to true")
-    redis_conn = None
-else:
-    REDIS_HOST = os.getenv("REDIS_HOST", "redis")
-    logger.info(f"Connecting to Redis at {REDIS_HOST} for Stats module")
-    redis_conn = redis.Redis(host=REDIS_HOST, port=6379, db=2, decode_responses=True)
-    patch_redis_conn = redis.Redis(host=REDIS_HOST, port=6379, db=3, decode_responses=True)
-    logger.info("Redis connection established for Stats module (db=2)")
 
-
-def record_device_id(x_region: Optional[str] = Header(None), x_hutao_device_id: Optional[str] = Header(None),
-                     user_agent: Optional[str] = Header(None)) -> bool:
+async def record_device_id(request: Request, x_region: Optional[str] = Header(None),
+                           x_hutao_device_id: Optional[str] = Header(None),
+                           user_agent: Optional[str] = Header(None)) -> bool:
+    redis_client = aioredis.Redis.from_pool(request.app.state.redis)
     start_time = time.time()
-
-    if not redis_conn:
-        logger.warning("Redis connection not established, not recording device ID")
-        return False
 
     if not x_hutao_device_id:
         logger.info(f"Device ID not found in headers, not recording device ID")
         return False
 
     redis_key_name = {
-        "cn": "active_users_cn",
-        "global": "active_users_global"
-    }.get((x_region or "").lower(), "active_users_unknown")
+        "cn": "stat:active_users:cn",
+        "global": "stat:active_users:global"
+    }.get((x_region or "").lower(), "stat:active_users:unknown")
 
-    redis_conn.sadd(redis_key_name, x_hutao_device_id)
+    await redis_client.sadd(redis_key_name, x_hutao_device_id)
 
     if user_agent:
         user_agent = user_agent.replace("Snap Hutao/", "")
-        patch_redis_conn.sadd(user_agent, x_hutao_device_id)
+        user_agent = f"stat:user_agent:{user_agent}"
+        await redis_client.sadd(user_agent, x_hutao_device_id)
 
         end_time = time.time()
         execution_time = (end_time - start_time) * 1000
@@ -51,28 +40,19 @@ def record_device_id(x_region: Optional[str] = Header(None), x_hutao_device_id: 
     return False
 
 
-def record_email_requested() -> bool:
-    if not redis_conn:
-        logger.warning("Redis connection not established, not recording email sent")
-        return False
-
-    redis_conn.incr("email_requested")
+def record_email_requested(request: Request) -> bool:
+    redis_client = aioredis.Redis.from_pool(request.app.state.redis)
+    redis_client.incr("stat:email_requested")
     return True
 
 
-def add_email_sent_count() -> bool:
-    if not redis_conn:
-        logger.warning("Redis connection not established, not recording email sent")
-        return False
-
-    redis_conn.incr("email_sent")
+def add_email_sent_count(request: Request) -> bool:
+    redis_client = aioredis.Redis.from_pool(request.app.state.redis)
+    redis_client.incr("stat:email_sent")
     return True
 
 
-def add_email_failed_count() -> bool:
-    if not redis_conn:
-        logger.warning("Redis connection not established, not recording email sent")
-        return False
-
-    redis_conn.incr("email_failed")
+def add_email_failed_count(request: Request) -> bool:
+    redis_client = aioredis.Redis.from_pool(request.app.state.redis)
+    redis_client.incr("stat:email_failed")
     return True
