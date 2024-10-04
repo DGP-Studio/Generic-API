@@ -1,5 +1,4 @@
 from dotenv import load_dotenv
-import socket
 import os
 
 env_result = load_dotenv()
@@ -33,7 +32,3 @@ You reached this page as you are trying to access the Hutao Generic API in devel
 
 [**Snap Hutao**](https://hut.ao) is a project by DGP Studio, and this API is designed to support various services for Snap Hutao project.
 """
-
-
-HOST_IP = socket.gethostbyname('host.docker.internal')
-print(f"Host IP: {HOST_IP}")
