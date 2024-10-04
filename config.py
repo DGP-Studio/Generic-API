@@ -35,5 +35,5 @@ You reached this page as you are trying to access the Hutao Generic API in devel
 """
 
 
-HOST_IP = socket.gethostbyname(socket.gethostname())
+HOST_IP = socket.gethostbyname('host.docker.internal')
 print(f"Host IP: {HOST_IP}")

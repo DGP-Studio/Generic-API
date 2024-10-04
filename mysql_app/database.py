@@ -4,7 +4,7 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from base_logger import logging
 
-MYSQL_HOST = os.getenv("MYSQL_HOST", "mysql")
+MYSQL_HOST = os.getenv('host.docker.internal', "mysql")
 MYSQL_PORT = int(os.getenv("MYSQL_PORT", "3306"))
 MYSQL_USER = os.getenv("MYSQL_USER")
 MYSQL_PASSWORD = os.getenv("MYSQL_PASSWORD")
