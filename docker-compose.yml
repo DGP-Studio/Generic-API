@@ -22,7 +22,7 @@ services:
     container_name: ${IMAGE_NAME}-redis
     image: redis:latest
     volumes:
-      - ./redis:/data
+      - /data/docker-service/redis_cache/${IMAGE_NAME}:/data
     restart: unless-stopped
 
   scheduled-tasks:
