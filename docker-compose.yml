@@ -16,6 +16,8 @@ services:
     restart: unless-stopped
     depends_on:
       - scheduled-tasks
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
 
   redis:
     container_name: ${IMAGE_NAME}-redis
@@ -37,6 +39,8 @@ services:
       - ./.env:/app/.env
     depends_on:
       - redis
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
 
   tunnel:
     container_name: ${IMAGE_NAME}-tunnel
