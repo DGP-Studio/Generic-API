@@ -1,47 +1,49 @@
 import json
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
 from fastapi.responses import RedirectResponse
 from utils.dgp_utils import validate_client_is_updated
-from utils.redis_utils import redis_conn
 from mysql_app.schemas import StandardResponse
+from redis import asyncio as redis
 
 china_router = APIRouter(tags=["Hutao Metadata"], prefix="/metadata")
 global_router = APIRouter(tags=["Hutao Metadata"], prefix="/metadata")
+fujian_router = APIRouter(tags=["Hutao Metadata"], prefix="/metadata")
 
 
-def get_banned_files() -> dict:
+async def get_banned_files(redis_client: redis.client.Redis) -> dict:
     """
     Get the list of censored files.
 
+    **Discontinued due to deprecated of JihuLab**
+
     :return: a list of censored files
     """
-    if redis_conn:
-        metadata_censored_files = redis_conn.get("metadata_censored_files")
-        if metadata_censored_files:
-            return {
-                "source": "redis",
-                "data": json.loads(metadata_censored_files)
-            }
-        else:
-            return {
-                "source": "redis",
-                "data": []
-            }
-    return {
-        "source": "None",
-        "data": []
-    }
+    metadata_censored_files = await redis_client.get("metadata_censored_files")
+    if metadata_censored_files:
+        return {
+            "source": "redis",
+            "data": json.loads(metadata_censored_files)
+        }
+    else:
+        return {
+            "source": "redis",
+            "data": []
+        }
 
 
 @china_router.get("/ban", response_model=StandardResponse)
 @global_router.get("/ban", response_model=StandardResponse)
-async def get_ban_files_endpoint() -> StandardResponse:
+@fujian_router.get("/ban", response_model=StandardResponse)
+async def get_ban_files_endpoint(request: Request) -> StandardResponse:
     """
     Get the list of censored files. [FastAPI Endpoint]
 
+    **Discontinued due to deprecated of JihuLab**
+
     :return: a list of censored files in StandardResponse format
     """
-    return StandardResponse(data={"ban": get_banned_files()})
+    redis_client = redis.Redis.from_pool(request.app.state.redis)
+    return StandardResponse(data={"ban": get_banned_files(redis_client)})
 
 
 @china_router.get("/{file_path:path}", dependencies=[Depends(validate_client_is_updated)])
@@ -53,13 +55,9 @@ async def china_metadata_request_handler(file_path: str) -> RedirectResponse:
 
     :return: HTTP 302 redirect to the file based on censorship status of the file
     """
-    host_for_normal_files = f"https://jihulab.com/DGP-Studio/Snap.Metadata/-/raw/main/{file_path}"
-    host_for_censored_files = f"https://metadata.snapgenshin.com/{file_path}"
+    cn_metadata_url = f"https://static-next.snapgenshin.com/d/meta/metadata/{file_path}"
 
-    if file_path in get_banned_files():
-        return RedirectResponse(host_for_censored_files, status_code=302)
-    else:
-        return RedirectResponse(host_for_normal_files, status_code=302)
+    return RedirectResponse(cn_metadata_url, status_code=302)
 
 
 @global_router.get("/{file_path:path}", dependencies=[Depends(validate_client_is_updated)])
@@ -71,6 +69,20 @@ async def global_metadata_request_handler(file_path: str) -> RedirectResponse:
 
     :return: HTTP 302 redirect to the file based on censorship status of the file
     """
-    host_for_normal_files = f"https://hutao-metadata-pages.snapgenshin.cn/{file_path}"
+    global_metadata_url = f"https://hutao-metadata-pages.snapgenshin.cn/{file_path}"
 
-    return RedirectResponse(host_for_normal_files, status_code=302)
+    return RedirectResponse(global_metadata_url, status_code=302)
+
+
+@fujian_router.get("/{file_path:path}", dependencies=[Depends(validate_client_is_updated)])
+async def fujian_metadata_request_handler(file_path: str) -> RedirectResponse:
+    """
+    Handle requests to metadata files.
+
+    :param file_path: Path to the metadata file
+
+    :return: HTTP 302 redirect to the file based on censorship status of the file
+    """
+    fujian_metadata_url = f"https://metadata.snapgenshin.com/{file_path}"
+
+    return RedirectResponse(fujian_metadata_url, status_code=302)

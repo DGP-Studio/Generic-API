@@ -5,7 +5,7 @@ import httpx
 from fastapi import APIRouter, Depends, Request
 from pydantic import BaseModel
 from datetime import date
-from utils.redis_utils import redis_conn
+from redis import asyncio as redis
 from utils.authentication import verify_api_token
 from mysql_app import crud, schemas
 from mysql_app.database import SessionLocal
@@ -27,12 +27,15 @@ def get_db():
 
 china_router = APIRouter(tags=["wallpaper"], prefix="/wallpaper")
 global_router = APIRouter(tags=["wallpaper"], prefix="/wallpaper")
+fujian_router = APIRouter(tags=["wallpaper"], prefix="/wallpaper")
 
 
 @china_router.get("/all", response_model=list[schemas.Wallpaper], dependencies=[Depends(verify_api_token)],
                   tags=["admin"])
 @global_router.get("/all", response_model=list[schemas.Wallpaper], dependencies=[Depends(verify_api_token)],
                    tags=["admin"])
+@fujian_router.get("/all", response_model=list[schemas.Wallpaper], dependencies=[Depends(verify_api_token)],
+                    tags=["admin"])
 async def get_all_wallpapers(db: SessionLocal = Depends(get_db)) -> list[schemas.Wallpaper]:
     """
     Get all wallpapers in database. **This endpoint requires API token verification**
@@ -48,6 +51,8 @@ async def get_all_wallpapers(db: SessionLocal = Depends(get_db)) -> list[schemas
                    tags=["admin"])
 @global_router.post("/add", response_model=schemas.StandardResponse, dependencies=[Depends(verify_api_token)],
                     tags=["admin"])
+@fujian_router.post("/add", response_model=schemas.StandardResponse, dependencies=[Depends(verify_api_token)],
+                     tags=["admin"])
 async def add_wallpaper(wallpaper: schemas.Wallpaper, db: SessionLocal = Depends(get_db)):
     """
     Add a new wallpaper to database. **This endpoint requires API token verification**
@@ -78,6 +83,7 @@ async def add_wallpaper(wallpaper: schemas.Wallpaper, db: SessionLocal = Depends
 
 @china_router.post("/disable", dependencies=[Depends(verify_api_token)], tags=["admin"], response_model=StandardResponse)
 @global_router.post("/disable", dependencies=[Depends(verify_api_token)], tags=["admin"], response_model=StandardResponse)
+@fujian_router.post("/disable", dependencies=[Depends(verify_api_token)], tags=["admin"], response_model=StandardResponse)
 async def disable_wallpaper_with_url(request: Request, db: SessionLocal = Depends(get_db)) -> StandardResponse:
     """
     Disable a wallpaper with its URL, so it won't be picked by the random wallpaper picker.
@@ -102,6 +108,7 @@ async def disable_wallpaper_with_url(request: Request, db: SessionLocal = Depend
 
 @china_router.post("/enable", dependencies=[Depends(verify_api_token)], tags=["admin"], response_model=StandardResponse)
 @global_router.post("/enable", dependencies=[Depends(verify_api_token)], tags=["admin"], response_model=StandardResponse)
+@fujian_router.post("/enable", dependencies=[Depends(verify_api_token)], tags=["admin"], response_model=StandardResponse)
 async def enable_wallpaper_with_url(request: Request, db: SessionLocal = Depends(get_db)) -> StandardResponse:
     """
     Enable a wallpaper with its URL, so it will be picked by the random wallpaper picker.
@@ -124,16 +131,18 @@ async def enable_wallpaper_with_url(request: Request, db: SessionLocal = Depends
         return StandardResponse(data=db_result.dict())
 
 
-def random_pick_wallpaper(db, force_refresh: bool = False) -> Wallpaper:
+async def random_pick_wallpaper(db, request: Request, force_refresh: bool = False) -> Wallpaper:
     """
     Randomly pick a wallpaper from the database
 
+    :param request: Request object from FastAPI
     :param db: DB session
     :param force_refresh: True to force refresh the wallpaper, False to use the cached one
     :return: schema.Wallpaper object
     """
+    redis_client = redis.Redis.from_pool(request.app.state.redis_pool)
     # Check wallpaper cache from Redis
-    today_wallpaper = redis_conn.get("hutao_today_wallpaper")
+    today_wallpaper = await redis_client.get("hutao_today_wallpaper")
     if today_wallpaper:
         today_wallpaper = Wallpaper(**json.loads(today_wallpaper))
     if today_wallpaper and not force_refresh:
@@ -152,22 +161,25 @@ def random_pick_wallpaper(db, force_refresh: bool = False) -> Wallpaper:
     today_wallpaper_model = wallpaper_pool[random_index]
     res = crud.set_last_display_date_with_index(db, today_wallpaper_model.id)
     today_wallpaper = Wallpaper(**today_wallpaper_model.dict())
-    redis_conn.set("hutao_today_wallpaper", today_wallpaper.json(), ex=60*60*24)
+    await redis_client.set("hutao_today_wallpaper", today_wallpaper.model_dump_json(), ex=60*60*24)
     logger.info(f"Set last display date with index {today_wallpaper_model.id}: {res}")
     return today_wallpaper
 
 
 @china_router.get("/today", response_model=StandardResponse)
 @global_router.get("/today", response_model=StandardResponse)
-async def get_today_wallpaper(db: SessionLocal = Depends(get_db)) -> StandardResponse:
+@fujian_router.get("/today", response_model=StandardResponse)
+async def get_today_wallpaper(request: Request, db: SessionLocal = Depends(get_db)) -> StandardResponse:
     """
     Get today's wallpaper
+
+    :param request: request object from FastAPI
 
     :param db: DB session
 
     :return: StandardResponse object with wallpaper data in data field
     """
-    wallpaper = random_pick_wallpaper(db, False)
+    wallpaper = await random_pick_wallpaper(db, request, False)
     response = StandardResponse()
     response.retcode = 0
     response.message = "ok"
@@ -184,9 +196,13 @@ async def get_today_wallpaper(db: SessionLocal = Depends(get_db)) -> StandardRes
                   tags=["admin"])
 @global_router.get("/refresh", response_model=StandardResponse, dependencies=[Depends(verify_api_token)],
                    tags=["admin"])
-async def get_today_wallpaper(db: SessionLocal = Depends(get_db)) -> StandardResponse:
+@fujian_router.get("/refresh", response_model=StandardResponse, dependencies=[Depends(verify_api_token)],
+                    tags=["admin"])
+async def get_today_wallpaper(request: Request, db: SessionLocal = Depends(get_db)) -> StandardResponse:
     """
     Refresh today's wallpaper. **This endpoint requires API token verification**
+
+    :param request: Request object from FastAPI
 
     :param db: DB session
 
@@ -194,7 +210,7 @@ async def get_today_wallpaper(db: SessionLocal = Depends(get_db)) -> StandardRes
     """
     while True:
         try:
-            wallpaper = random_pick_wallpaper(db, True)
+            wallpaper = await random_pick_wallpaper(db, request, True)
             response = StandardResponse()
             response.retcode = 0
             response.message = "Wallpaper refreshed"
@@ -214,6 +230,8 @@ async def get_today_wallpaper(db: SessionLocal = Depends(get_db)) -> StandardRes
                   tags=["admin"])
 @global_router.get("/reset", response_model=StandardResponse, dependencies=[Depends(verify_api_token)],
                    tags=["admin"])
+@fujian_router.get("/reset", response_model=StandardResponse, dependencies=[Depends(verify_api_token)],
+                    tags=["admin"])
 async def reset_last_display(db: SessionLocal = Depends(get_db)) -> StandardResponse:
     """
     Reset last display date of all wallpapers. **This endpoint requires API token verification**
@@ -231,6 +249,7 @@ async def reset_last_display(db: SessionLocal = Depends(get_db)) -> StandardResp
 
 @china_router.get("/bing", response_model=StandardResponse)
 @global_router.get("/bing", response_model=StandardResponse)
+@china_router.get("/bing-wallpaper", response_model=StandardResponse)
 async def get_bing_wallpaper(request: Request) -> StandardResponse:
     """
     Get Bing wallpaper
@@ -240,6 +259,7 @@ async def get_bing_wallpaper(request: Request) -> StandardResponse:
     :return: StandardResponse object with Bing wallpaper data in data field
     """
     url_path = request.url.path
+    redis_client = redis.Redis.from_pool(request.app.state.redis_pool)
     if url_path.startswith("/global"):
         redis_key = "bing_wallpaper_global"
         bing_api = "https://www.bing.com/HPImageArchive.aspx?format=js&idx=0&n=1&mkt=en-US"
@@ -253,15 +273,14 @@ async def get_bing_wallpaper(request: Request) -> StandardResponse:
         bing_api = "https://www.bing.com/HPImageArchive.aspx?format=js&idx=0&n=1&mkt=en-US"
         bing_prefix = "www"
 
-    if redis_conn is not None:
-        try:
-            redis_data = json.loads(redis_conn.get(redis_key))
-            response = StandardResponse()
-            response.message = f"cached: {redis_key}"
-            response.data = redis_data
-            return response
-        except (json.JSONDecodeError, TypeError):
-            pass
+    try:
+        redis_data = await json.loads(redis_client.get(redis_key))
+        response = StandardResponse()
+        response.message = f"cached: {redis_key}"
+        response.data = redis_data
+        return response
+    except (json.JSONDecodeError, TypeError):
+        pass
     # Get Bing wallpaper
     bing_output = httpx.get(bing_api).json()
     data = {
@@ -270,9 +289,8 @@ async def get_bing_wallpaper(request: Request) -> StandardResponse:
         "author": bing_output['images'][0]['copyright'],
         "uploader": "Microsoft Bing"
     }
-    if redis_conn is not None:
-        res = redis_conn.set(redis_key, json.dumps(data), ex=3600)
-        logger.info(f"Set bing_wallpaper to Redis result: {res}")
+    res = await redis_client.set(redis_key, json.dumps(data), ex=3600)
+    logger.info(f"Set bing_wallpaper to Redis result: {res}")
     response = StandardResponse()
     response.message = f"sourced: {redis_key}"
     response.data = data
@@ -292,6 +310,7 @@ async def get_genshin_launcher_wallpaper(request: Request, language: str = "en-u
     language_set = ["zh-cn", "zh-tw", "en-us", "ja-jp", "ko-kr", "fr-fr", "de-de", "es-es", "pt-pt", "ru-ru", "id-id",
                     "vi-vn", "th-th"]
     url_path = request.url.path
+    redis_client = redis.Redis.from_pool(request.app.state.redis_pool)
     if url_path.startswith("/global"):
         if language not in language_set:
             language = "en-us"
@@ -312,16 +331,15 @@ async def get_genshin_launcher_wallpaper(request: Request, language: str = "en-u
         genshin_launcher_wallpaper_api = (f"https://sdk-os-static.mihoyo.com/hk4e_global/mdk/launcher/api/content"
                                           f"?filter_adv=true&key=gcStgarh&language={language}&launcher_id=10")
     # Check Redis
-    if redis_conn is not None:
-        try:
-            redis_data = json.loads(redis_conn.get(redis_key))
-        except (json.JSONDecodeError, TypeError):
-            redis_data = None
-        if redis_data is not None:
-            response = StandardResponse()
-            response.message = f"cached: {redis_key}"
-            response.data = redis_data
-            return response
+    try:
+        redis_data = json.loads(redis_client.get(redis_key))
+    except (json.JSONDecodeError, TypeError):
+        redis_data = None
+    if redis_data is not None:
+        response = StandardResponse()
+        response.message = f"cached: {redis_key}"
+        response.data = redis_data
+        return response
     # Get Genshin Launcher wallpaper from API
     genshin_output = httpx.get(genshin_launcher_wallpaper_api).json()
     background_url = genshin_output["data"]["adv"]["background"]
@@ -331,9 +349,8 @@ async def get_genshin_launcher_wallpaper(request: Request, language: str = "en-u
         "author": "miHoYo" if g_type == "cn" else "HoYoverse",
         "uploader": "miHoYo" if g_type == "cn" else "HoYoverse"
     }
-    if redis_conn is not None:
-        res = redis_conn.set(redis_key, json.dumps(data), ex=3600)
-        logger.info(f"Set genshin_launcher_wallpaper to Redis result: {res}")
+    res = redis_client.set(redis_key, json.dumps(data), ex=3600)
+    logger.info(f"Set genshin_launcher_wallpaper to Redis result: {res}")
     response = StandardResponse()
     response.message = f"sourced: {redis_key}"
     response.data = data
@@ -342,9 +359,11 @@ async def get_genshin_launcher_wallpaper(request: Request, language: str = "en-u
 
 @china_router.get("/hoyoplay", response_model=StandardResponse)
 @global_router.get("/hoyoplay", response_model=StandardResponse)
+@fujian_router.get("/hoyoplay", response_model=StandardResponse)
 @china_router.get("/genshin-launcher", response_model=StandardResponse)
 @global_router.get("/genshin-launcher", response_model=StandardResponse)
-async def get_genshin_launcher_wallpaper() -> StandardResponse:
+@fujian_router.get("/genshin-launcher", response_model=StandardResponse)
+async def get_genshin_launcher_wallpaper(request: Request) -> StandardResponse:
     """
     Get HoYoPlay wallpaper
 
@@ -352,18 +371,18 @@ async def get_genshin_launcher_wallpaper() -> StandardResponse:
 
     :return: StandardResponse object with HoYoPlay wallpaper data in data field
     """
+    redis_client = redis.Redis.from_pool(request.app.state.redis_pool)
     hoyoplay_api = "https://hyp-api.mihoyo.com/hyp/hyp-connect/api/getGames?launcher_id=jGHBHlcOq1&language=zh-cn"
     redis_key = "hoyoplay_cn_wallpaper"
-    if redis_conn is not None:
-        try:
-            redis_data = json.loads(redis_conn.get(redis_key))
-        except (json.JSONDecodeError, TypeError):
-            redis_data = None
-        if redis_data is not None:
-            response = StandardResponse()
-            response.message = f"cached: {redis_key}"
-            response.data = redis_data
-            return response
+    try:
+        redis_data = json.loads(redis_client.get(redis_key))
+    except (json.JSONDecodeError, TypeError):
+        redis_data = None
+    if redis_data is not None:
+        response = StandardResponse()
+        response.message = f"cached: {redis_key}"
+        response.data = redis_data
+        return response
     # Get HoYoPlay wallpaper from API
     hoyoplay_output = httpx.get(hoyoplay_api).json()
     data = {
@@ -372,9 +391,8 @@ async def get_genshin_launcher_wallpaper() -> StandardResponse:
         "author": "miHoYo",
         "uploader": "miHoYo"
     }
-    if redis_conn is not None:
-        res = redis_conn.set(redis_key, json.dumps(data), ex=3600)
-        logger.info(f"Set hoyoplay_wallpaper to Redis result: {res}")
+    res = redis_client.set(redis_key, json.dumps(data), ex=3600)
+    logger.info(f"Set hoyoplay_wallpaper to Redis result: {res}")
     response = StandardResponse()
     response.message = f"sourced: {redis_key}"
     response.data = data

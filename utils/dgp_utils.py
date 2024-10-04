@@ -5,7 +5,6 @@ import httpx
 from fastapi import HTTPException, status, Header
 from typing import Annotated
 from base_logger import logger
-from utils.redis_utils import redis_conn
 from config import github_headers
 
 WHITE_LIST_REPOSITORIES = json.loads(os.environ.get("WHITE_LIST_REPOSITORIES"))
@@ -14,7 +13,7 @@ if BYPASS_CLIENT_VERIFICATION:
     logger.warning("Client verification is bypassed in this server.")
 
 
-def update_recent_versions() -> list[str]:
+def update_recent_versions(redis_conn) -> list[str]:
     new_user_agents = []
 
     # Stable version of software in white list
