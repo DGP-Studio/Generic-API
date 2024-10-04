@@ -2,7 +2,6 @@ import time
 from fastapi import Header, Request
 from redis import asyncio as aioredis
 from typing import Optional
-from sqlalchemy.testing.config import db_url
 from base_logger import logger
 
 
