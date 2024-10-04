@@ -12,7 +12,7 @@ from contextlib import asynccontextmanager
 from routers import enka_network, metadata, patch_next, static, net, wallpaper, strategy, crowdin, system_email, \
     client_feature
 from base_logger import logger
-from config import (MAIN_SERVER_DESCRIPTION, TOS_URL, CONTACT_INFO, LICENSE_INFO, VALID_PROJECT_KEYS)
+from config import (MAIN_SERVER_DESCRIPTION, TOS_URL, CONTACT_INFO, LICENSE_INFO, VALID_PROJECT_KEYS, IMAGE_NAME)
 from mysql_app.database import SessionLocal
 
 
@@ -136,14 +136,17 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-"""
-app.add_middleware(
-    ApitallyMiddleware,
-    client_id=os.getenv("APITALLY_CLIENT_ID"),
-    env="dev" if os.getenv("DEBUG") == "1" or os.getenv("APITALLY_DEBUG") == "1" else "prod",
-    openapi_url="/openapi.json"
-)
-"""
+
+if IMAGE_NAME != "" and "dev" not in IMAGE_NAME:
+    app.add_middleware(
+        ApitallyMiddleware,
+        client_id=os.getenv("APITALLY_CLIENT_ID"),
+        env="dev" if "alpha" in IMAGE_NAME else "prod",
+        openapi_url="/openapi.json"
+    )
+else:
+    logger.info("Apitally is disabled as the image is not a production image.")
+
 
 
 @app.get("/", response_class=RedirectResponse, status_code=301)

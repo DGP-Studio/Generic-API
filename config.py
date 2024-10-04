@@ -5,6 +5,8 @@ env_result = load_dotenv()
 
 VALID_PROJECT_KEYS = ["snap-hutao", "snap-hutao-deployment"]
 
+IMAGE_NAME = os.getenv("IMAGE_NAME", "")
+
 github_headers = {
     "Authorization": f"Bearer {os.environ.get('GITHUB_PAT')}",
     "X-GitHub-Api-Version": "2022-11-28"
