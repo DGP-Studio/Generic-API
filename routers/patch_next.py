@@ -1,7 +1,5 @@
 import httpx
 import os
-
-from apitally.client.base import RequestInfo
 from redis import asyncio as redis
 import json
 from fastapi import APIRouter, Response, status, Request, Depends
