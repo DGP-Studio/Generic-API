@@ -140,7 +140,7 @@ async def random_pick_wallpaper(db, request: Request, force_refresh: bool = Fals
     :param force_refresh: True to force refresh the wallpaper, False to use the cached one
     :return: schema.Wallpaper object
     """
-    redis_client = redis.Redis.from_pool(request.app.state.redis_pool)
+    redis_client = redis.Redis.from_pool(request.app.state.redis)
     # Check wallpaper cache from Redis
     today_wallpaper = await redis_client.get("hutao_today_wallpaper")
     if today_wallpaper:
@@ -259,7 +259,7 @@ async def get_bing_wallpaper(request: Request) -> StandardResponse:
     :return: StandardResponse object with Bing wallpaper data in data field
     """
     url_path = request.url.path
-    redis_client = redis.Redis.from_pool(request.app.state.redis_pool)
+    redis_client = redis.Redis.from_pool(request.app.state.redis)
     if url_path.startswith("/global"):
         redis_key = "bing_wallpaper_global"
         bing_api = "https://www.bing.com/HPImageArchive.aspx?format=js&idx=0&n=1&mkt=en-US"
@@ -310,7 +310,7 @@ async def get_genshin_launcher_wallpaper(request: Request, language: str = "en-u
     language_set = ["zh-cn", "zh-tw", "en-us", "ja-jp", "ko-kr", "fr-fr", "de-de", "es-es", "pt-pt", "ru-ru", "id-id",
                     "vi-vn", "th-th"]
     url_path = request.url.path
-    redis_client = redis.Redis.from_pool(request.app.state.redis_pool)
+    redis_client = redis.Redis.from_pool(request.app.state.redis)
     if url_path.startswith("/global"):
         if language not in language_set:
             language = "en-us"
@@ -371,7 +371,7 @@ async def get_genshin_launcher_wallpaper(request: Request) -> StandardResponse:
 
     :return: StandardResponse object with HoYoPlay wallpaper data in data field
     """
-    redis_client = redis.Redis.from_pool(request.app.state.redis_pool)
+    redis_client = redis.Redis.from_pool(request.app.state.redis)
     hoyoplay_api = "https://hyp-api.mihoyo.com/hyp/hyp-connect/api/getGames?launcher_id=jGHBHlcOq1&language=zh-cn"
     redis_key = "hoyoplay_cn_wallpaper"
     try:
