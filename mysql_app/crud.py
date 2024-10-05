@@ -38,10 +38,15 @@ def enable_wallpaper_with_url(db: Session, url: str) -> models.Wallpaper:
 
 
 def get_all_fresh_wallpaper(db: Session) -> list[models.Wallpaper]:
-    target_date = str(date.today() - timedelta(days=14))
-    all_wallpapers = db.query(models.Wallpaper)
-    fresh_wallpapers = all_wallpapers.filter(or_(models.Wallpaper.last_display_date < target_date,
-                                                 models.Wallpaper.last_display_date == None)).all()
+    target_date = date.today() - timedelta(days=14)
+    fresh_wallpapers = db.query(models.Wallpaper).filter(
+        or_(
+            models.Wallpaper.last_display_date < target_date,
+            models.Wallpaper.last_display_date == None
+        )
+    ).all()
+
+    # If no fresh wallpapers found, return all wallpapers
     if len(fresh_wallpapers) == 0:
         return db.query(models.Wallpaper).all()
     return fresh_wallpapers
