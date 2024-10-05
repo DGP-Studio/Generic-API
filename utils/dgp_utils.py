@@ -2,12 +2,13 @@ import json
 import logging
 import os
 import httpx
-from fastapi import HTTPException, status, Header
+from fastapi import HTTPException, status, Header, Request
+from redis import asyncio as aioredis
 from typing import Annotated
 from base_logger import logger
 from config import github_headers
 
-WHITE_LIST_REPOSITORIES = json.loads(os.environ.get("WHITE_LIST_REPOSITORIES"))
+WHITE_LIST_REPOSITORIES = json.loads(os.environ.get("WHITE_LIST_REPOSITORIES", "{}"))
 BYPASS_CLIENT_VERIFICATION = os.environ.get("BYPASS_CLIENT_VERIFICATION", "False").lower() == "true"
 if BYPASS_CLIENT_VERIFICATION:
     logger.warning("Client verification is bypassed in this server.")
@@ -61,7 +62,8 @@ def update_recent_versions(redis_conn) -> list[str]:
     return new_user_agents
 
 
-async def validate_client_is_updated(user_agent: Annotated[str, Header()]) -> bool:
+async def validate_client_is_updated(request: Request, user_agent: Annotated[str, Header()]) -> bool:
+    redis_client = aioredis.Redis.from_pool(request.app.state.redis)
     if BYPASS_CLIENT_VERIFICATION:
         return True
     logger.info(f"Received request from user agent: {user_agent}")
@@ -70,12 +72,12 @@ async def validate_client_is_updated(user_agent: Annotated[str, Header()]) -> bo
     if user_agent.startswith("PaimonsNotebook/"):
         return True
 
-    allowed_user_agents = redis_conn.get("allowed_user_agents")
+    allowed_user_agents = await redis_client.get("allowed_user_agents")
     if allowed_user_agents:
         allowed_user_agents = json.loads(allowed_user_agents)
     else:
         # redis data is expired
-        allowed_user_agents = update_recent_versions()
+        allowed_user_agents = update_recent_versions(redis_client)
 
     if user_agent not in allowed_user_agents:
         logger.info(f"Client is outdated: {user_agent}, not in the allowed list: {allowed_user_agents}")
