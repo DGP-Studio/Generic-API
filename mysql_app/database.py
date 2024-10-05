@@ -3,6 +3,13 @@ from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from base_logger import logging
+import socket
+
+try:
+    host_ip = socket.gethostbyname('host.docker.internal')
+    print("Host IP:", host_ip)
+except socket.gaierror:
+    print("Could not resolve host.docker.internal")
 
 MYSQL_HOST = 'host.docker.internal'
 MYSQL_PORT = int(os.getenv("MYSQL_PORT", "3306"))
