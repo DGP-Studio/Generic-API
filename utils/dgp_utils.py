@@ -8,7 +8,12 @@ from typing import Annotated
 from base_logger import logger
 from config import github_headers
 
-WHITE_LIST_REPOSITORIES = json.loads(os.environ.get("WHITE_LIST_REPOSITORIES", "{}"))
+try:
+    WHITE_LIST_REPOSITORIES = json.loads(os.environ.get("WHITE_LIST_REPOSITORIES", "{}"))
+except json.JSONDecodeError:
+    WHITE_LIST_REPOSITORIES = {}
+    logger.error("Failed to load WHITE_LIST_REPOSITORIES from environment variable.")
+    logger.info(os.environ.get("WHITE_LIST_REPOSITORIES"))
 BYPASS_CLIENT_VERIFICATION = os.environ.get("BYPASS_CLIENT_VERIFICATION", "False").lower() == "true"
 if BYPASS_CLIENT_VERIFICATION:
     logger.warning("Client verification is bypassed in this server.")
