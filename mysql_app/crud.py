@@ -42,7 +42,7 @@ def get_all_fresh_wallpaper(db: Session) -> list[models.Wallpaper]:
     fresh_wallpapers = db.query(models.Wallpaper).filter(
         or_(
             models.Wallpaper.last_display_date < target_date,
-            models.Wallpaper.last_display_date == None
+            models.Wallpaper.last_display_date.is_(None)
         )
     ).all()
 

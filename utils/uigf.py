@@ -13,12 +13,12 @@ def refresh_uigf_dict(redis_client: redis.client.Redis) -> dict:
         f"Failed to refresh UIGF dict, \nstatus code: {response.status_code}, \ncontent: {response.text}")
 
 
-def get_genshin_avatar_id(redis_client: redis.client.Redis, name: str, lang: str) -> int | None:
+async def get_genshin_avatar_id(redis_client: redis.client.Redis, name: str, lang: str) -> int | None:
     # load from redis
     try:
         uigf_dict = json.loads(redis_client.get("uigf_dict")) if redis_client else None
     except TypeError:
         # redis_conn.get() returns None
-        uigf_dict = refresh_uigf_dict(redis_client)
+        uigf_dict = await refresh_uigf_dict(redis_client)
     avatar_id = uigf_dict.get(lang, {}).get(name, None)
     return avatar_id

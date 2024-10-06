@@ -14,7 +14,7 @@ global_router = APIRouter(tags=["Strategy"], prefix="/strategy")
 fujian_router = APIRouter(tags=["Strategy"], prefix="/strategy")
 
 
-def refresh_miyoushe_avatar_strategy(redis_client: redis.client.Redis, db: Session) -> bool:
+async def refresh_miyoushe_avatar_strategy(redis_client: redis.client.Redis, db: Session) -> bool:
     """
     Refresh avatar strategy from Miyoushe
     :param redis_client: redis client object
@@ -34,7 +34,7 @@ def refresh_miyoushe_avatar_strategy(redis_client: redis.client.Redis, db: Sessi
             for item in top_menu["children"]:
                 if item["id"] == 39:
                     for avatar in item["children"]:
-                        avatar_id = get_genshin_avatar_id(redis_client, avatar["name"], "chs")
+                        avatar_id = await get_genshin_avatar_id(redis_client, avatar["name"], "chs")
                         if avatar_id:
                             avatar_strategy.append(
                                 AvatarStrategy(
@@ -53,7 +53,7 @@ def refresh_miyoushe_avatar_strategy(redis_client: redis.client.Redis, db: Sessi
     return True
 
 
-def refresh_hoyolab_avatar_strategy(redis_client: redis.client.Redis, db: Session) -> bool:
+async def refresh_hoyolab_avatar_strategy(redis_client: redis.client.Redis, db: Session) -> bool:
     """
     Refresh avatar strategy from Hoyolab
     :param redis_client: redis client object
@@ -78,7 +78,7 @@ def refresh_hoyolab_avatar_strategy(redis_client: redis.client.Redis, db: Sessio
         raise RuntimeError(
             f"Failed to refresh Hoyolab avatar strategy, \nstatus code: {response.status_code}, \ncontent: {response.text}")
     for item in data:
-        avatar_id = get_genshin_avatar_id(redis_client, item["title"], "chs")
+        avatar_id = await get_genshin_avatar_id(redis_client, item["title"], "chs")
         if avatar_id:
             avatar_strategy.append(
                 AvatarStrategy(
@@ -105,7 +105,7 @@ async def refresh_avatar_strategy(request: Request, channel: str) -> StandardRes
     :return: StandardResponse with DB operation result and full cached strategy dict
     """
     db = request.app.state.mysql
-    redis_client = redis.Redis.from_pool(request.app.state.redis_pool)
+    redis_client = redis.Redis.from_pool(request.app.state.redis)
     if channel == "miyoushe":
         result = {"mys": refresh_miyoushe_avatar_strategy(redis_client, db)}
     elif channel == "hoyolab":
@@ -148,7 +148,7 @@ def get_avatar_strategy_item(request: Request, item_id: int) -> StandardResponse
     """
     MIYOUSHE_STRATEGY_URL = "https://bbs.mihoyo.com/ys/strategy/channel/map/39/{mys_strategy_id}?bbs_presentation_style=no_header"
     HOYOLAB_STRATEGY_URL = "https://www.hoyolab.com/guidelist?game_id=2&guide_id={hoyolab_strategy_id}"
-    redis_client = redis.Redis.from_pool(request.app.state.redis_pool)
+    redis_client = redis.Redis.from_pool(request.app.state.redis)
     db = request.app.state.mysql
 
     if redis_client:

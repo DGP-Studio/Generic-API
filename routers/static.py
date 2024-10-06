@@ -201,7 +201,7 @@ async def list_static_files_size(redis_client) -> dict:
 @global_router.get("/size", response_model=StandardResponse)
 @fujian_router.get("/size", response_model=StandardResponse)
 async def get_static_files_size(request: Request) -> StandardResponse:
-    redis_client = redis.Redis.from_pool(request.app.state.redis_pool)
+    redis_client = redis.Redis.from_pool(request.app.state.redis)
     static_files_size = await redis_client.get("static_files_size")
     if static_files_size:
         static_files_size = json.loads(static_files_size)
@@ -220,7 +220,7 @@ async def get_static_files_size(request: Request) -> StandardResponse:
 @global_router.get("/size/reset", response_model=StandardResponse, dependencies=[Depends(verify_api_token)])
 @fujian_router.get("/size/reset", response_model=StandardResponse, dependencies=[Depends(verify_api_token)])
 async def reset_static_files_size(request: Request) -> StandardResponse:
-    redis_client = redis.Redis.from_pool(request.app.state.redis_pool)
+    redis_client = redis.Redis.from_pool(request.app.state.redis)
     new_data = await list_static_files_size(redis_client)
     response = StandardResponse(
         retcode=0,
