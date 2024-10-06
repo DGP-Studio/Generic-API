@@ -165,7 +165,7 @@ async def random_pick_wallpaper(request: Request, force_refresh: bool = False) -
     random_index = random.randint(0, len(wallpaper_pool) - 1)
     today_wallpaper_model = wallpaper_pool[random_index]
     res = crud.set_last_display_date_with_index(db, today_wallpaper_model.id)
-    today_wallpaper = Wallpaper(**today_wallpaper_model.dict())
+    today_wallpaper = Wallpaper(**today_wallpaper_model.to_dict())
     await redis_client.set("hutao_today_wallpaper", today_wallpaper.model_dump_json(), ex=60 * 60 * 24)
     logger.info(f"Set last display date with index {today_wallpaper_model.id}: {res}")
     return today_wallpaper

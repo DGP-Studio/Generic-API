@@ -14,11 +14,11 @@ class Wallpaper(Base):
     uploader = Column(String, index=True)
     disabled = Column(Integer, default=False)
 
-    def __dict__(self):
+    def to_dict(self):
         return {field.name: getattr(self, field.name) for field in self.__table__.c}
 
     def __repr__(self):
-        return f"models.Wallpaper({self.__dict__()})"
+        return f"models.Wallpaper(id={self.id}, url={self.url}, last_display_date={self.last_display_date})"
 
 
 class AvatarStrategy(Base):
