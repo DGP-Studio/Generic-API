@@ -211,7 +211,8 @@ async def generic_get_snap_hutao_latest_version_china_endpoint(request: Request)
     :return: Standard response with latest version metadata in China endpoint
     """
     redis_client = redis.Redis.from_pool(request.app.state.redis)
-    snap_hutao_latest_version = json.loads(await redis_client.get("snap-hutao:patch"))
+    snap_hutao_latest_version = await redis_client.get("snap-hutao:patch")
+    snap_hutao_latest_version = json.loads(snap_hutao_latest_version)
 
     # For compatibility purposes
     return_data = snap_hutao_latest_version["cn"]
@@ -236,7 +237,8 @@ async def get_snap_hutao_latest_download_direct_china_endpoint(request: Request)
     :return: 302 Redirect to the first download link
     """
     redis_client = redis.Redis.from_pool(request.app.state.redis)
-    snap_hutao_latest_version = json.loads(redis_client.get("snap-hutao:patch"))
+    snap_hutao_latest_version = await redis_client.get("snap-hutao:patch")
+    snap_hutao_latest_version = json.loads(snap_hutao_latest_version)
     checksum_value = snap_hutao_latest_version["cn"]["validation"]
     headers = {
         "X-Checksum-Sha256": checksum_value
@@ -252,7 +254,8 @@ async def generic_get_snap_hutao_latest_version_global_endpoint(request: Request
     :return: Standard response with latest version metadata in Global endpoint
     """
     redis_client = redis.Redis.from_pool(request.app.state.redis)
-    snap_hutao_latest_version = json.loads(await redis_client.get("snap-hutao:patch"))
+    snap_hutao_latest_version = await redis_client.get("snap-hutao:patch")
+    snap_hutao_latest_version = json.loads(snap_hutao_latest_version)
 
     # For compatibility purposes
     return_data = snap_hutao_latest_version["global"]
@@ -276,7 +279,8 @@ async def get_snap_hutao_latest_download_direct_china_endpoint(request: Request)
     :return: 302 Redirect to the first download link
     """
     redis_client = redis.Redis.from_pool(request.app.state.redis)
-    snap_hutao_latest_version = json.loads(await redis_client.get("snap-hutao:patch"))
+    snap_hutao_latest_version = await redis_client.get("snap-hutao:patch")
+    snap_hutao_latest_version = json.loads(snap_hutao_latest_version)
     checksum_value = snap_hutao_latest_version["global"]["validation"]
     headers = {
         "X-Checksum-Sha256": checksum_value
@@ -294,7 +298,8 @@ async def generic_get_snap_hutao_latest_version_china_endpoint(request: Request)
     :return: Standard response with latest version metadata in China endpoint
     """
     redis_client = redis.Redis.from_pool(request.app.state.redis)
-    snap_hutao_deployment_latest_version = json.loads(await redis_client.get("snap-hutao-deployment:patch"))
+    snap_hutao_deployment_latest_version = await redis_client.get("snap-hutao-deployment:patch")
+    snap_hutao_deployment_latest_version = json.loads(snap_hutao_deployment_latest_version)
 
     # For compatibility purposes
     return_data = snap_hutao_deployment_latest_version["cn"]
@@ -319,7 +324,8 @@ async def get_snap_hutao_latest_download_direct_china_endpoint(request: Request)
     :return: 302 Redirect to the first download link
     """
     redis_client = redis.Redis.from_pool(request.app.state.redis)
-    snap_hutao_deployment_latest_version = json.loads(await redis_client.get("snap-hutao-deployment:patch"))
+    snap_hutao_deployment_latest_version = await redis_client.get("snap-hutao-deployment:patch")
+    snap_hutao_deployment_latest_version = json.loads(snap_hutao_deployment_latest_version)
     return RedirectResponse(snap_hutao_deployment_latest_version["cn"]["mirrors"][-1]["url"], status_code=302)
 
 
@@ -331,7 +337,8 @@ async def generic_get_snap_hutao_latest_version_global_endpoint(request: Request
     :return: Standard response with latest version metadata in Global endpoint
     """
     redis_client = redis.Redis.from_pool(request.app.state.redis)
-    snap_hutao_deployment_latest_version = json.loads(await redis_client.get("snap-hutao-deployment:patch"))
+    snap_hutao_deployment_latest_version = await redis_client.get("snap-hutao-deployment:patch")
+    snap_hutao_deployment_latest_version = json.loads(snap_hutao_deployment_latest_version)
 
     # For compatibility purposes
     return_data = snap_hutao_deployment_latest_version["global"]
@@ -352,7 +359,8 @@ async def get_snap_hutao_latest_download_direct_china_endpoint(request: Request)
     :return: 302 Redirect to the first download link
     """
     redis_client = redis.Redis.from_pool(request.app.state.redis)
-    snap_hutao_deployment_latest_version = json.loads(await redis_client.get("snap-hutao-deployment:patch"))
+    snap_hutao_deployment_latest_version = await redis_client.get("snap-hutao-deployment:patch")
+    snap_hutao_deployment_latest_version = json.loads(snap_hutao_deployment_latest_version)
     return RedirectResponse(snap_hutao_deployment_latest_version["global"]["mirrors"][-1]["url"], status_code=302)
 
 
