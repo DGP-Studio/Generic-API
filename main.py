@@ -77,11 +77,16 @@ class TraceIDMiddleware(BaseHTTPMiddleware):
         trace_id = str(uuid.uuid4())
         try:
             response = await call_next(request)
-        except Exception:
+        except Exception as e:
+            if DEBUG:
+                error_body = e
+            else:
+                error_body = {"detail": "Internal Server Error"}
             response = JSONResponse(
-                {"detail": "Internal Server Error"},
+                error_body,
                 status_code=500
             )
+        response.headers["X-Powered-By"] = "Hutao Generic API"
         response.headers["X-Generic-ID"] = trace_id
         return response
 
