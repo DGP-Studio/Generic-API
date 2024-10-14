@@ -137,7 +137,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-
 if IMAGE_NAME != "" and "dev" not in IMAGE_NAME:
     app.add_middleware(
         ApitallyMiddleware,
@@ -149,12 +148,20 @@ else:
     logger.info("Apitally is disabled as the image is not a production image.")
 
 
-
 @app.get("/", response_class=RedirectResponse, status_code=301)
 @china_root_router.get("/", response_class=RedirectResponse, status_code=301)
 @global_root_router.get("/", response_class=RedirectResponse, status_code=301)
+@fujian_root_router.get("/", response_class=RedirectResponse, status_code=301)
 async def root():
     return "https://hut.ao"
+
+
+@app.get("/error")
+@china_root_router.get("/error")
+@global_root_router.get("/error")
+@fujian_root_router.get("/error")
+async def get_sample_error():
+    raise RuntimeError("This is endpoint for debug purpose; you should receive a Runtime error with this message in debug mode, else you will only see a 500 error")
 
 
 if __name__ == "__main__":
