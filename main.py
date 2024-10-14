@@ -9,7 +9,7 @@ from redis import asyncio as redis
 from fastapi import FastAPI, APIRouter, Request
 from fastapi.responses import RedirectResponse
 from fastapi.middleware.cors import CORSMiddleware
-from starlette.responses import JSONResponse
+from starlette.responses import PlainTextResponse
 from apitally.fastapi import ApitallyMiddleware
 from datetime import datetime
 from contextlib import asynccontextmanager
@@ -86,17 +86,10 @@ class TraceIDMiddleware(BaseHTTPMiddleware):
             import traceback
             tb = traceback.format_exc()
             if DEBUG:
-                body = {
-                    "detail": tb
-                }
+                body = tb
             else:
-                body = {
-                    "detail": "Internal Server Error"
-                }
-            response = JSONResponse(
-                body,
-                500
-            )
+                body = "Internal Server Error"
+            response = PlainTextResponse(body, status_code=500)
         response.headers["X-Powered-By"] = "Hutao Generic API"
         response.headers["X-Generic-ID"] = trace_id
         return response
