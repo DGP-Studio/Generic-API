@@ -7,6 +7,7 @@ from redis import asyncio as redis
 from fastapi import FastAPI, APIRouter, Request
 from fastapi.responses import RedirectResponse
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.responses import JSONResponse
 from apitally.fastapi import ApitallyMiddleware
 from datetime import datetime
 from contextlib import asynccontextmanager
@@ -74,9 +75,13 @@ app = FastAPI(redoc_url=None,
 class TraceIDMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
         trace_id = str(uuid.uuid4())
-
-        response = await call_next(request)
-
+        try:
+            response = await call_next(request)
+        except Exception:
+            response = JSONResponse(
+                {"detail": "Internal Server Error"},
+                status_code=500
+            )
         response.headers["X-Generic-ID"] = trace_id
         return response
 
