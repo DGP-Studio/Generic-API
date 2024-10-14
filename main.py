@@ -79,7 +79,7 @@ class TraceIDMiddleware(BaseHTTPMiddleware):
             response = await call_next(request)
         except Exception as e:
             if DEBUG:
-                error_body = e
+                error_body = {"detail": str(e)}
             else:
                 error_body = {"detail": "Internal Server Error"}
             response = JSONResponse(
