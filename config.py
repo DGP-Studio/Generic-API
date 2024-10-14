@@ -15,7 +15,7 @@ github_headers = {
 API_TOKEN = os.environ.get("API_TOKEN")
 
 
-DEBUG = True if "alpha" in IMAGE_NAME.lower() else False
+DEBUG = True if "alpha" in IMAGE_NAME.lower() or "dev" in IMAGE_NAME.lower() else False
 
 
 # FastAPI Config

@@ -1,3 +1,5 @@
+from inspect import trace
+
 from config import env_result
 import uvicorn
 import os
@@ -56,6 +58,8 @@ def get_version():
     else:
         build_number = f"Runtime {datetime.now().strftime('%Y.%m.%d.%H%M%S')}"
         logger.info(f"Server is running with Runtime version: {build_number}")
+    if DEBUG:
+        build_number += " DEBUG"
     return build_number
 
 
@@ -77,14 +81,21 @@ class TraceIDMiddleware(BaseHTTPMiddleware):
         trace_id = str(uuid.uuid4())
         try:
             response = await call_next(request)
-        except Exception as e:
+        except Exception:
+            # re-throw error for traceback
+            import traceback
+            tb = traceback.format_exc()
             if DEBUG:
-                error_body = {"detail": str(e)}
+                body = {
+                    "detail": tb
+                }
             else:
-                error_body = {"detail": "Internal Server Error"}
+                body = {
+                    "detail": "Internal Server Error"
+                }
             response = JSONResponse(
-                error_body,
-                status_code=500
+                body,
+                500
             )
         response.headers["X-Powered-By"] = "Hutao Generic API"
         response.headers["X-Generic-ID"] = trace_id
