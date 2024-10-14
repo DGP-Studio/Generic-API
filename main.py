@@ -12,7 +12,7 @@ from contextlib import asynccontextmanager
 from routers import enka_network, metadata, patch_next, static, net, wallpaper, strategy, crowdin, system_email, \
     client_feature
 from base_logger import logger
-from config import (MAIN_SERVER_DESCRIPTION, TOS_URL, CONTACT_INFO, LICENSE_INFO, VALID_PROJECT_KEYS, IMAGE_NAME)
+from config import (MAIN_SERVER_DESCRIPTION, TOS_URL, CONTACT_INFO, LICENSE_INFO, VALID_PROJECT_KEYS, IMAGE_NAME, DEBUG)
 from mysql_app.database import SessionLocal
 
 
@@ -65,7 +65,8 @@ app = FastAPI(redoc_url=None,
               contact=CONTACT_INFO,
               license_info=LICENSE_INFO,
               openapi_url="/openapi.json",
-              lifespan=lifespan)
+              lifespan=lifespan,
+              debug=DEBUG)
 
 china_root_router = APIRouter(tags=["China Router"], prefix="/cn")
 global_root_router = APIRouter(tags=["Global Router"], prefix="/global")

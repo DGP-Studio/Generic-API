@@ -15,6 +15,9 @@ github_headers = {
 API_TOKEN = os.environ.get("API_TOKEN")
 
 
+DEBUG = True if "alpha" in IMAGE_NAME.lower() else False
+
+
 # FastAPI Config
 TOS_URL = "https://hut.ao/statements/tos.html"
 CONTACT_INFO = {
