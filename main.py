@@ -1,9 +1,10 @@
 from config import env_result
 import uvicorn
 import os
+import uuid
 import json
 from redis import asyncio as redis
-from fastapi import FastAPI, APIRouter
+from fastapi import FastAPI, APIRouter, Request
 from fastapi.responses import RedirectResponse
 from fastapi.middleware.cors import CORSMiddleware
 from apitally.fastapi import ApitallyMiddleware
@@ -11,6 +12,7 @@ from datetime import datetime
 from contextlib import asynccontextmanager
 from routers import enka_network, metadata, patch_next, static, net, wallpaper, strategy, crowdin, system_email, \
     client_feature
+from starlette.middleware.base import BaseHTTPMiddleware
 from base_logger import logger
 from config import (MAIN_SERVER_DESCRIPTION, TOS_URL, CONTACT_INFO, LICENSE_INFO, VALID_PROJECT_KEYS, IMAGE_NAME, DEBUG)
 from mysql_app.database import SessionLocal
@@ -67,6 +69,19 @@ app = FastAPI(redoc_url=None,
               openapi_url="/openapi.json",
               lifespan=lifespan,
               debug=DEBUG)
+
+
+class TraceIDMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next):
+        trace_id = str(uuid.uuid4())
+
+        response = await call_next(request)
+
+        response.headers["X-Generic-ID"] = trace_id
+        return response
+
+
+app.add_middleware(TraceIDMiddleware)
 
 china_root_router = APIRouter(tags=["China Router"], prefix="/cn")
 global_root_router = APIRouter(tags=["Global Router"], prefix="/global")
@@ -161,7 +176,8 @@ async def root():
 @global_root_router.get("/error")
 @fujian_root_router.get("/error")
 async def get_sample_error():
-    raise RuntimeError("This is endpoint for debug purpose; you should receive a Runtime error with this message in debug mode, else you will only see a 500 error")
+    raise RuntimeError(
+        "This is endpoint for debug purpose; you should receive a Runtime error with this message in debug mode, else you will only see a 500 error")
 
 
 if __name__ == "__main__":
