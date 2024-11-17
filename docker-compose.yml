@@ -6,23 +6,24 @@ services:
       context: .
       dockerfile: Dockerfile
       target: runtime
-    image: snap-hutao-generic-api:1.0
-    container_name: Snap-Hutao-Generic-API
+    image: ${IMAGE_NAME}-server:latest
+    container_name: ${IMAGE_NAME}-server
     ports:
-      - "3975:8080"
+      - "${EXTERNAL_PORT}:8080"
     volumes:
       - ./cache:/app/cache
       - ./.env:/app/.env
     restart: unless-stopped
     depends_on:
-      - tunnel
       - scheduled-tasks
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
 
   redis:
-    container_name: Snap-Hutao-Generic-API-Redis
+    container_name: ${IMAGE_NAME}-redis
     image: redis:latest
     volumes:
-      - ./redis:/data
+      - /data/docker-service/redis_cache/${IMAGE_NAME}:/data
     restart: unless-stopped
 
   scheduled-tasks:
@@ -31,18 +32,20 @@ services:
       dockerfile: Dockerfile-scheduled-tasks
       target: runtime
     image: scheduled_tasks
-    container_name: Snap-Hutao-Generic-API-Scheduled-Tasks
+    container_name: ${IMAGE_NAME}-scheduled-tasks
     restart: unless-stopped
     volumes:
       - ./cache:/app/cache
       - ./.env:/app/.env
     depends_on:
       - redis
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
 
   tunnel:
-    container_name: Snap-Hutao-Generic-API-Tunnel
+    container_name: ${IMAGE_NAME}-tunnel
     image: cloudflare/cloudflared:latest
     restart: unless-stopped
     command: tunnel --no-autoupdate run
     environment:
-      - TUNNEL_TOKEN=snap-hutao-generic-api-tunnel-token
+      - TUNNEL_TOKEN=${TUNNEL_TOKEN}

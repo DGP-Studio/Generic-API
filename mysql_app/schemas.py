@@ -57,6 +57,7 @@ class DailyEmailSentStats(BaseModel):
     sent: int
     failed: int
 
+
 class PatchMetadata(BaseModel):
     version: str
     release_date: datetime.date
