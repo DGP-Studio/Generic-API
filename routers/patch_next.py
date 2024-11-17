@@ -191,6 +191,7 @@ async def update_snap_hutao_deployment_version(redis_client: aioredis.client.Red
     cn_patch_meta = github_patch_meta.model_copy(deep=True)
 
     current_cached_version = await redis_client.get("snap-hutao-deployment:version")
+    current_cached_version = current_cached_version.decode("utf-8")
     if current_cached_version != cn_patch_meta.version:
         logger.info(
             f"Found unmatched version, clearing mirrors. Setting Snap Hutao Deployment latest version to Redis: {await redis_client.set('snap-hutao-deployment:version', cn_patch_meta.version)}")
