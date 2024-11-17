@@ -1,3 +1,5 @@
+from inspect import trace
+
 from config import env_result
 import uvicorn
 import os
