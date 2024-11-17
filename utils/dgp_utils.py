@@ -4,6 +4,7 @@ import os
 import httpx
 from fastapi import HTTPException, status, Header, Request
 from redis import asyncio as aioredis
+import redis
 from typing import Annotated
 from base_logger import logger
 from config import github_headers
@@ -19,7 +20,9 @@ if BYPASS_CLIENT_VERIFICATION:
     logger.warning("Client verification is bypassed in this server.")
 
 
-def update_recent_versions(redis_conn) -> list[str]:
+def update_recent_versions() -> list[str]:
+    REDIS_HOST = os.getenv("REDIS_HOST", "redis")
+    redis_conn = redis.Redis(host=REDIS_HOST, port=6379, db=0)
     new_user_agents = []
 
     # Stable version of software in white list
@@ -62,8 +65,8 @@ def update_recent_versions(redis_conn) -> list[str]:
         next_version = all_opened_pr_title[0].split(" ")[2] + ".0"
         new_user_agents.append(f"Snap Hutao/{next_version}")
 
-    redis_conn.set("allowed_user_agents", json.dumps(new_user_agents), ex=5 * 60)
-    logging.info(f"Updated allowed user agents: {new_user_agents}")
+    redis_resp = redis_conn.set("allowed_user_agents", json.dumps(new_user_agents), ex=5 * 60)
+    logging.info(f"Updated allowed user agents: {new_user_agents}. Result: {redis_resp}")
     return new_user_agents
 
 
@@ -82,7 +85,8 @@ async def validate_client_is_updated(request: Request, user_agent: Annotated[str
         allowed_user_agents = json.loads(allowed_user_agents)
     else:
         # redis data is expired
-        allowed_user_agents = update_recent_versions(redis_client)
+        logger.info("Updating allowed user agents from GitHub")
+        allowed_user_agents = update_recent_versions()
 
     if user_agent not in allowed_user_agents:
         logger.info(f"Client is outdated: {user_agent}, not in the allowed list: {allowed_user_agents}")

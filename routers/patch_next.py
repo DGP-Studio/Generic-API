@@ -1,6 +1,6 @@
 import httpx
 import os
-from redis import asyncio as redis
+from redis import asyncio as aioredis
 import json
 from fastapi import APIRouter, Response, status, Request, Depends
 from fastapi.responses import RedirectResponse
@@ -70,7 +70,7 @@ def fetch_snap_hutao_github_latest_version() -> PatchMeta:
     return github_path_meta
 
 
-async def update_snap_hutao_latest_version(redis_client: redis.client.Redis) -> dict:
+async def update_snap_hutao_latest_version(redis_client: aioredis.client.Redis) -> dict:
     """
     Update Snap Hutao latest version from GitHub and Jihulab
     :return: dict of latest version metadata
@@ -147,7 +147,7 @@ async def update_snap_hutao_latest_version(redis_client: redis.client.Redis) -> 
     return return_data
 
 
-async def update_snap_hutao_deployment_version(redis_client: redis.client.Redis) -> dict:
+async def update_snap_hutao_deployment_version(redis_client: aioredis.client.Redis) -> dict:
     """
     Update Snap Hutao Deployment latest version from GitHub and Jihulab
     :return: dict of Snap Hutao Deployment latest version metadata
@@ -187,7 +187,8 @@ async def update_snap_hutao_deployment_version(redis_client: redis.client.Redis)
         logger.info(
             f"Reinitializing mirrors for Snap Hutao Deployment: {await redis_client.set(f'snap-hutao-deployment:mirrors:{jihulab_patch_meta.version}', json.dumps([]))}")
     else:
-        current_mirrors = json.loads(await redis_client.get(f"snap-hutao-deployment:mirrors:{jihulab_patch_meta.version}"))
+        current_mirrors = json.loads(
+            await redis_client.get(f"snap-hutao-deployment:mirrors:{jihulab_patch_meta.version}"))
         for m in current_mirrors:
             this_mirror = MirrorMeta(**m)
             jihulab_patch_meta.mirrors.append(this_mirror)
@@ -210,7 +211,7 @@ async def generic_get_snap_hutao_latest_version_china_endpoint(request: Request)
 
     :return: Standard response with latest version metadata in China endpoint
     """
-    redis_client = redis.Redis.from_pool(request.app.state.redis)
+    redis_client = aioredis.Redis.from_pool(request.app.state.redis)
     snap_hutao_latest_version = await redis_client.get("snap-hutao:patch")
     snap_hutao_latest_version = json.loads(snap_hutao_latest_version)
 
@@ -236,7 +237,7 @@ async def get_snap_hutao_latest_download_direct_china_endpoint(request: Request)
 
     :return: 302 Redirect to the first download link
     """
-    redis_client = redis.Redis.from_pool(request.app.state.redis)
+    redis_client = aioredis.Redis.from_pool(request.app.state.redis)
     snap_hutao_latest_version = await redis_client.get("snap-hutao:patch")
     snap_hutao_latest_version = json.loads(snap_hutao_latest_version)
     checksum_value = snap_hutao_latest_version["cn"]["validation"]
@@ -253,7 +254,7 @@ async def generic_get_snap_hutao_latest_version_global_endpoint(request: Request
 
     :return: Standard response with latest version metadata in Global endpoint
     """
-    redis_client = redis.Redis.from_pool(request.app.state.redis)
+    redis_client = aioredis.Redis.from_pool(request.app.state.redis)
     snap_hutao_latest_version = await redis_client.get("snap-hutao:patch")
     snap_hutao_latest_version = json.loads(snap_hutao_latest_version)
 
@@ -278,7 +279,7 @@ async def get_snap_hutao_latest_download_direct_china_endpoint(request: Request)
 
     :return: 302 Redirect to the first download link
     """
-    redis_client = redis.Redis.from_pool(request.app.state.redis)
+    redis_client = aioredis.Redis.from_pool(request.app.state.redis)
     snap_hutao_latest_version = await redis_client.get("snap-hutao:patch")
     snap_hutao_latest_version = json.loads(snap_hutao_latest_version)
     checksum_value = snap_hutao_latest_version["global"]["validation"]
@@ -297,7 +298,7 @@ async def generic_get_snap_hutao_latest_version_china_endpoint(request: Request)
 
     :return: Standard response with latest version metadata in China endpoint
     """
-    redis_client = redis.Redis.from_pool(request.app.state.redis)
+    redis_client = aioredis.Redis.from_pool(request.app.state.redis)
     snap_hutao_deployment_latest_version = await redis_client.get("snap-hutao-deployment:patch")
     snap_hutao_deployment_latest_version = json.loads(snap_hutao_deployment_latest_version)
 
@@ -323,7 +324,7 @@ async def get_snap_hutao_latest_download_direct_china_endpoint(request: Request)
 
     :return: 302 Redirect to the first download link
     """
-    redis_client = redis.Redis.from_pool(request.app.state.redis)
+    redis_client = aioredis.Redis.from_pool(request.app.state.redis)
     snap_hutao_deployment_latest_version = await redis_client.get("snap-hutao-deployment:patch")
     snap_hutao_deployment_latest_version = json.loads(snap_hutao_deployment_latest_version)
     return RedirectResponse(snap_hutao_deployment_latest_version["cn"]["mirrors"][-1]["url"], status_code=302)
@@ -336,7 +337,7 @@ async def generic_get_snap_hutao_latest_version_global_endpoint(request: Request
 
     :return: Standard response with latest version metadata in Global endpoint
     """
-    redis_client = redis.Redis.from_pool(request.app.state.redis)
+    redis_client = aioredis.Redis.from_pool(request.app.state.redis)
     snap_hutao_deployment_latest_version = await redis_client.get("snap-hutao-deployment:patch")
     snap_hutao_deployment_latest_version = json.loads(snap_hutao_deployment_latest_version)
 
@@ -358,7 +359,7 @@ async def get_snap_hutao_latest_download_direct_china_endpoint(request: Request)
 
     :return: 302 Redirect to the first download link
     """
-    redis_client = redis.Redis.from_pool(request.app.state.redis)
+    redis_client = aioredis.Redis.from_pool(request.app.state.redis)
     snap_hutao_deployment_latest_version = await redis_client.get("snap-hutao-deployment:patch")
     snap_hutao_deployment_latest_version = json.loads(snap_hutao_deployment_latest_version)
     return RedirectResponse(snap_hutao_deployment_latest_version["global"]["mirrors"][-1]["url"], status_code=302)
@@ -379,11 +380,11 @@ async def generic_patch_latest_version(request: Request, response: Response, pro
 
     :return: Latest version metadata of the project updated
     """
-    redis_client = redis.Redis.from_pool(request.app.state.redis)
+    redis_client = aioredis.Redis.from_pool(request.app.state.redis)
     new_version = None
     if project_key == "snap-hutao":
         new_version = update_snap_hutao_latest_version(redis_client)
-        update_recent_versions(redis_client)
+        update_recent_versions()
     elif project_key == "snap-hutao-deployment":
         new_version = update_snap_hutao_deployment_version(redis_client)
     response.status_code = status.HTTP_201_CREATED
@@ -411,7 +412,7 @@ async def add_mirror_url(response: Response, request: Request) -> StandardRespon
 
     :return: Json response with message
     """
-    redis_client = redis.Redis.from_pool(request.app.state.redis)
+    redis_client = aioredis.Redis.from_pool(request.app.state.redis)
     data = await request.json()
     PROJECT_KEY = data.get("key", "").lower()
     MIRROR_URL = data.get("url", None)
@@ -460,7 +461,7 @@ async def add_mirror_url(response: Response, request: Request) -> StandardRespon
 @global_router.delete("/mirror", tags=["admin"], include_in_schema=True,
                       dependencies=[Depends(verify_api_token)], response_model=StandardResponse)
 @fujian_router.delete("/mirror", tags=["admin"], include_in_schema=True,
-                        dependencies=[Depends(verify_api_token)], response_model=StandardResponse)
+                      dependencies=[Depends(verify_api_token)], response_model=StandardResponse)
 async def delete_mirror_url(response: Response, request: Request) -> StandardResponse:
     """
     Delete overwritten China URL for a project, this url will be placed at first priority when fetching latest version.
@@ -472,7 +473,7 @@ async def delete_mirror_url(response: Response, request: Request) -> StandardRes
 
     :return: Json response with message
     """
-    redis_client = redis.Redis.from_pool(request.app.state.redis)
+    redis_client = aioredis.Redis.from_pool(request.app.state.redis)
     data = await request.json()
     PROJECT_KEY = data.get("key", "").lower()
     MIRROR_NAME = data.get("mirror_name", None)

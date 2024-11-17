@@ -5,7 +5,7 @@ import uvicorn
 import os
 import uuid
 import json
-from redis import asyncio as redis
+from redis import asyncio as aioredis
 from fastapi import FastAPI, APIRouter, Request
 from fastapi.responses import RedirectResponse
 from fastapi.middleware.cors import CORSMiddleware
@@ -26,9 +26,9 @@ async def lifespan(app: FastAPI):
     logger.info("enter lifespan")
     # Redis connection
     REDIS_HOST = os.getenv("REDIS_HOST", "redis")
-    redis_pool = redis.ConnectionPool.from_url(f"redis://{REDIS_HOST}", db=0)
+    redis_pool = aioredis.ConnectionPool.from_url(f"redis://{REDIS_HOST}", db=0)
     app.state.redis = redis_pool
-    redis_client = redis.Redis.from_pool(connection_pool=redis_pool)
+    redis_client = aioredis.Redis.from_pool(connection_pool=redis_pool)
     logger.info("Redis connection established")
     # MySQL connection
     app.state.mysql = SessionLocal()
