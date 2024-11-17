@@ -55,7 +55,7 @@ async def china_metadata_request_handler(file_path: str) -> RedirectResponse:
 
     :return: HTTP 302 redirect to the file based on censorship status of the file
     """
-    cn_metadata_url = f"https://static-next.snapgenshin.com/d/meta/{file_path}"
+    cn_metadata_url = f"https://static-next.snapgenshin.com/d/meta/metadata/{file_path}"
 
     return RedirectResponse(cn_metadata_url, status_code=302)
 

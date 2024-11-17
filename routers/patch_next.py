@@ -383,7 +383,7 @@ async def generic_patch_latest_version(request: Request, response: Response, pro
     new_version = None
     if project_key == "snap-hutao":
         new_version = update_snap_hutao_latest_version(redis_client)
-        update_recent_versions(redis_client)
+        update_recent_versions()
     elif project_key == "snap-hutao-deployment":
         new_version = update_snap_hutao_deployment_version(redis_client)
     response.status_code = status.HTTP_201_CREATED
