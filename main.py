@@ -35,7 +35,9 @@ async def lifespan(app: FastAPI):
 
     # Patch module lifespan
     try:
-        logger.info(f"Got mirrors from Redis: {await redis_client.get("snap-hutao:version")}")
+        redis_cached_version = await redis_client.get("snap-hutao:version")
+        redis_cached_version = redis_cached_version.decode("utf-8")
+        logger.info(f"Got mirrors from Redis: {redis_cached_version}")
     except (TypeError, AttributeError):
         for key in VALID_PROJECT_KEYS:
             r = await redis_client.set(f"{key}:version", json.dumps({"version": None}))

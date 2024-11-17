@@ -1,5 +1,5 @@
 import os
-from fastapi import APIRouter, Depends, Response
+from fastapi import APIRouter, Depends, Response, Request
 from utils.stats import record_email_requested, add_email_failed_count, add_email_sent_count
 from utils.authentication import verify_api_token
 from pydantic import BaseModel
@@ -11,6 +11,11 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 
 admin_router = APIRouter(tags=["Email System"], prefix="/email")
+API_IMAGE_NAME = os.getenv("IMAGE_NAME", "dev")
+if "dev" in API_IMAGE_NAME.lower():
+    pool_size = 1
+else:
+    pool_size = 5
 
 
 class EmailRequest(BaseModel):
@@ -75,22 +80,22 @@ class SMTPConnectionPool:
             self.release_connection(connection)
 
 
-smtp_pool = SMTPConnectionPool()
+smtp_pool = SMTPConnectionPool(pool_size=pool_size)
 
 executor = ThreadPoolExecutor(max_workers=10)
 
 
 @admin_router.post("/send", dependencies=[Depends(record_email_requested), Depends(verify_api_token)])
-async def send_email(email_request: EmailRequest, response: Response) -> StandardResponse:
+async def send_email(email_request: EmailRequest, response: Response, request: Request) -> StandardResponse:
     try:
         smtp_pool.send_email(email_request.subject, email_request.content, email_request.recipient)
-        add_email_sent_count()
+        add_email_sent_count(request)
         return StandardResponse(data={
             "code": 0,
             "message": "Email sent successfully"
         })
     except Exception as e:
-        add_email_failed_count()
+        add_email_failed_count(request)
         response.status_code = 500
         return StandardResponse(retcode=500, message=f"Failed to send email: {e}",
                                 data={
