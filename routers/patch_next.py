@@ -376,10 +376,10 @@ async def get_snap_hutao_latest_download_direct_china_endpoint(request: Request)
     return RedirectResponse(snap_hutao_deployment_latest_version["global"]["mirrors"][-1]["url"], status_code=302)
 
 
-@china_router.patch("/{project_key}", include_in_schema=True, response_model=StandardResponse)
-@global_router.patch("/{project_key}", include_in_schema=True, response_model=StandardResponse)
-@fujian_router.patch("/{project_key}", include_in_schema=True, response_model=StandardResponse)
-async def generic_patch_latest_version(request: Request, response: Response, project_key: str) -> StandardResponse:
+@china_router.patch("/{project}", include_in_schema=True, response_model=StandardResponse)
+@global_router.patch("/{project}", include_in_schema=True, response_model=StandardResponse)
+@fujian_router.patch("/{project}", include_in_schema=True, response_model=StandardResponse)
+async def generic_patch_latest_version(request: Request, response: Response, project: str) -> StandardResponse:
     """
     Update latest version of a project
 
@@ -387,17 +387,19 @@ async def generic_patch_latest_version(request: Request, response: Response, pro
 
     :param response: Response model from FastAPI
 
-    :param project_key: Key name of the project to update
+    :param project: Key name of the project to update
 
     :return: Latest version metadata of the project updated
     """
     redis_client = aioredis.Redis.from_pool(request.app.state.redis)
     new_version = None
-    if project_key == "snap-hutao":
-        new_version = update_snap_hutao_latest_version(redis_client)
+    if project == "snap-hutao":
+        new_version = await update_snap_hutao_latest_version(redis_client)
         update_recent_versions()
-    elif project_key == "snap-hutao-deployment":
-        new_version = update_snap_hutao_deployment_version(redis_client)
+    elif project == "snap-hutao-deployment":
+        new_version = await update_snap_hutao_deployment_version(redis_client)
+    else:
+        response.status_code = status.HTTP_404_NOT_FOUND
     response.status_code = status.HTTP_201_CREATED
     return StandardResponse(data={"version": new_version})
 
