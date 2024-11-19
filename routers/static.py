@@ -116,10 +116,8 @@ async def global_get_zipped_file(file_path: str, request: Request) -> RedirectRe
     match quality:
         case "high":
             file_path = file_path.replace(".zip", "-tiny.zip")
-            logging.debug(f"Redirecting to https://static-tiny-zip.snapgenshin.cn/{file_path}")
-            return RedirectResponse(f"https://static-tiny-zip.snapgenshin.cn/{file_path}", status_code=302)
+            return RedirectResponse(f"https://static-tiny.snapgenshin.cn/zip/{file_path}", status_code=302)
         case "raw":
-            logging.debug(f"Redirecting to https://static-zip.snapgenshin.cn/{file_path}")
             return RedirectResponse(f"https://static-zip.snapgenshin.cn/{file_path}", status_code=302)
         case _:
             raise HTTPException(status_code=404, detail="Invalid quality")
@@ -139,7 +137,7 @@ async def global_get_raw_file(file_path: str, request: Request) -> RedirectRespo
 
     match quality:
         case "high":
-            return RedirectResponse(f"https://static-tiny.snapgenshin.cn/{file_path}", status_code=302)
+            return RedirectResponse(f"https://static-tiny.snapgenshin.cn/raw/{file_path}", status_code=302)
         case "raw":
             return RedirectResponse(f"https://static.snapgenshin.cn/{file_path}", status_code=302)
         case _:
