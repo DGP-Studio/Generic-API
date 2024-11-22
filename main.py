@@ -62,12 +62,23 @@ def get_version():
         build_number += " DEBUG"
     return build_number
 
+def get_commit_hash_str():
+    commit_desc = ""
+    if os.path.exists("current_commit.txt"):
+        with open("current_commit.txt", 'r') as f:
+            commit_hash = f.read().strip()
+        logger.info(f"Server is running with Commit hash: {commit_hash}")
+        commit_desc = f"""
+        
+        This build is based on [{commit_hash}](https://github.com/DGP-Studio/Generic-API/commit/{commit_hash})
+        """
+    return commit_desc
 
 app = FastAPI(redoc_url=None,
               title="Hutao Generic API",
               summary="Generic API to support various services for Snap Hutao project.",
               version=get_version(),
-              description=MAIN_SERVER_DESCRIPTION,
+              description=MAIN_SERVER_DESCRIPTION + get_commit_hash_str(),
               terms_of_service=TOS_URL,
               contact=CONTACT_INFO,
               license_info=LICENSE_INFO,

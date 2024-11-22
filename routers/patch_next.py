@@ -136,7 +136,11 @@ async def update_snap_hutao_latest_version(redis_client: aioredis.client.Redis) 
                 f"Set snap-hutao:mirrors:{jihulab_patch_meta.version} to Redis: {await redis_client.set(f'snap-hutao:mirrors:{jihulab_patch_meta.version}', json.dumps([]))}")
             """
         else:
-            current_mirrors = json.loads(await redis_client.get(f"snap-hutao:mirrors:{cn_patch_meta.version}"))
+            try:
+                current_mirrors = await redis_client.get(f"snap-hutao:mirrors:{cn_patch_meta.version}")
+                current_mirrors = json.loads(current_mirrors)
+            except TypeError:
+                current_mirrors = []
             for m in current_mirrors:
                 this_mirror = MirrorMeta(**m)
                 cn_patch_meta.mirrors.append(this_mirror)
