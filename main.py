@@ -60,6 +60,10 @@ def get_version():
         logger.info(f"Server is running with Runtime version: {build_number}")
     if DEBUG:
         build_number += " DEBUG"
+    if os.path.exists("current_commit.txt"):
+        with open("current_commit.txt", 'r') as f:
+            commit_hash = f.read().strip()
+            build_number += f" ({commit_hash})"
     return build_number
 
 def get_commit_hash_str():
