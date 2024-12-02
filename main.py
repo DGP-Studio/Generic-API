@@ -41,9 +41,11 @@ async def lifespan(app: FastAPI):
             r = await redis_client.set(f"{key}:version", json.dumps({"version": None}))
             logger.info(f"Set [{key}:mirrors] to Redis: {r}")
     # Initial patch metadata
-    from routers.patch_next import update_snap_hutao_latest_version, update_snap_hutao_deployment_version
+    from routers.patch_next import (update_snap_hutao_latest_version, update_snap_hutao_deployment_version,
+                                    fetch_snap_hutao_alpha_latest_version)
     await update_snap_hutao_latest_version(redis_client)
     await update_snap_hutao_deployment_version(redis_client)
+    await fetch_snap_hutao_alpha_latest_version(redis_client)
 
     logger.info("ending lifespan startup")
     yield

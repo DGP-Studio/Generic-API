@@ -6,7 +6,7 @@ from typing import Literal
 class MirrorMeta(BaseModel):
     url: str
     mirror_name: str
-    mirror_type: Literal["direct", "archive"] = "direct"
+    mirror_type: Literal["direct", "archive", "browser"] = "direct"
 
     def __str__(self):
         return f"MirrorMeta(url={self.url}, mirror_name={self.mirror_name}, mirror_type={self.mirror_type})"
