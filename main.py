@@ -66,6 +66,7 @@ def get_version():
             build_number += f" ({commit_hash})"
     return build_number
 
+
 def get_commit_hash_str():
     commit_desc = ""
     if os.path.exists("current_commit.txt"):
@@ -77,6 +78,7 @@ def get_commit_hash_str():
         This build is based on [{commit_hash}](https://github.com/DGP-Studio/Generic-API/commit/{commit_hash})
         """
     return commit_desc
+
 
 app = FastAPI(redoc_url=None,
               title="Hutao Generic API",

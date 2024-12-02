@@ -19,5 +19,6 @@ FROM ubuntu:22.04 AS runtime
 WORKDIR /app
 COPY --from=builder /code/dist/main .
 COPY --from=builder /code/build_number.txt .
+COPY --from=builder /code/current_commit.txt .
 EXPOSE 8080
 ENTRYPOINT ["./main"]
