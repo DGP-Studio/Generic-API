@@ -76,6 +76,9 @@ def get_commit_hash_str():
             commit_hash = f.read().strip()
         logger.info(f"Server is running with Commit hash: {commit_hash}")
         commit_desc = f"Build hash: [**{commit_hash}**](https://github.com/DGP-Studio/Generic-API/commit/{commit_hash})"
+    if DEBUG:
+        commit_desc += "\n\n**Debug mode is enabled.**"
+        commit_desc += "\n\n![Image](https://github.com/user-attachments/assets/64ce064c-c399-4d2f-ac72-cac4379d8725)"
     return commit_desc
 
 
