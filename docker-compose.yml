@@ -10,6 +10,8 @@ services:
     container_name: ${IMAGE_NAME}-server
     ports:
       - "${EXTERNAL_PORT}:8080"
+    networks:
+      - snaphutao_network
     volumes:
       - ./cache:/app/cache
       - ./.env:/app/.env
