@@ -193,6 +193,19 @@ async def update_snap_hutao_deployment_version(redis_client: aioredis.client.Red
     )
     """
     cn_patch_meta = github_patch_meta.model_copy(deep=True)
+    static_deployment_mirror_list = [
+        MirrorMeta(
+            url="https://static-next.snapgenshin.com/d/lz/Snap.Hutao.Deployment.exe",
+            mirror_name="Lanzou",
+            mirror_type="direct"
+        ),
+        MirrorMeta(
+            url="https://static-next.snapgenshin.com/d/lznew/Snap.Hutao.Deployment.exe",
+            mirror_name="Lanzou Pro",
+            mirror_type="direct"
+        )
+    ]
+    cn_patch_meta.mirrors = static_deployment_mirror_list
 
     current_cached_version = await redis_client.get("snap-hutao-deployment:version")
     current_cached_version = current_cached_version.decode("utf-8")
@@ -200,7 +213,7 @@ async def update_snap_hutao_deployment_version(redis_client: aioredis.client.Red
         logger.info(
             f"Found unmatched version, clearing mirrors. Setting Snap Hutao Deployment latest version to Redis: {await redis_client.set('snap-hutao-deployment:version', cn_patch_meta.version)}")
         logger.info(
-            f"Reinitializing mirrors for Snap Hutao Deployment: {await redis_client.set(f'snap-hutao-deployment:mirrors:{cn_patch_meta.version}', json.dumps([]))}")
+            f"Reinitializing mirrors for Snap Hutao Deployment: {await redis_client.set(f'snap-hutao-deployment:mirrors:{cn_patch_meta.version}', json.dumps(cn_patch_meta.mirrors))}")
     else:
         current_mirrors = json.loads(
             await redis_client.get(f"snap-hutao-deployment:mirrors:{cn_patch_meta.version}"))

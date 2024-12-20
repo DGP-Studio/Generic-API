@@ -153,3 +153,4 @@ cython_debug/
 upstream/
 *.tar.gz
 cache/
+.DS_Store
