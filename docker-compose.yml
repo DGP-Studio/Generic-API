@@ -57,3 +57,7 @@ services:
       - TUNNEL_TOKEN=${TUNNEL_TOKEN}
     networks:
       - snaphutao_network
+
+networks:
+  snaphutao_network:
+    external: true
