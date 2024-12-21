@@ -3,11 +3,11 @@ from sqlalchemy.dialects.mysql import insert
 from sqlalchemy import or_
 from datetime import date, timedelta
 from . import models, schemas
+from typing import cast
 
 
 def get_all_wallpapers(db: Session) -> list[models.Wallpaper]:
-    return db.query(models.Wallpaper).all()
-
+    return cast(list[models.Wallpaper], db.query(models.Wallpaper).all())
 
 def add_wallpaper(db: Session, wallpaper: schemas.Wallpaper) -> models.Wallpaper:
     try:
