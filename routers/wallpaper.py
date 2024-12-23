@@ -17,18 +17,19 @@ class WallpaperURL(BaseModel):
     url: str
 
 
+
 china_router = APIRouter(tags=["wallpaper"], prefix="/wallpaper")
 global_router = APIRouter(tags=["wallpaper"], prefix="/wallpaper")
 fujian_router = APIRouter(tags=["wallpaper"], prefix="/wallpaper")
 
 
-@china_router.get("/all", response_model=list[schemas.Wallpaper], dependencies=[Depends(verify_api_token)],
+@china_router.get("/all", response_model=schemas.StandardResponse, dependencies=[Depends(verify_api_token)],
                   tags=["admin"])
-@global_router.get("/all", response_model=list[schemas.Wallpaper], dependencies=[Depends(verify_api_token)],
+@global_router.get("/all", response_model=schemas.StandardResponse, dependencies=[Depends(verify_api_token)],
                    tags=["admin"])
-@fujian_router.get("/all", response_model=list[schemas.Wallpaper], dependencies=[Depends(verify_api_token)],
+@fujian_router.get("/all", response_model=schemas.StandardResponse, dependencies=[Depends(verify_api_token)],
                    tags=["admin"])
-async def get_all_wallpapers(request: Request) -> list[schemas.Wallpaper]:
+async def get_all_wallpapers(request: Request) -> schemas.StandardResponse:
     """
     Get all wallpapers in database. **This endpoint requires API token verification**
 
@@ -37,7 +38,12 @@ async def get_all_wallpapers(request: Request) -> list[schemas.Wallpaper]:
     :return: A list of wallpapers objects
     """
     db = request.app.state.mysql
-    return crud.get_all_wallpapers(db)
+    wallpapers = crud.get_all_wallpapers(db)
+    wallpaper_schema = [
+        schemas.Wallpaper.model_validate(wall.to_dict())
+        for wall in wallpapers
+    ]
+    return StandardResponse(data=wallpaper_schema, message="Successfully fetched all wallpapers")
 
 
 @china_router.post("/add", response_model=schemas.StandardResponse, dependencies=[Depends(verify_api_token)],

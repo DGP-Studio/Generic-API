@@ -6,6 +6,7 @@ from . import models, schemas
 from typing import cast
 from contextlib import contextmanager
 from sqlalchemy.exc import SQLAlchemyError
+from base_logger import logger
 
 
 @contextmanager
@@ -19,10 +20,9 @@ def get_db_session(db: Session):
         yield db
         db.commit()
     except SQLAlchemyError as e:
+        logger.error(f"Database error: {e}")
         db.rollback()
         raise e
-    finally:
-        db.close()
 
 
 def get_all_wallpapers(db: Session) -> list[models.Wallpaper]:
