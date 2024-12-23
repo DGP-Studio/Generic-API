@@ -4,10 +4,31 @@ from sqlalchemy import or_
 from datetime import date, timedelta
 from . import models, schemas
 from typing import cast
+from contextlib import contextmanager
+from sqlalchemy.exc import SQLAlchemyError
+
+
+@contextmanager
+def get_db_session(db: Session):
+    """
+    Context manager for handling database session lifecycle.
+
+    :param db: SQLAlchemy session object
+    """
+    try:
+        yield db
+        db.commit()
+    except SQLAlchemyError as e:
+        db.rollback()
+        raise e
+    finally:
+        db.close()
 
 
 def get_all_wallpapers(db: Session) -> list[models.Wallpaper]:
-    return cast(list[models.Wallpaper], db.query(models.Wallpaper).all())
+    with get_db_session(db):
+        return cast(list[models.Wallpaper], db.query(models.Wallpaper).all())
+
 
 def add_wallpaper(db: Session, wallpaper: schemas.Wallpaper) -> models.Wallpaper:
     try:

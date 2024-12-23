@@ -17,14 +17,6 @@ class WallpaperURL(BaseModel):
     url: str
 
 
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
-
-
 china_router = APIRouter(tags=["wallpaper"], prefix="/wallpaper")
 global_router = APIRouter(tags=["wallpaper"], prefix="/wallpaper")
 fujian_router = APIRouter(tags=["wallpaper"], prefix="/wallpaper")
