@@ -1,9 +1,7 @@
-import json
 from fastapi import APIRouter, Depends, Request
 from fastapi.responses import RedirectResponse
 from utils.dgp_utils import validate_client_is_updated
-from mysql_app.schemas import StandardResponse
-from redis import asyncio as redis
+
 
 china_router = APIRouter(tags=["Hutao Metadata"], prefix="/metadata")
 global_router = APIRouter(tags=["Hutao Metadata"], prefix="/metadata")

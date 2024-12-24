@@ -13,9 +13,9 @@ from email.mime.multipart import MIMEMultipart
 admin_router = APIRouter(tags=["Email System"], prefix="/email")
 API_IMAGE_NAME = os.getenv("IMAGE_NAME", "dev")
 if "dev" in API_IMAGE_NAME.lower():
-    pool_size = 1
+    thread_size = 1
 else:
-    pool_size = 5
+    thread_size = 5
 
 
 class EmailRequest(BaseModel):
@@ -80,7 +80,7 @@ class SMTPConnectionPool:
             self.release_connection(connection)
 
 
-smtp_pool = SMTPConnectionPool(pool_size=pool_size)
+smtp_pool = SMTPConnectionPool(pool_size=thread_size)
 
 executor = ThreadPoolExecutor(max_workers=10)
 

@@ -8,7 +8,6 @@ from datetime import date
 from redis import asyncio as aioredis
 from utils.authentication import verify_api_token
 from mysql_app import crud, schemas
-from mysql_app.database import SessionLocal
 from mysql_app.schemas import Wallpaper, StandardResponse
 from base_logger import logger
 
@@ -105,7 +104,7 @@ async def disable_wallpaper_with_url(request: Request) -> StandardResponse:
         })
     db_result = crud.disable_wallpaper_with_url(db, url)
     if db_result:
-        return StandardResponse(data=db_result.dict())
+        return StandardResponse(data=db_result.to_dict())
 
 
 @china_router.post("/enable", dependencies=[Depends(verify_api_token)], tags=["admin"], response_model=StandardResponse)
@@ -131,7 +130,7 @@ async def enable_wallpaper_with_url(request: Request) -> StandardResponse:
         })
     db_result = crud.enable_wallpaper_with_url(db, url)
     if db_result:
-        return StandardResponse(data=db_result.dict())
+        return StandardResponse(data=db_result.to_dict())
 
 
 async def random_pick_wallpaper(request: Request, force_refresh: bool = False) -> Wallpaper:

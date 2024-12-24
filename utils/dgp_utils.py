@@ -21,8 +21,8 @@ if BYPASS_CLIENT_VERIFICATION:
 
 
 def update_recent_versions() -> list[str]:
-    REDIS_HOST = os.getenv("REDIS_HOST", "redis")
-    redis_conn = redis.Redis(host=REDIS_HOST, port=6379, db=0)
+    redis_host = os.getenv("REDIS_HOST", "redis")
+    redis_conn = redis.Redis(host=redis_host, port=6379, db=0)
     new_user_agents = []
 
     # Stable version of software in white list

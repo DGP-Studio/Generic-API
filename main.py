@@ -23,8 +23,8 @@ from mysql_app.database import SessionLocal
 async def lifespan(app: FastAPI):
     logger.info("enter lifespan")
     # Redis connection
-    REDIS_HOST = os.getenv("REDIS_HOST", "redis")
-    redis_pool = aioredis.ConnectionPool.from_url(f"redis://{REDIS_HOST}", db=0)
+    redis_host = os.getenv("REDIS_HOST", "redis")
+    redis_pool = aioredis.ConnectionPool.from_url(f"redis://{redis_host}", db=0)
     app.state.redis = redis_pool
     redis_client = aioredis.Redis.from_pool(connection_pool=redis_pool)
     logger.info("Redis connection established")
