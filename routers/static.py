@@ -32,7 +32,6 @@ async def cn_get_zipped_file(file_path: str, request: Request) -> RedirectRespon
 
     :return: 302 Redirect to the zip file
     """
-    # https://jihulab.com/DGP-Studio/Snap.Static.Zip/-/raw/main/{file_path}
     # https://static-next.snapgenshin.com/d/zip/{file_path}
     quality = request.headers.get("x-hutao-quality", "high").lower()
     archive_type = request.headers.get("x-hutao-archive", "minimum").lower()

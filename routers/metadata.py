@@ -10,42 +10,6 @@ global_router = APIRouter(tags=["Hutao Metadata"], prefix="/metadata")
 fujian_router = APIRouter(tags=["Hutao Metadata"], prefix="/metadata")
 
 
-async def get_banned_files(redis_client: redis.client.Redis) -> dict:
-    """
-    Get the list of censored files.
-
-    **Discontinued due to deprecated of JihuLab**
-
-    :return: a list of censored files
-    """
-    metadata_censored_files = await redis_client.get("metadata_censored_files")
-    if metadata_censored_files:
-        return {
-            "source": "redis",
-            "data": json.loads(metadata_censored_files)
-        }
-    else:
-        return {
-            "source": "redis",
-            "data": []
-        }
-
-
-@china_router.get("/ban", response_model=StandardResponse)
-@global_router.get("/ban", response_model=StandardResponse)
-@fujian_router.get("/ban", response_model=StandardResponse)
-async def get_ban_files_endpoint(request: Request) -> StandardResponse:
-    """
-    Get the list of censored files. [FastAPI Endpoint]
-
-    **Discontinued due to deprecated of JihuLab**
-
-    :return: a list of censored files in StandardResponse format
-    """
-    redis_client = redis.Redis.from_pool(request.app.state.redis)
-    return StandardResponse(data={"ban": get_banned_files(redis_client)})
-
-
 @china_router.get("/{file_path:path}", dependencies=[Depends(validate_client_is_updated)])
 async def china_metadata_request_handler(file_path: str) -> RedirectResponse:
     """

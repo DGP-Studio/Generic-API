@@ -72,7 +72,7 @@ def fetch_snap_hutao_github_latest_version() -> PatchMeta:
 
 async def update_snap_hutao_latest_version(redis_client: aioredis.client.Redis) -> dict:
     """
-    Update Snap Hutao latest version from GitHub and Jihulab
+    Update Snap Hutao latest version from GitHub
     :return: dict of latest version metadata
     """
     github_message = ""
@@ -80,44 +80,6 @@ async def update_snap_hutao_latest_version(redis_client: aioredis.client.Redis) 
     # handle GitHub release
     github_patch_meta = fetch_snap_hutao_github_latest_version()
     cn_patch_meta = github_patch_meta.model_copy(deep=True)
-
-    """
-    gitlab_message = ""
-    jihulab_patch_meta = github_patch_meta.model_copy(deep=True)
-    # handle Jihulab release
-    jihulab_meta = httpx.get(
-        "https://jihulab.com/api/v4/projects/DGP-Studio%2FSnap.Hutao/releases/permalink/latest",
-        follow_redirects=True).json()
-    jihu_tag_name = jihulab_meta["tag_name"] + ".0"
-    if jihu_tag_name != github_patch_meta.version:
-        # JiHuLAB sync not done yet
-        gitlab_message = f"GitLab release not found, using GitHub release instead. "
-        logger.warning(gitlab_message)
-    else:
-        try:
-            jihulab_url = [a["direct_asset_url"] for a in jihulab_meta["assets"]["links"]
-                           if a["link_type"] == "package"][0]
-            archive_url = [a["direct_asset_url"] for a in jihulab_meta["assets"]["links"]
-                           if a["name"] == "artifact_archive"][0]
-
-            jihulab_mirror_meta = MirrorMeta(
-                url=jihulab_url,
-                mirror_name="JiHuLAB",
-                mirror_type="direct"
-            )
-
-            jihulab_archive_mirror_meta = MirrorMeta(
-                url=archive_url,
-                mirror_name="JiHuLAB Archive",
-                mirror_type="archive"
-            )
-            jihulab_patch_meta.mirrors.append(jihulab_mirror_meta)
-            jihulab_patch_meta.mirrors.append(jihulab_archive_mirror_meta)
-            logger.debug(f"JiHuLAB data fetched: {jihulab_patch_meta}")
-        except (KeyError, IndexError) as e:
-            gitlab_message = f"Error occurred when fetching Snap Hutao from JiHuLAB: {e}. "
-            logger.error(gitlab_message)
-    """
     logger.debug(f"GitHub data: {github_patch_meta}")
 
     # Clear mirror URL if the version is updated
@@ -131,10 +93,6 @@ async def update_snap_hutao_latest_version(redis_client: aioredis.client.Redis) 
                 f"Found unmatched version, clearing mirrors URL. Deleting version [{redis_cached_version}]: {await redis_client.delete(f'snap-hutao:mirrors:{redis_cached_version}')}")
             logger.info(
                 f"Set Snap Hutao latest version to Redis: {await redis_client.set('snap-hutao:version', github_patch_meta.version)}")
-            """
-            logger.info(
-                f"Set snap-hutao:mirrors:{jihulab_patch_meta.version} to Redis: {await redis_client.set(f'snap-hutao:mirrors:{jihulab_patch_meta.version}', json.dumps([]))}")
-            """
         else:
             try:
                 current_mirrors = await redis_client.get(f"snap-hutao:mirrors:{cn_patch_meta.version}")
@@ -160,7 +118,7 @@ async def update_snap_hutao_latest_version(redis_client: aioredis.client.Redis) 
 
 async def update_snap_hutao_deployment_version(redis_client: aioredis.client.Redis) -> dict:
     """
-    Update Snap Hutao Deployment latest version from GitHub and Jihulab
+    Update Snap Hutao Deployment latest version from GitHub
     :return: dict of Snap Hutao Deployment latest version metadata
     """
     github_meta = httpx.get("https://api.github.com/repos/DGP-Studio/Snap.Hutao.Deployment/releases/latest",
@@ -177,21 +135,6 @@ async def update_snap_hutao_deployment_version(redis_client: aioredis.client.Red
         cache_time=datetime.now(),
         mirrors=[MirrorMeta(url=github_exe_url, mirror_name="GitHub", mirror_type="direct")]
     )
-    """
-    jihulab_meta = httpx.get(
-        "https://jihulab.com/api/v4/projects/DGP-Studio%2FSnap.Hutao.Deployment/releases/permalink/latest",
-        follow_redirects=True).json()
-    cn_urls = list([list([a["direct_asset_url"] for a in jihulab_meta["assets"]["links"]
-                          if a["link_type"] == "package"])[0]])
-    if len(cn_urls) == 0:
-        raise ValueError("Failed to get Snap Hutao Deployment latest version from JiHuLAB")
-    jihulab_patch_meta = PatchMeta(
-        version=jihulab_meta["tag_name"] + ".0",
-        validation="",
-        cache_time=datetime.now(),
-        mirrors=[MirrorMeta(url=cn_urls[0], mirror_name="JiHuLAB", mirror_type="direct")]
-    )
-    """
     cn_patch_meta = github_patch_meta.model_copy(deep=True)
     static_deployment_mirror_list = [
         MirrorMeta(
