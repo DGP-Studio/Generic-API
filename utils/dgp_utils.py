@@ -54,7 +54,10 @@ def update_recent_versions() -> list[str]:
         new_user_agents += this_repo_headers
 
     # Snap Hutao Alpha
-    # To be redesigned
+    snap_hutao_alpha_patch_meta = redis_conn.get("snap-hutao-alpha:patch").json()
+    if snap_hutao_alpha_patch_meta:
+        snap_hutao_alpha_patch_version = snap_hutao_alpha_patch_meta["version"]
+        new_user_agents.append(f"Snap Hutao/{snap_hutao_alpha_patch_version}")
 
     # Snap Hutao Next Version
     pr_list = httpx.get("https://api.github.com/repos/DGP-Studio/Snap.Hutao.Docs/pulls",
