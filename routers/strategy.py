@@ -139,7 +139,7 @@ async def refresh_avatar_strategy(request: Request, channel: str) -> StandardRes
 @china_router.get("/item", response_model=StandardResponse)
 @global_router.get("/item", response_model=StandardResponse)
 @fujian_router.get("/item", response_model=StandardResponse)
-def get_avatar_strategy_item(request: Request, item_id: int) -> StandardResponse:
+async def get_avatar_strategy_item(request: Request, item_id: int) -> StandardResponse:
     """
     Get avatar strategy item by avatar ID
     :param request: request object from FastAPI
@@ -153,10 +153,10 @@ def get_avatar_strategy_item(request: Request, item_id: int) -> StandardResponse
 
     if redis_client:
         try:
-            strategy_dict = json.loads(redis_client.get("avatar_strategy"))
+            strategy_dict = json.loads(await redis_client.get("avatar_strategy"))
         except TypeError:
-            refresh_avatar_strategy(request, "all", db)
-            strategy_dict = json.loads(redis_client.get("avatar_strategy"))
+            await refresh_avatar_strategy(request, "all", db)
+            strategy_dict = json.loads(await redis_client.get("avatar_strategy"))
         strategy_set = strategy_dict.get(str(item_id), {})
         if strategy_set:
             miyoushe_url = miyoushe_strategy_url.format(mys_strategy_id=strategy_set.get("mys_strategy_id"))
