@@ -434,12 +434,12 @@ async def generic_patch_latest_version(request: Request, response: Response, pro
     new_version = None
     if project == "snap-hutao":
         new_version = await update_snap_hutao_latest_version(redis_client)
-        update_recent_versions()
+        await update_recent_versions(redis_client)
     elif project == "snap-hutao-deployment":
         new_version = await update_snap_hutao_deployment_version(redis_client)
     elif project == "snap-hutao-alpha":
         new_version = await fetch_snap_hutao_alpha_latest_version(redis_client)
-        update_recent_versions()
+        await update_recent_versions(redis_client)
     else:
         response.status_code = status.HTTP_404_NOT_FOUND
     response.status_code = status.HTTP_201_CREATED

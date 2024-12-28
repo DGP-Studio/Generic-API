@@ -4,7 +4,6 @@ import os
 import httpx
 from fastapi import HTTPException, status, Header, Request
 from redis import asyncio as aioredis
-import redis
 from typing import Annotated
 from base_logger import logger
 from config import github_headers
@@ -20,9 +19,7 @@ if BYPASS_CLIENT_VERIFICATION:
     logger.warning("Client verification is bypassed in this server.")
 
 
-def update_recent_versions() -> list[str]:
-    redis_host = os.getenv("REDIS_HOST", "redis")
-    redis_conn = redis.Redis(host=redis_host, port=6379, db=0)
+async def update_recent_versions(redis_client) -> list[str]:
     new_user_agents = []
 
     # Stable version of software in white list
@@ -54,8 +51,10 @@ def update_recent_versions() -> list[str]:
         new_user_agents += this_repo_headers
 
     # Snap Hutao Alpha
-    snap_hutao_alpha_patch_meta = redis_conn.get("snap-hutao-alpha:patch").json()
+    snap_hutao_alpha_patch_meta = await redis_client.get("snap-hutao-alpha:patch")
     if snap_hutao_alpha_patch_meta:
+        snap_hutao_alpha_patch_meta = snap_hutao_alpha_patch_meta.decode("utf-8")
+        snap_hutao_alpha_patch_meta = json.loads(snap_hutao_alpha_patch_meta)
         snap_hutao_alpha_patch_version = snap_hutao_alpha_patch_meta["version"]
         new_user_agents.append(f"Snap Hutao/{snap_hutao_alpha_patch_version}")
 
@@ -68,7 +67,7 @@ def update_recent_versions() -> list[str]:
         next_version = all_opened_pr_title[0].split(" ")[2] + ".0"
         new_user_agents.append(f"Snap Hutao/{next_version}")
 
-    redis_resp = redis_conn.set("allowed_user_agents", json.dumps(new_user_agents), ex=5 * 60)
+    redis_resp = await redis_client.set("allowed_user_agents", json.dumps(new_user_agents), ex=5 * 60)
     logging.info(f"Updated allowed user agents: {new_user_agents}. Result: {redis_resp}")
     return new_user_agents
 
@@ -89,7 +88,7 @@ async def validate_client_is_updated(request: Request, user_agent: Annotated[str
     else:
         # redis data is expired
         logger.info("Updating allowed user agents from GitHub")
-        allowed_user_agents = update_recent_versions()
+        allowed_user_agents = await update_recent_versions(redis_client)
 
     if user_agent not in allowed_user_agents:
         logger.info(f"Client is outdated: {user_agent}, not in the allowed list: {allowed_user_agents}")
