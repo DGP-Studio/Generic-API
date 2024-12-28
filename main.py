@@ -11,12 +11,13 @@ from starlette.responses import PlainTextResponse
 from apitally.fastapi import ApitallyMiddleware
 from datetime import datetime
 from contextlib import asynccontextmanager
-from routers import enka_network, metadata, patch_next, static, net, wallpaper, strategy, crowdin, system_email, \
-    client_feature
+from routers import (enka_network, metadata, patch_next, static, net, wallpaper, strategy, crowdin, system_email,
+                     client_feature, mgnt)
 from starlette.middleware.base import BaseHTTPMiddleware
 from base_logger import logger
 from config import (MAIN_SERVER_DESCRIPTION, TOS_URL, CONTACT_INFO, LICENSE_INFO, VALID_PROJECT_KEYS, IMAGE_NAME, DEBUG)
 from mysql_app.database import SessionLocal
+from utils.redis_tools import init_redis_data
 
 
 @asynccontextmanager
@@ -46,6 +47,9 @@ async def lifespan(app: FastAPI):
     await update_snap_hutao_latest_version(redis_client)
     await update_snap_hutao_deployment_version(redis_client)
     await fetch_snap_hutao_alpha_latest_version(redis_client)
+
+    # Initial Redis data
+    await init_redis_data(redis_client)
 
     logger.info("ending lifespan startup")
     yield
@@ -155,9 +159,6 @@ china_root_router.include_router(strategy.china_router)
 global_root_router.include_router(strategy.global_router)
 fujian_root_router.include_router(strategy.fujian_router)
 
-# System Email Router
-app.include_router(system_email.admin_router)
-
 # Crowdin Localization API Routers
 china_root_router.include_router(crowdin.china_router)
 global_root_router.include_router(crowdin.global_router)
@@ -171,6 +172,10 @@ fujian_root_router.include_router(client_feature.fujian_router)
 app.include_router(china_root_router)
 app.include_router(global_root_router)
 app.include_router(fujian_root_router)
+
+# Misc
+app.include_router(system_email.admin_router)
+app.include_router(mgnt.router)
 
 origins = [
     "http://localhost",

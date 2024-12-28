@@ -1,7 +1,7 @@
 import logging
 import httpx
 import json
-from redis import asyncio as redis
+from redis import asyncio as aioredis
 from fastapi import APIRouter, Depends, Request, HTTPException
 from fastapi.responses import RedirectResponse
 from pydantic import BaseModel
@@ -19,8 +19,6 @@ china_router = APIRouter(tags=["Static"], prefix="/static")
 global_router = APIRouter(tags=["Static"], prefix="/static")
 fujian_router = APIRouter(tags=["Static"], prefix="/static")
 
-CN_OSS_URL = "https://open-7419b310-fc97-4a0c-bedf-b8faca13eb7e-s3.saturn.xxyy.co:8443/hutao/{file_path}"
-
 
 # @china_router.get("/zip/{file_path:path}")
 async def cn_get_zipped_file(file_path: str, request: Request) -> RedirectResponse:
@@ -28,11 +26,15 @@ async def cn_get_zipped_file(file_path: str, request: Request) -> RedirectRespon
     Endpoint used to redirect to the zipped static file in China server
 
     :param request: request object from FastAPI
+
     :param file_path: File relative path in Snap.Static.Zip
 
     :return: 302 Redirect to the zip file
     """
-    # https://static-next.snapgenshin.com/d/zip/{file_path}
+    redis_client = aioredis.Redis.from_pool(request.app.state.redis)
+    china_endpoint = await redis_client.get("china:static:zip")
+    china_endpoint = china_endpoint.decode("utf-8")
+
     quality = request.headers.get("x-hutao-quality", "high").lower()
     archive_type = request.headers.get("x-hutao-archive", "minimum").lower()
 
@@ -54,10 +56,12 @@ async def cn_get_zipped_file(file_path: str, request: Request) -> RedirectRespon
             file_path = "tiny-zip/" + file_path
         case "raw":
             file_path = "zip/" + file_path
+        case "original":
+            file_path = "zip/" + file_path
         case _:
             raise HTTPException(status_code=404, detail="Invalid quality")
-    logging.debug(f"Redirecting to {CN_OSS_URL.format(file_path=file_path)}")
-    return RedirectResponse(CN_OSS_URL.format(file_path=file_path), status_code=302)
+    logging.debug(f"Redirecting to {china_endpoint.format(file_path=file_path)}")
+    return RedirectResponse(china_endpoint.format(file_path=file_path), status_code=302)
 
 
 @china_router.get("/raw/{file_path:path}")
@@ -67,22 +71,27 @@ async def cn_get_raw_file(file_path: str, request: Request) -> RedirectResponse:
     Endpoint used to redirect to the raw static file in China server
 
     :param request: request object from FastAPI
-    :param file_path: Raw file relative path in Snap.Static
 
+    :param file_path: Raw file relative path in Snap.Static
 
     :return: 302 Redirect to the raw file
     """
     quality = request.headers.get("x-hutao-quality", "high").lower()
+    redis_client = aioredis.Redis.from_pool(request.app.state.redis)
+    china_endpoint = await redis_client.get("china:static:raw")
+    china_endpoint = china_endpoint.decode("utf-8")
 
     match quality:
         case "high":
             file_path = "tiny-raw/" + file_path
         case "raw":
             file_path = "raw/" + file_path
+        case "original":
+            file_path = "raw/" + file_path
         case _:
             raise HTTPException(status_code=404, detail="Invalid quality")
-    logging.debug(f"Redirecting to {CN_OSS_URL.format(file_path=file_path)}")
-    return RedirectResponse(CN_OSS_URL.format(file_path=file_path), status_code=302)
+    logging.debug(f"Redirecting to {china_endpoint.format(file_path=file_path)}")
+    return RedirectResponse(china_endpoint.format(file_path=file_path), status_code=302)
 
 
 @global_router.get("/zip/{file_path:path}")
@@ -93,12 +102,18 @@ async def global_get_zipped_file(file_path: str, request: Request) -> RedirectRe
     Endpoint used to redirect to the zipped static file in Global server
 
     :param request: request object from FastAPI
+
     :param file_path: Relative path in Snap.Static.Zip
 
     :return: Redirect to the zip file
     """
     quality = request.headers.get("x-hutao-quality", "high").lower()
     archive_type = request.headers.get("x-hutao-archive", "minimum").lower()
+    redis_client = aioredis.Redis.from_pool(request.app.state.redis)
+    global_original_quality_endpoint = await redis_client.get("global:static:zip")
+    global_original_quality_endpoint = global_original_quality_endpoint.decode("utf-8")
+    global_tiny_quality_endpoint = await redis_client.get("global:static:tiny")
+    global_tiny_quality_endpoint = global_tiny_quality_endpoint.decode("utf-8")
 
     if quality == "unknown" or archive_type == "unknown":
         raise HTTPException(status_code=418, detail="Invalid request")
@@ -114,10 +129,15 @@ async def global_get_zipped_file(file_path: str, request: Request) -> RedirectRe
 
     match quality:
         case "high":
-            file_path = file_path.replace(".zip", "-tiny.zip")
-            return RedirectResponse(f"https://static-tiny.snapgenshin.cn/zip/{file_path}", status_code=302)
+            return RedirectResponse(
+                global_tiny_quality_endpoint.format(file_path=file_path, file_type="zip"),
+                status_code=302
+            )
         case "raw":
-            return RedirectResponse(f"https://static-zip.snapgenshin.cn/{file_path}", status_code=302)
+            return RedirectResponse(
+                global_original_quality_endpoint.format(file_path=file_path),
+                status_code=302
+            )
         case _:
             raise HTTPException(status_code=404, detail="Invalid quality")
 
@@ -133,12 +153,28 @@ async def global_get_raw_file(file_path: str, request: Request) -> RedirectRespo
     :return: 302 Redirect to the raw file
     """
     quality = request.headers.get("x-hutao-quality", "high").lower()
+    redis_client = aioredis.Redis.from_pool(request.app.state.redis)
+    global_original_quality_endpoint = await redis_client.get("global:static:raw")
+    global_original_quality_endpoint = global_original_quality_endpoint.decode("utf-8")
+    global_tiny_quality_endpoint = await redis_client.get("global:static:tiny")
+    global_tiny_quality_endpoint = global_tiny_quality_endpoint.decode("utf-8")
 
     match quality:
         case "high":
-            return RedirectResponse(f"https://static-tiny.snapgenshin.cn/raw/{file_path}", status_code=302)
+            return RedirectResponse(
+                global_tiny_quality_endpoint.format(file_type="raw", file_path=file_path),
+                status_code=302
+            )
         case "raw":
-            return RedirectResponse(f"https://static.snapgenshin.cn/{file_path}", status_code=302)
+            return RedirectResponse(
+                global_original_quality_endpoint.format(file_path=file_path),
+                status_code=302
+            )
+        case "original":
+            return RedirectResponse(
+                global_original_quality_endpoint.format(file_path=file_path),
+                status_code=302
+            )
         case _:
             raise HTTPException(status_code=404, detail="Invalid quality")
 
@@ -198,7 +234,7 @@ async def list_static_files_size(redis_client) -> dict:
 @global_router.get("/size", response_model=StandardResponse)
 @fujian_router.get("/size", response_model=StandardResponse)
 async def get_static_files_size(request: Request) -> StandardResponse:
-    redis_client = redis.Redis.from_pool(request.app.state.redis)
+    redis_client = aioredis.Redis.from_pool(request.app.state.redis)
     static_files_size = await redis_client.get("static_files_size")
     if static_files_size:
         static_files_size = json.loads(static_files_size)
@@ -217,7 +253,7 @@ async def get_static_files_size(request: Request) -> StandardResponse:
 @global_router.get("/size/reset", response_model=StandardResponse, dependencies=[Depends(verify_api_token)])
 @fujian_router.get("/size/reset", response_model=StandardResponse, dependencies=[Depends(verify_api_token)])
 async def reset_static_files_size(request: Request) -> StandardResponse:
-    redis_client = redis.Redis.from_pool(request.app.state.redis)
+    redis_client = aioredis.Redis.from_pool(request.app.state.redis)
     new_data = await list_static_files_size(redis_client)
     response = StandardResponse(
         retcode=0,

@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, Request
 from fastapi.responses import RedirectResponse
+from redis import asyncio as aioredis
 from utils.dgp_utils import validate_client_is_updated
 
 
@@ -9,42 +10,57 @@ fujian_router = APIRouter(tags=["Hutao Metadata"], prefix="/metadata")
 
 
 @china_router.get("/{file_path:path}", dependencies=[Depends(validate_client_is_updated)])
-async def china_metadata_request_handler(file_path: str) -> RedirectResponse:
+async def china_metadata_request_handler(request: Request, file_path: str) -> RedirectResponse:
     """
     Handle requests to metadata files.
+
+    :param request: Request object
 
     :param file_path: Path to the metadata file
 
     :return: HTTP 302 redirect to the file based on censorship status of the file
     """
-    cn_metadata_url = f"https://static-next.snapgenshin.com/d/meta/metadata/{file_path}"
+    redis_client = aioredis.Redis.from_pool(request.app.state.redis_pool)
 
-    return RedirectResponse(cn_metadata_url, status_code=302)
+    china_metadata_endpoint = await redis_client.get("china:metadata")
+    china_metadata_endpoint = china_metadata_endpoint.decode("utf-8").format(file_path=file_path)
+
+    return RedirectResponse(china_metadata_endpoint, status_code=302)
 
 
 @global_router.get("/{file_path:path}", dependencies=[Depends(validate_client_is_updated)])
-async def global_metadata_request_handler(file_path: str) -> RedirectResponse:
+async def global_metadata_request_handler(request: Request, file_path: str) -> RedirectResponse:
     """
     Handle requests to metadata files.
+
+    :param request: Request object
 
     :param file_path: Path to the metadata file
 
     :return: HTTP 302 redirect to the file based on censorship status of the file
     """
-    global_metadata_url = f"https://hutao-metadata-pages.snapgenshin.cn/{file_path}"
+    redis_client = aioredis.Redis.from_pool(request.app.state.redis_pool)
 
-    return RedirectResponse(global_metadata_url, status_code=302)
+    global_metadata_endpoint = await redis_client.get("global:metadata")
+    global_metadata_endpoint = global_metadata_endpoint.decode("utf-8").format(file_path=file_path)
+
+    return RedirectResponse(global_metadata_endpoint, status_code=302)
 
 
 @fujian_router.get("/{file_path:path}", dependencies=[Depends(validate_client_is_updated)])
-async def fujian_metadata_request_handler(file_path: str) -> RedirectResponse:
+async def fujian_metadata_request_handler(request: Request, file_path: str) -> RedirectResponse:
     """
     Handle requests to metadata files.
+
+    :param request: Request object
 
     :param file_path: Path to the metadata file
 
     :return: HTTP 302 redirect to the file based on censorship status of the file
     """
-    fujian_metadata_url = f"https://metadata.snapgenshin.com/{file_path}"
+    redis_client = aioredis.Redis.from_pool(request.app.state.redis_pool)
 
-    return RedirectResponse(fujian_metadata_url, status_code=302)
+    fujian_metadata_endpoint = await redis_client.get("fujian:metadata")
+    fujian_metadata_endpoint = fujian_metadata_endpoint.decode("utf-8").format(file_path=file_path)
+
+    return RedirectResponse(fujian_metadata_endpoint, status_code=302)
