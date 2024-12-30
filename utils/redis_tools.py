@@ -6,7 +6,7 @@ INITIALIZED_REDIS_DATA = {
     "url:china:client-feature": "https://static-next.snapgenshin.com/d/meta/client-feature/{file_path}",
     "url:global:client-feature": "https://hutao-client-pages.snapgenshin.cn/{file_path}",
     "url:fujian:client-feature": "https://client-feature.snapgenshin.com/{file_path}",
-    "url:china:enka-network:": "https://profile.microgg.cn/api/uid/{uid}",
+    "url:china:enka-network": "https://profile.microgg.cn/api/uid/{uid}",
     "url:global:enka-network": "https://enka.network/api/uid/{uid}/",
     "url:china:enka-network-info": "https://profile.microgg.cn/api/uid/{uid}?info",
     "url:global:enka-network-info": "https://enka.network/api/uid/{uid}?info",
