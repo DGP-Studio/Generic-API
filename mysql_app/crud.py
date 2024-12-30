@@ -127,10 +127,11 @@ def get_avatar_strategy_by_id(avatar_id: str, db: Session) -> models.AvatarStrat
 
 
 def get_all_avatar_strategy(db: Session) -> list[models.AvatarStrategy] | None:
-    result = db.query(models.AvatarStrategy).all()
-    if len(result) == 0:
-        return None
-    return cast(list[models.AvatarStrategy], result)
+    with get_db_session(db) as session:
+        result = session.query(models.AvatarStrategy).all()
+        if len(result) == 0:
+            return None
+        return cast(list[models.AvatarStrategy], result)
 
 
 def dump_daily_active_user_stats(db: Session, stats: schemas.DailyActiveUserStats) -> schemas.DailyActiveUserStats:

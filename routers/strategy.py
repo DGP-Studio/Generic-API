@@ -155,7 +155,7 @@ async def get_avatar_strategy_item(request: Request, item_id: int) -> StandardRe
         try:
             strategy_dict = json.loads(await redis_client.get("avatar_strategy"))
         except TypeError:
-            await refresh_avatar_strategy(request, "all", db)
+            await refresh_avatar_strategy(request, "all")
             strategy_dict = json.loads(await redis_client.get("avatar_strategy"))
         strategy_set = strategy_dict.get(str(item_id), {})
         if strategy_set:
