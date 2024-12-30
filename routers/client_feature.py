@@ -21,7 +21,7 @@ async def china_client_feature_request_handler(request: Request, file_path: str)
     """
     redis_client = aioredis.Redis.from_pool(request.app.state.redis)
 
-    host_for_normal_files = await redis_client.get("china:client-feature")
+    host_for_normal_files = await redis_client.get("url:china:client-feature")
     host_for_normal_files = host_for_normal_files.decode("utf-8").format(file_path=file_path)
 
     return RedirectResponse(host_for_normal_files, status_code=302)
@@ -40,7 +40,7 @@ async def global_client_feature_request_handler(request: Request, file_path: str
     """
     redis_client = aioredis.Redis.from_pool(request.app.state.redis)
 
-    host_for_normal_files = await redis_client.get("global:client-feature")
+    host_for_normal_files = await redis_client.get("url:global:client-feature")
     host_for_normal_files = host_for_normal_files.decode("utf-8").format(file_path=file_path)
 
     return RedirectResponse(host_for_normal_files, status_code=302)
@@ -59,7 +59,7 @@ async def fujian_client_feature_request_handler(request: Request, file_path: str
     """
     redis_client = aioredis.Redis.from_pool(request.app.state.redis)
 
-    host_for_normal_files = await redis_client.get("fujian:client-feature")
+    host_for_normal_files = await redis_client.get("url:fujian:client-feature")
     host_for_normal_files = host_for_normal_files.decode("utf-8").format(file_path=file_path)
 
     return RedirectResponse(host_for_normal_files, status_code=302)

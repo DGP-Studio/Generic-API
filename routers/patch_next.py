@@ -6,6 +6,7 @@ from fastapi import APIRouter, Response, status, Request, Depends
 from fastapi.responses import RedirectResponse
 from datetime import datetime
 from pydantic.json import pydantic_encoder
+from fastapi.encoders import jsonable_encoder
 from utils.dgp_utils import update_recent_versions
 from utils.PatchMeta import PatchMeta, MirrorMeta
 from utils.authentication import verify_api_token
@@ -156,13 +157,19 @@ async def update_snap_hutao_deployment_version(redis_client: aioredis.client.Red
         logger.info(
             f"Found unmatched version, clearing mirrors. Setting Snap Hutao Deployment latest version to Redis: {await redis_client.set('snap-hutao-deployment:version', cn_patch_meta.version)}")
         logger.info(
-            f"Reinitializing mirrors for Snap Hutao Deployment: {await redis_client.set(f'snap-hutao-deployment:mirrors:{cn_patch_meta.version}', json.dumps(cn_patch_meta.mirrors))}")
+            f"Reinitializing mirrors for Snap Hutao Deployment: {await redis_client.set(f'snap-hutao-deployment:mirrors:{cn_patch_meta.version}', json.dumps(cn_patch_meta.mirrors, default=pydantic_encoder))}")
     else:
-        current_mirrors = json.loads(
-            await redis_client.get(f"snap-hutao-deployment:mirrors:{cn_patch_meta.version}"))
-        for m in current_mirrors:
-            this_mirror = MirrorMeta(**m)
-            cn_patch_meta.mirrors.append(this_mirror)
+        try:
+            current_mirrors = json.loads(
+                await redis_client.get(f"snap-hutao-deployment:mirrors:{cn_patch_meta.version}"))
+            for m in current_mirrors:
+                this_mirror = MirrorMeta(**m)
+                cn_patch_meta.mirrors.append(this_mirror)
+        except TypeError:
+            # New initialization
+            mirror_json = json.dumps(cn_patch_meta.mirrors, default=pydantic_encoder)
+            await redis_client.set(f"snap-hutao-deployment:mirrors:{cn_patch_meta.version}", mirror_json)
+
 
     return_data = {
         "global": github_patch_meta.model_dump(),
@@ -332,7 +339,6 @@ async def generic_patch_snap_hutao_alpha_latest_version(request: Request) -> Sta
         cached_data = await fetch_snap_hutao_alpha_latest_version(redis_client)
     else:
         cached_data = json.loads(cached_data)
-    print(cached_data)
     return StandardResponse(
         retcode=0,
         message="Alpha means testing",

@@ -5,8 +5,10 @@ from sqlalchemy.orm import sessionmaker
 from base_logger import logging
 import socket
 
-
-MYSQL_HOST = socket.gethostbyname('host.docker.internal')
+if "dev" in os.getenv("SERVER_TYPE").lower():
+    MYSQL_HOST = os.getenv("MYSQL_HOST")
+else:
+    MYSQL_HOST = socket.gethostbyname('host.docker.internal')
 MYSQL_PORT = int(os.getenv("MYSQL_PORT", "3306"))
 MYSQL_USER = os.getenv("MYSQL_USER")
 MYSQL_PASSWORD = os.getenv("MYSQL_PASSWORD")

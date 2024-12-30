@@ -32,7 +32,7 @@ async def cn_get_zipped_file(file_path: str, request: Request) -> RedirectRespon
     :return: 302 Redirect to the zip file
     """
     redis_client = aioredis.Redis.from_pool(request.app.state.redis)
-    china_endpoint = await redis_client.get("china:static:zip")
+    china_endpoint = await redis_client.get("url:china:static:zip")
     china_endpoint = china_endpoint.decode("utf-8")
 
     quality = request.headers.get("x-hutao-quality", "high").lower()
@@ -78,7 +78,7 @@ async def cn_get_raw_file(file_path: str, request: Request) -> RedirectResponse:
     """
     quality = request.headers.get("x-hutao-quality", "high").lower()
     redis_client = aioredis.Redis.from_pool(request.app.state.redis)
-    china_endpoint = await redis_client.get("china:static:raw")
+    china_endpoint = await redis_client.get("url:china:static:raw")
     china_endpoint = china_endpoint.decode("utf-8")
 
     match quality:
@@ -110,9 +110,9 @@ async def global_get_zipped_file(file_path: str, request: Request) -> RedirectRe
     quality = request.headers.get("x-hutao-quality", "high").lower()
     archive_type = request.headers.get("x-hutao-archive", "minimum").lower()
     redis_client = aioredis.Redis.from_pool(request.app.state.redis)
-    global_original_quality_endpoint = await redis_client.get("global:static:zip")
+    global_original_quality_endpoint = await redis_client.get("url:global:static:zip")
     global_original_quality_endpoint = global_original_quality_endpoint.decode("utf-8")
-    global_tiny_quality_endpoint = await redis_client.get("global:static:tiny")
+    global_tiny_quality_endpoint = await redis_client.get("url:global:static:tiny")
     global_tiny_quality_endpoint = global_tiny_quality_endpoint.decode("utf-8")
 
     if quality == "unknown" or archive_type == "unknown":
@@ -154,9 +154,9 @@ async def global_get_raw_file(file_path: str, request: Request) -> RedirectRespo
     """
     quality = request.headers.get("x-hutao-quality", "high").lower()
     redis_client = aioredis.Redis.from_pool(request.app.state.redis)
-    global_original_quality_endpoint = await redis_client.get("global:static:raw")
+    global_original_quality_endpoint = await redis_client.get("url:global:static:raw")
     global_original_quality_endpoint = global_original_quality_endpoint.decode("utf-8")
-    global_tiny_quality_endpoint = await redis_client.get("global:static:tiny")
+    global_tiny_quality_endpoint = await redis_client.get("url:global:static:tiny")
     global_tiny_quality_endpoint = global_tiny_quality_endpoint.decode("utf-8")
 
     match quality:

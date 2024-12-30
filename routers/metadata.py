@@ -22,7 +22,7 @@ async def china_metadata_request_handler(request: Request, file_path: str) -> Re
     """
     redis_client = aioredis.Redis.from_pool(request.app.state.redis)
 
-    china_metadata_endpoint = await redis_client.get("china:metadata")
+    china_metadata_endpoint = await redis_client.get("url:china:metadata")
     china_metadata_endpoint = china_metadata_endpoint.decode("utf-8").format(file_path=file_path)
 
     return RedirectResponse(china_metadata_endpoint, status_code=302)
@@ -41,7 +41,7 @@ async def global_metadata_request_handler(request: Request, file_path: str) -> R
     """
     redis_client = aioredis.Redis.from_pool(request.app.state.redis)
 
-    global_metadata_endpoint = await redis_client.get("global:metadata")
+    global_metadata_endpoint = await redis_client.get("url:global:metadata")
     global_metadata_endpoint = global_metadata_endpoint.decode("utf-8").format(file_path=file_path)
 
     return RedirectResponse(global_metadata_endpoint, status_code=302)
@@ -60,7 +60,7 @@ async def fujian_metadata_request_handler(request: Request, file_path: str) -> R
     """
     redis_client = aioredis.Redis.from_pool(request.app.state.redis)
 
-    fujian_metadata_endpoint = await redis_client.get("fujian:metadata")
+    fujian_metadata_endpoint = await redis_client.get("url:fujian:metadata")
     fujian_metadata_endpoint = fujian_metadata_endpoint.decode("utf-8").format(file_path=file_path)
 
     return RedirectResponse(fujian_metadata_endpoint, status_code=302)
