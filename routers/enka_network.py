@@ -21,7 +21,7 @@ async def cn_get_enka_raw_data(request: Request, uid: str) -> RedirectResponse:
 
     :return: HTTP 302 redirect to Enka-API
     """
-    redis_client = aioredis.Redis.from_pool(request.app.state.redis_pool)
+    redis_client = aioredis.Redis.from_pool(request.app.state.redis)
 
     endpoint = await redis_client.get("china:enka-network")
     endpoint = endpoint.decode("utf-8").format(uid=uid)
@@ -40,7 +40,7 @@ async def global_get_enka_raw_data(request: Request, uid: str) -> RedirectRespon
 
     :return: HTTP 302 redirect to Enka-API (Origin Endpoint)
     """
-    redis_client = aioredis.Redis.from_pool(request.app.state.redis_pool)
+    redis_client = aioredis.Redis.from_pool(request.app.state.redis)
 
     endpoint = await redis_client.get("global:enka-network")
     endpoint = endpoint.decode("utf-8").format(uid=uid)
@@ -60,7 +60,7 @@ async def cn_get_enka_info_data(request: Request, uid: str) -> RedirectResponse:
 
     :return: HTTP 302 redirect to Enka-API
     """
-    redis_client = aioredis.Redis.from_pool(request.app.state.redis_pool)
+    redis_client = aioredis.Redis.from_pool(request.app.state.redis)
 
     endpoint = await redis_client.get("china:enka-network-info")
     endpoint = endpoint.decode("utf-8").format(uid=uid)
@@ -79,7 +79,7 @@ async def global_get_enka_info_data(request: Request, uid: str) -> RedirectRespo
 
     :return: HTTP 302 redirect to Enka-API (Origin Endpoint)
     """
-    redis_client = aioredis.Redis.from_pool(request.app.state.redis_pool)
+    redis_client = aioredis.Redis.from_pool(request.app.state.redis)
 
     endpoint = await redis_client.get("global:enka-network-info")
     endpoint = endpoint.decode("utf-8").format(uid=uid)

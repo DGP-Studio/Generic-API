@@ -20,7 +20,7 @@ async def china_metadata_request_handler(request: Request, file_path: str) -> Re
 
     :return: HTTP 302 redirect to the file based on censorship status of the file
     """
-    redis_client = aioredis.Redis.from_pool(request.app.state.redis_pool)
+    redis_client = aioredis.Redis.from_pool(request.app.state.redis)
 
     china_metadata_endpoint = await redis_client.get("china:metadata")
     china_metadata_endpoint = china_metadata_endpoint.decode("utf-8").format(file_path=file_path)
@@ -39,7 +39,7 @@ async def global_metadata_request_handler(request: Request, file_path: str) -> R
 
     :return: HTTP 302 redirect to the file based on censorship status of the file
     """
-    redis_client = aioredis.Redis.from_pool(request.app.state.redis_pool)
+    redis_client = aioredis.Redis.from_pool(request.app.state.redis)
 
     global_metadata_endpoint = await redis_client.get("global:metadata")
     global_metadata_endpoint = global_metadata_endpoint.decode("utf-8").format(file_path=file_path)
@@ -58,7 +58,7 @@ async def fujian_metadata_request_handler(request: Request, file_path: str) -> R
 
     :return: HTTP 302 redirect to the file based on censorship status of the file
     """
-    redis_client = aioredis.Redis.from_pool(request.app.state.redis_pool)
+    redis_client = aioredis.Redis.from_pool(request.app.state.redis)
 
     fujian_metadata_endpoint = await redis_client.get("fujian:metadata")
     fujian_metadata_endpoint = fujian_metadata_endpoint.decode("utf-8").format(file_path=file_path)
