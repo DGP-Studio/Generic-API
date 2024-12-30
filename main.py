@@ -1,7 +1,6 @@
 from config import env_result
 import uvicorn
 import os
-import uuid
 import json
 from redis import asyncio as aioredis
 from fastapi import FastAPI, APIRouter, Request
@@ -13,7 +12,6 @@ from datetime import datetime
 from contextlib import asynccontextmanager
 from routers import (enka_network, metadata, patch_next, static, net, wallpaper, strategy, crowdin, system_email,
                      client_feature, mgnt)
-from starlette.middleware.base import BaseHTTPMiddleware
 from base_logger import logger
 from config import (MAIN_SERVER_DESCRIPTION, TOS_URL, CONTACT_INFO, LICENSE_INFO, VALID_PROJECT_KEYS, IMAGE_NAME, DEBUG)
 from mysql_app.database import SessionLocal
@@ -98,27 +96,6 @@ app = FastAPI(redoc_url=None,
               lifespan=lifespan,
               debug=DEBUG)
 
-
-class TraceIDMiddleware(BaseHTTPMiddleware):
-    async def dispatch(self, request: Request, call_next):
-        trace_id = str(uuid.uuid4())
-        try:
-            response = await call_next(request)
-        except Exception:
-            # re-throw error for traceback
-            import traceback
-            tb = traceback.format_exc()
-            if DEBUG:
-                body = tb
-            else:
-                body = "Internal Server Error"
-            response = PlainTextResponse(body, status_code=500)
-        response.headers["X-Powered-By"] = "Hutao Generic API"
-        response.headers["X-Generic-ID"] = trace_id
-        return response
-
-
-app.add_middleware(TraceIDMiddleware)
 
 china_root_router = APIRouter(tags=["China Router"], prefix="/cn")
 global_root_router = APIRouter(tags=["Global Router"], prefix="/global")
