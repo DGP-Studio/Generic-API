@@ -107,12 +107,12 @@ async def refresh_avatar_strategy(request: Request, channel: str) -> StandardRes
     db = request.app.state.mysql
     redis_client = redis.Redis.from_pool(request.app.state.redis)
     if channel == "miyoushe":
-        result = {"mys": refresh_miyoushe_avatar_strategy(redis_client, db)}
+        result = {"mys": await refresh_miyoushe_avatar_strategy(redis_client, db)}
     elif channel == "hoyolab":
-        result = {"hoyolab": refresh_hoyolab_avatar_strategy(redis_client, db)}
+        result = {"hoyolab": await refresh_hoyolab_avatar_strategy(redis_client, db)}
     elif channel == "all":
-        result = {"mys": refresh_miyoushe_avatar_strategy(redis_client, db),
-                  "hoyolab": refresh_hoyolab_avatar_strategy(redis_client, db)
+        result = {"mys": await refresh_miyoushe_avatar_strategy(redis_client, db),
+                  "hoyolab": await refresh_hoyolab_avatar_strategy(redis_client, db)
                   }
     else:
         raise HTTPException(status_code=400, detail="Invalid channel")

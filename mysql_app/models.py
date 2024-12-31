@@ -29,7 +29,7 @@ class AvatarStrategy(Base):
     mys_strategy_id = Column(Integer, nullable=True)
     hoyolab_strategy_id = Column(Integer, nullable=True)
 
-    def __dict__(self):
+    def to_dict(self):
         return {field.name: getattr(self, field.name) for field in self.__table__.c}
 
     def __repr__(self):

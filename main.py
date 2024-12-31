@@ -169,7 +169,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-if IMAGE_NAME != "" and "dev" not in IMAGE_NAME:
+if IMAGE_NAME != "" and "dev" not in os.getenv("IMAGE_NAME"):
     app.add_middleware(
         ApitallyMiddleware,
         client_id=os.getenv("APITALLY_CLIENT_ID"),
