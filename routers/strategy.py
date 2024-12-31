@@ -8,6 +8,7 @@ from utils.authentication import verify_api_token
 from mysql_app.schemas import AvatarStrategy, StandardResponse
 from mysql_app.crud import add_avatar_strategy, get_all_avatar_strategy, get_avatar_strategy_by_id
 
+
 china_router = APIRouter(tags=["Strategy"], prefix="/strategy")
 global_router = APIRouter(tags=["Strategy"], prefix="/strategy")
 fujian_router = APIRouter(tags=["Strategy"], prefix="/strategy")
@@ -106,12 +107,12 @@ async def refresh_avatar_strategy(request: Request, channel: str) -> StandardRes
     db = request.app.state.mysql
     redis_client = redis.Redis.from_pool(request.app.state.redis)
     if channel == "miyoushe":
-        result = {"mys": refresh_miyoushe_avatar_strategy(redis_client, db)}
+        result = {"mys": await refresh_miyoushe_avatar_strategy(redis_client, db)}
     elif channel == "hoyolab":
-        result = {"hoyolab": refresh_hoyolab_avatar_strategy(redis_client, db)}
+        result = {"hoyolab": await refresh_hoyolab_avatar_strategy(redis_client, db)}
     elif channel == "all":
-        result = {"mys": refresh_miyoushe_avatar_strategy(redis_client, db),
-                  "hoyolab": refresh_hoyolab_avatar_strategy(redis_client, db)
+        result = {"mys": await refresh_miyoushe_avatar_strategy(redis_client, db),
+                  "hoyolab": await refresh_hoyolab_avatar_strategy(redis_client, db)
                   }
     else:
         raise HTTPException(status_code=400, detail="Invalid channel")
@@ -154,7 +155,7 @@ async def get_avatar_strategy_item(request: Request, item_id: int) -> StandardRe
         try:
             strategy_dict = json.loads(await redis_client.get("avatar_strategy"))
         except TypeError:
-            await refresh_avatar_strategy(request, "all", db)
+            await refresh_avatar_strategy(request, "all")
             strategy_dict = json.loads(await redis_client.get("avatar_strategy"))
         strategy_set = strategy_dict.get(str(item_id), {})
         if strategy_set:
@@ -180,3 +181,32 @@ async def get_avatar_strategy_item(request: Request, item_id: int) -> StandardRe
         }
     )
     return res
+
+
+@china_router.get("/all", response_model=StandardResponse)
+@global_router.get("/all", response_model=StandardResponse)
+@fujian_router.get("/all", response_model=StandardResponse)
+async def get_all_avatar_strategy_item(request: Request) -> StandardResponse:
+    """
+    Get all avatar strategy items
+    :param request: request object from FastAPI
+    :return: all avatar strategy items
+    """
+    miyoushe_strategy_url = "https://bbs.mihoyo.com/ys/strategy/channel/map/39/{mys_strategy_id}?bbs_presentation_style=no_header"
+    hoyolab_strategy_url = "https://www.hoyolab.com/guidelist?game_id=2&guide_id={hoyolab_strategy_id}"
+    redis_client = redis.Redis.from_pool(request.app.state.redis)
+
+    try:
+        strategy_dict = json.loads(await redis_client.get("avatar_strategy"))
+    except TypeError:
+        await refresh_avatar_strategy(request, "all")
+        strategy_dict = json.loads(await redis_client.get("avatar_strategy"))
+    for key in strategy_dict:
+        strategy_set = strategy_dict[key]
+        strategy_set["miyoushe_url"] = miyoushe_strategy_url.format(mys_strategy_id=strategy_set.get("mys_strategy_id"))
+        strategy_set["hoyolab_url"] = hoyolab_strategy_url.format(hoyolab_strategy_id=strategy_set.get("hoyolab_strategy_id"))
+    return StandardResponse(
+        retcode=0,
+        message="Success",
+        data=strategy_dict
+    )

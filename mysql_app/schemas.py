@@ -18,8 +18,11 @@ class Wallpaper(BaseModel):
     uploader: str
     disabled: Optional[int | bool] = False
 
+    class Config:
+        from_attributes = True
+
     def __repr__(self):
-        return f"schema.Wallpaper({self.dict()})"
+        return f"schema.Wallpaper({self.model_dump()})"
 
 
 class RedemptionCode(BaseModel):
@@ -43,6 +46,9 @@ class AvatarStrategy(BaseModel):
     mys_strategy_id: Optional[int | None] = None
     hoyolab_strategy_id: Optional[int | None] = None
 
+    class Config:
+        from_attributes = True
+
 
 class DailyActiveUserStats(BaseModel):
     date: datetime.date
@@ -50,12 +56,18 @@ class DailyActiveUserStats(BaseModel):
     global_user: int
     unknown: int
 
+    class Config:
+        from_attributes = True
+
 
 class DailyEmailSentStats(BaseModel):
     date: datetime.date
     requested: int
     sent: int
     failed: int
+
+    class Config:
+        from_attributes = True
 
 
 class PatchMetadata(BaseModel):
@@ -65,3 +77,6 @@ class PatchMetadata(BaseModel):
     download_url: str
     patch_notes: str
     disabled: Optional[bool] = False
+
+    class Config:
+        from_attributes = True

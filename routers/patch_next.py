@@ -6,6 +6,7 @@ from fastapi import APIRouter, Response, status, Request, Depends
 from fastapi.responses import RedirectResponse
 from datetime import datetime
 from pydantic.json import pydantic_encoder
+from fastapi.encoders import jsonable_encoder
 from utils.dgp_utils import update_recent_versions
 from utils.PatchMeta import PatchMeta, MirrorMeta
 from utils.authentication import verify_api_token
@@ -72,7 +73,7 @@ def fetch_snap_hutao_github_latest_version() -> PatchMeta:
 
 async def update_snap_hutao_latest_version(redis_client: aioredis.client.Redis) -> dict:
     """
-    Update Snap Hutao latest version from GitHub and Jihulab
+    Update Snap Hutao latest version from GitHub
     :return: dict of latest version metadata
     """
     github_message = ""
@@ -80,44 +81,6 @@ async def update_snap_hutao_latest_version(redis_client: aioredis.client.Redis) 
     # handle GitHub release
     github_patch_meta = fetch_snap_hutao_github_latest_version()
     cn_patch_meta = github_patch_meta.model_copy(deep=True)
-
-    """
-    gitlab_message = ""
-    jihulab_patch_meta = github_patch_meta.model_copy(deep=True)
-    # handle Jihulab release
-    jihulab_meta = httpx.get(
-        "https://jihulab.com/api/v4/projects/DGP-Studio%2FSnap.Hutao/releases/permalink/latest",
-        follow_redirects=True).json()
-    jihu_tag_name = jihulab_meta["tag_name"] + ".0"
-    if jihu_tag_name != github_patch_meta.version:
-        # JiHuLAB sync not done yet
-        gitlab_message = f"GitLab release not found, using GitHub release instead. "
-        logger.warning(gitlab_message)
-    else:
-        try:
-            jihulab_url = [a["direct_asset_url"] for a in jihulab_meta["assets"]["links"]
-                           if a["link_type"] == "package"][0]
-            archive_url = [a["direct_asset_url"] for a in jihulab_meta["assets"]["links"]
-                           if a["name"] == "artifact_archive"][0]
-
-            jihulab_mirror_meta = MirrorMeta(
-                url=jihulab_url,
-                mirror_name="JiHuLAB",
-                mirror_type="direct"
-            )
-
-            jihulab_archive_mirror_meta = MirrorMeta(
-                url=archive_url,
-                mirror_name="JiHuLAB Archive",
-                mirror_type="archive"
-            )
-            jihulab_patch_meta.mirrors.append(jihulab_mirror_meta)
-            jihulab_patch_meta.mirrors.append(jihulab_archive_mirror_meta)
-            logger.debug(f"JiHuLAB data fetched: {jihulab_patch_meta}")
-        except (KeyError, IndexError) as e:
-            gitlab_message = f"Error occurred when fetching Snap Hutao from JiHuLAB: {e}. "
-            logger.error(gitlab_message)
-    """
     logger.debug(f"GitHub data: {github_patch_meta}")
 
     # Clear mirror URL if the version is updated
@@ -131,12 +94,12 @@ async def update_snap_hutao_latest_version(redis_client: aioredis.client.Redis) 
                 f"Found unmatched version, clearing mirrors URL. Deleting version [{redis_cached_version}]: {await redis_client.delete(f'snap-hutao:mirrors:{redis_cached_version}')}")
             logger.info(
                 f"Set Snap Hutao latest version to Redis: {await redis_client.set('snap-hutao:version', github_patch_meta.version)}")
-            """
-            logger.info(
-                f"Set snap-hutao:mirrors:{jihulab_patch_meta.version} to Redis: {await redis_client.set(f'snap-hutao:mirrors:{jihulab_patch_meta.version}', json.dumps([]))}")
-            """
         else:
-            current_mirrors = json.loads(await redis_client.get(f"snap-hutao:mirrors:{cn_patch_meta.version}"))
+            try:
+                current_mirrors = await redis_client.get(f"snap-hutao:mirrors:{cn_patch_meta.version}")
+                current_mirrors = json.loads(current_mirrors)
+            except TypeError:
+                current_mirrors = []
             for m in current_mirrors:
                 this_mirror = MirrorMeta(**m)
                 cn_patch_meta.mirrors.append(this_mirror)
@@ -156,7 +119,7 @@ async def update_snap_hutao_latest_version(redis_client: aioredis.client.Redis) 
 
 async def update_snap_hutao_deployment_version(redis_client: aioredis.client.Redis) -> dict:
     """
-    Update Snap Hutao Deployment latest version from GitHub and Jihulab
+    Update Snap Hutao Deployment latest version from GitHub
     :return: dict of Snap Hutao Deployment latest version metadata
     """
     github_meta = httpx.get("https://api.github.com/repos/DGP-Studio/Snap.Hutao.Deployment/releases/latest",
@@ -173,21 +136,6 @@ async def update_snap_hutao_deployment_version(redis_client: aioredis.client.Red
         cache_time=datetime.now(),
         mirrors=[MirrorMeta(url=github_exe_url, mirror_name="GitHub", mirror_type="direct")]
     )
-    """
-    jihulab_meta = httpx.get(
-        "https://jihulab.com/api/v4/projects/DGP-Studio%2FSnap.Hutao.Deployment/releases/permalink/latest",
-        follow_redirects=True).json()
-    cn_urls = list([list([a["direct_asset_url"] for a in jihulab_meta["assets"]["links"]
-                          if a["link_type"] == "package"])[0]])
-    if len(cn_urls) == 0:
-        raise ValueError("Failed to get Snap Hutao Deployment latest version from JiHuLAB")
-    jihulab_patch_meta = PatchMeta(
-        version=jihulab_meta["tag_name"] + ".0",
-        validation="",
-        cache_time=datetime.now(),
-        mirrors=[MirrorMeta(url=cn_urls[0], mirror_name="JiHuLAB", mirror_type="direct")]
-    )
-    """
     cn_patch_meta = github_patch_meta.model_copy(deep=True)
     static_deployment_mirror_list = [
         MirrorMeta(
@@ -209,13 +157,19 @@ async def update_snap_hutao_deployment_version(redis_client: aioredis.client.Red
         logger.info(
             f"Found unmatched version, clearing mirrors. Setting Snap Hutao Deployment latest version to Redis: {await redis_client.set('snap-hutao-deployment:version', cn_patch_meta.version)}")
         logger.info(
-            f"Reinitializing mirrors for Snap Hutao Deployment: {await redis_client.set(f'snap-hutao-deployment:mirrors:{cn_patch_meta.version}', json.dumps(cn_patch_meta.mirrors))}")
+            f"Reinitializing mirrors for Snap Hutao Deployment: {await redis_client.set(f'snap-hutao-deployment:mirrors:{cn_patch_meta.version}', json.dumps(cn_patch_meta.mirrors, default=pydantic_encoder))}")
     else:
-        current_mirrors = json.loads(
-            await redis_client.get(f"snap-hutao-deployment:mirrors:{cn_patch_meta.version}"))
-        for m in current_mirrors:
-            this_mirror = MirrorMeta(**m)
-            cn_patch_meta.mirrors.append(this_mirror)
+        try:
+            current_mirrors = json.loads(
+                await redis_client.get(f"snap-hutao-deployment:mirrors:{cn_patch_meta.version}"))
+            for m in current_mirrors:
+                this_mirror = MirrorMeta(**m)
+                cn_patch_meta.mirrors.append(this_mirror)
+        except TypeError:
+            # New initialization
+            mirror_json = json.dumps(cn_patch_meta.mirrors, default=pydantic_encoder)
+            await redis_client.set(f"snap-hutao-deployment:mirrors:{cn_patch_meta.version}", mirror_json)
+
 
     return_data = {
         "global": github_patch_meta.model_dump(),
@@ -224,6 +178,64 @@ async def update_snap_hutao_deployment_version(redis_client: aioredis.client.Red
     logger.info(f"Set Snap Hutao Deployment latest version to Redis: "
                 f"{await redis_client.set('snap-hutao-deployment:patch', json.dumps(return_data, default=pydantic_encoder))}")
     return return_data
+
+
+async def fetch_snap_hutao_alpha_latest_version(redis_client: aioredis.client.Redis) -> dict | None:
+    """
+    Fetch Snap Hutao Alpha latest version from GitHub
+    :return: dict of Snap Hutao Alpha latest version metadata
+    """
+    # Fetch the workflow runs
+    github_meta = httpx.get("https://api.github.com/repos/DGP-Studio/Snap.Hutao/actions/workflows/alpha.yml/runs",
+                            headers=github_headers)
+    runs = github_meta.json()["workflow_runs"]
+
+    # Find the latest successful run
+    latest_successful_run = next((run for run in runs if run["conclusion"] == "success"
+                                  and run["head_branch"] == "develop"), None)
+    if not latest_successful_run:
+        logger.error("No successful Snap Hutao Alpha workflow runs found.")
+        return None
+
+    run_id = latest_successful_run["id"]
+    artifacts_url = f"https://api.github.com/repos/DGP-Studio/Snap.Hutao/actions/runs/{run_id}/artifacts"
+
+    # Fetch artifacts for the successful run
+    artifacts_response = httpx.get(artifacts_url, headers=github_headers)
+    artifacts = artifacts_response.json()["artifacts"]
+
+    # Extract asset download URLs
+    asset_urls = [
+        {
+            "name": artifact["name"].replace("Snap.Hutao.Alpha-", ""),
+            "download_url": f"https://github.com/DGP-Studio/Snap.Hutao/actions/runs/{run_id}/artifacts/{artifact['id']}"
+        }
+        for artifact in artifacts if artifact["expired"] is False and artifact["name"].startswith("Snap.Hutao.Alpha")
+    ]
+
+    if not asset_urls:
+        logger.error("No Snap Hutao Alpha artifacts found.")
+        return None
+
+    # Print the assets
+    github_mirror = MirrorMeta(
+        url=asset_urls[0]["download_url"],
+        mirror_name="GitHub",
+        mirror_type="browser"
+    )
+
+    github_path_meta = PatchMeta(
+        version=asset_urls[0]["name"],
+        validation="",
+        cache_time=datetime.now(),
+        mirrors=[github_mirror]
+    )
+
+    resp = await redis_client.set("snap-hutao-alpha:patch",
+                                  json.dumps(github_path_meta.model_dump(), default=str),
+                                  ex=60 * 10)
+    logger.info(f"Set Snap Hutao Alpha latest version to Redis: {resp} {github_path_meta}")
+    return github_path_meta.model_dump()
 
 
 # Snap Hutao
@@ -312,6 +324,26 @@ async def get_snap_hutao_latest_download_direct_china_endpoint(request: Request)
     } if checksum_value else {}
     return RedirectResponse(snap_hutao_latest_version["global"]["mirrors"][-1]["url"], status_code=302, headers=headers)
 
+
+@china_router.get("/alpha", include_in_schema=True, response_model=StandardResponse)
+@global_router.get("/alpha", include_in_schema=True, response_model=StandardResponse)
+@fujian_router.get("/alpha", include_in_schema=True, response_model=StandardResponse)
+async def generic_patch_snap_hutao_alpha_latest_version(request: Request) -> StandardResponse:
+    """
+    Update Snap Hutao Alpha latest version from GitHub
+    :return: dict of Snap Hutao Alpha latest version metadata
+    """
+    redis_client = aioredis.Redis.from_pool(request.app.state.redis)
+    cached_data = await redis_client.get("snap-hutao-alpha:patch")
+    if not cached_data:
+        cached_data = await fetch_snap_hutao_alpha_latest_version(redis_client)
+    else:
+        cached_data = json.loads(cached_data)
+    return StandardResponse(
+        retcode=0,
+        message="Alpha means testing",
+        data=cached_data
+    )
 
 # Snap Hutao Deployment
 @china_router.get("/hutao-deployment", response_model=StandardResponse)
@@ -408,9 +440,12 @@ async def generic_patch_latest_version(request: Request, response: Response, pro
     new_version = None
     if project == "snap-hutao":
         new_version = await update_snap_hutao_latest_version(redis_client)
-        update_recent_versions()
+        await update_recent_versions(redis_client)
     elif project == "snap-hutao-deployment":
         new_version = await update_snap_hutao_deployment_version(redis_client)
+    elif project == "snap-hutao-alpha":
+        new_version = await fetch_snap_hutao_alpha_latest_version(redis_client)
+        await update_recent_versions(redis_client)
     else:
         response.status_code = status.HTTP_404_NOT_FOUND
     response.status_code = status.HTTP_201_CREATED

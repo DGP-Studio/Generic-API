@@ -8,7 +8,6 @@ from datetime import date
 from redis import asyncio as aioredis
 from utils.authentication import verify_api_token
 from mysql_app import crud, schemas
-from mysql_app.database import SessionLocal
 from mysql_app.schemas import Wallpaper, StandardResponse
 from base_logger import logger
 
@@ -17,26 +16,19 @@ class WallpaperURL(BaseModel):
     url: str
 
 
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
-
 
 china_router = APIRouter(tags=["wallpaper"], prefix="/wallpaper")
 global_router = APIRouter(tags=["wallpaper"], prefix="/wallpaper")
 fujian_router = APIRouter(tags=["wallpaper"], prefix="/wallpaper")
 
 
-@china_router.get("/all", response_model=list[schemas.Wallpaper], dependencies=[Depends(verify_api_token)],
+@china_router.get("/all", response_model=schemas.StandardResponse, dependencies=[Depends(verify_api_token)],
                   tags=["admin"])
-@global_router.get("/all", response_model=list[schemas.Wallpaper], dependencies=[Depends(verify_api_token)],
+@global_router.get("/all", response_model=schemas.StandardResponse, dependencies=[Depends(verify_api_token)],
                    tags=["admin"])
-@fujian_router.get("/all", response_model=list[schemas.Wallpaper], dependencies=[Depends(verify_api_token)],
+@fujian_router.get("/all", response_model=schemas.StandardResponse, dependencies=[Depends(verify_api_token)],
                    tags=["admin"])
-async def get_all_wallpapers(request: Request) -> list[schemas.Wallpaper]:
+async def get_all_wallpapers(request: Request) -> schemas.StandardResponse:
     """
     Get all wallpapers in database. **This endpoint requires API token verification**
 
@@ -45,7 +37,12 @@ async def get_all_wallpapers(request: Request) -> list[schemas.Wallpaper]:
     :return: A list of wallpapers objects
     """
     db = request.app.state.mysql
-    return crud.get_all_wallpapers(db)
+    wallpapers = crud.get_all_wallpapers(db)
+    wallpaper_schema = [
+        schemas.Wallpaper.model_validate(wall.to_dict())
+        for wall in wallpapers
+    ]
+    return StandardResponse(data=wallpaper_schema, message="Successfully fetched all wallpapers")
 
 
 @china_router.post("/add", response_model=schemas.StandardResponse, dependencies=[Depends(verify_api_token)],
@@ -107,7 +104,7 @@ async def disable_wallpaper_with_url(request: Request) -> StandardResponse:
         })
     db_result = crud.disable_wallpaper_with_url(db, url)
     if db_result:
-        return StandardResponse(data=db_result.dict())
+        return StandardResponse(data=db_result.to_dict())
 
 
 @china_router.post("/enable", dependencies=[Depends(verify_api_token)], tags=["admin"], response_model=StandardResponse)
@@ -133,7 +130,7 @@ async def enable_wallpaper_with_url(request: Request) -> StandardResponse:
         })
     db_result = crud.enable_wallpaper_with_url(db, url)
     if db_result:
-        return StandardResponse(data=db_result.dict())
+        return StandardResponse(data=db_result.to_dict())
 
 
 async def random_pick_wallpaper(request: Request, force_refresh: bool = False) -> Wallpaper:

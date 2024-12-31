@@ -10,6 +10,8 @@ services:
     container_name: ${IMAGE_NAME}-server
     ports:
       - "${EXTERNAL_PORT}:8080"
+    networks:
+      - snaphutao_network
     volumes:
       - ./cache:/app/cache
       - ./.env:/app/.env
@@ -24,6 +26,8 @@ services:
     image: redis:latest
     volumes:
       - /data/docker-service/redis_cache/${IMAGE_NAME}:/data
+    networks:
+      - snaphutao_network
     restart: unless-stopped
 
   scheduled-tasks:
@@ -32,6 +36,8 @@ services:
       dockerfile: Dockerfile-scheduled-tasks
       target: runtime
     image: scheduled_tasks
+    networks:
+      - snaphutao_network
     container_name: ${IMAGE_NAME}-scheduled-tasks
     restart: unless-stopped
     volumes:
@@ -49,3 +55,9 @@ services:
     command: tunnel --no-autoupdate run
     environment:
       - TUNNEL_TOKEN=${TUNNEL_TOKEN}
+    networks:
+      - snaphutao_network
+
+networks:
+  snaphutao_network:
+    external: true

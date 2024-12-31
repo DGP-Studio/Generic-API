@@ -1,7 +1,6 @@
 from config import env_result
 import uvicorn
 import os
-import uuid
 import json
 from redis import asyncio as aioredis
 from fastapi import FastAPI, APIRouter, Request
@@ -11,20 +10,22 @@ from starlette.responses import PlainTextResponse
 from apitally.fastapi import ApitallyMiddleware
 from datetime import datetime
 from contextlib import asynccontextmanager
-from routers import enka_network, metadata, patch_next, static, net, wallpaper, strategy, crowdin, system_email, \
-    client_feature
-from starlette.middleware.base import BaseHTTPMiddleware
+from routers import (enka_network, metadata, patch_next, static, net, wallpaper, strategy, crowdin, system_email,
+                     client_feature, mgnt)
 from base_logger import logger
 from config import (MAIN_SERVER_DESCRIPTION, TOS_URL, CONTACT_INFO, LICENSE_INFO, VALID_PROJECT_KEYS, IMAGE_NAME, DEBUG)
 from mysql_app.database import SessionLocal
+from utils.redis_tools import init_redis_data
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     logger.info("enter lifespan")
+    # Create cache folder
+    os.makedirs("cache", exist_ok=True)
     # Redis connection
-    REDIS_HOST = os.getenv("REDIS_HOST", "redis")
-    redis_pool = aioredis.ConnectionPool.from_url(f"redis://{REDIS_HOST}", db=0)
+    redis_host = os.getenv("REDIS_HOST", "redis")
+    redis_pool = aioredis.ConnectionPool.from_url(f"redis://{redis_host}", db=0)
     app.state.redis = redis_pool
     redis_client = aioredis.Redis.from_pool(connection_pool=redis_pool)
     logger.info("Redis connection established")
@@ -41,9 +42,14 @@ async def lifespan(app: FastAPI):
             r = await redis_client.set(f"{key}:version", json.dumps({"version": None}))
             logger.info(f"Set [{key}:mirrors] to Redis: {r}")
     # Initial patch metadata
-    from routers.patch_next import update_snap_hutao_latest_version, update_snap_hutao_deployment_version
+    from routers.patch_next import (update_snap_hutao_latest_version, update_snap_hutao_deployment_version,
+                                    fetch_snap_hutao_alpha_latest_version)
     await update_snap_hutao_latest_version(redis_client)
     await update_snap_hutao_deployment_version(redis_client)
+    await fetch_snap_hutao_alpha_latest_version(redis_client)
+
+    # Initial Redis data
+    await init_redis_data(redis_client)
 
     logger.info("ending lifespan startup")
     yield
@@ -60,14 +66,31 @@ def get_version():
         logger.info(f"Server is running with Runtime version: {build_number}")
     if DEBUG:
         build_number += " DEBUG"
+    if os.path.exists("current_commit.txt"):
+        with open("current_commit.txt", 'r') as f:
+            commit_hash = f.read().strip()
+            build_number += f" {commit_hash[:7]}"
     return build_number
+
+
+def get_commit_hash_str():
+    commit_desc = ""
+    if os.path.exists("current_commit.txt"):
+        with open("current_commit.txt", 'r') as f:
+            commit_hash = f.read().strip()
+        logger.info(f"Server is running with Commit hash: {commit_hash}")
+        commit_desc = f"Build hash: [**{commit_hash}**](https://github.com/DGP-Studio/Generic-API/commit/{commit_hash})"
+    if DEBUG:
+        commit_desc += "\n\n**Debug mode is enabled.**"
+        commit_desc += "\n\n![Image](https://github.com/user-attachments/assets/64ce064c-c399-4d2f-ac72-cac4379d8725)"
+    return commit_desc
 
 
 app = FastAPI(redoc_url=None,
               title="Hutao Generic API",
               summary="Generic API to support various services for Snap Hutao project.",
               version=get_version(),
-              description=MAIN_SERVER_DESCRIPTION,
+              description=MAIN_SERVER_DESCRIPTION + "\n" + get_commit_hash_str(),
               terms_of_service=TOS_URL,
               contact=CONTACT_INFO,
               license_info=LICENSE_INFO,
@@ -75,27 +98,6 @@ app = FastAPI(redoc_url=None,
               lifespan=lifespan,
               debug=DEBUG)
 
-
-class TraceIDMiddleware(BaseHTTPMiddleware):
-    async def dispatch(self, request: Request, call_next):
-        trace_id = str(uuid.uuid4())
-        try:
-            response = await call_next(request)
-        except Exception:
-            # re-throw error for traceback
-            import traceback
-            tb = traceback.format_exc()
-            if DEBUG:
-                body = tb
-            else:
-                body = "Internal Server Error"
-            response = PlainTextResponse(body, status_code=500)
-        response.headers["X-Powered-By"] = "Hutao Generic API"
-        response.headers["X-Generic-ID"] = trace_id
-        return response
-
-
-app.add_middleware(TraceIDMiddleware)
 
 china_root_router = APIRouter(tags=["China Router"], prefix="/cn")
 global_root_router = APIRouter(tags=["Global Router"], prefix="/global")
@@ -136,9 +138,6 @@ china_root_router.include_router(strategy.china_router)
 global_root_router.include_router(strategy.global_router)
 fujian_root_router.include_router(strategy.fujian_router)
 
-# System Email Router
-app.include_router(system_email.admin_router)
-
 # Crowdin Localization API Routers
 china_root_router.include_router(crowdin.china_router)
 global_root_router.include_router(crowdin.global_router)
@@ -153,6 +152,10 @@ app.include_router(china_root_router)
 app.include_router(global_root_router)
 app.include_router(fujian_root_router)
 
+# Misc
+app.include_router(system_email.admin_router)
+app.include_router(mgnt.router)
+
 origins = [
     "http://localhost",
     "http://localhost:8080",
@@ -166,7 +169,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-if IMAGE_NAME != "" and "dev" not in IMAGE_NAME:
+if IMAGE_NAME != "" and "dev" not in os.getenv("IMAGE_NAME"):
     app.add_middleware(
         ApitallyMiddleware,
         client_id=os.getenv("APITALLY_CLIENT_ID"),
