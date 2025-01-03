@@ -77,7 +77,7 @@ async def validate_client_is_updated(request: Request, user_agent: Annotated[str
     if BYPASS_CLIENT_VERIFICATION:
         return True
     logger.info(f"Received request from user agent: {user_agent}")
-    if user_agent.startswith("Snap Hutao/2024"):
+    if user_agent.startswith("Snap Hutao/2025"):
         return True
     if user_agent.startswith("PaimonsNotebook/"):
         return True
