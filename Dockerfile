@@ -9,6 +9,7 @@ RUN pip install pymysql
 RUN pip install cryptography
 RUN pip install "apitally[fastapi]"
 RUN pip install sqlalchemy
+RUN pip install pytz
 #RUN pip install --no-cache-dir -r /code/requirements.txt
 RUN date '+%Y.%m.%d.%H%M%S' > build_number.txt
 RUN pip install pyinstaller
