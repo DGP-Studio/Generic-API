@@ -2,10 +2,8 @@ from config import env_result
 import uvicorn
 import os
 import json
-import pytz
-import time
 from redis import asyncio as aioredis
-from fastapi import FastAPI, APIRouter, Request
+from fastapi import FastAPI, APIRouter
 from fastapi.responses import RedirectResponse
 from fastapi.middleware.cors import CORSMiddleware
 from apitally.fastapi import ApitallyMiddleware
@@ -23,15 +21,6 @@ from utils.redis_tools import init_redis_data
 async def lifespan(app: FastAPI):
     logger.info("enter lifespan")
     # System config
-    # Set timezone by value of TZ environment variable
-    tz_name = os.getenv("TZ", None)
-    if tz_name:
-        timezone = pytz.timezone(tz_name)
-        logger.info(f"Setting timezone to {timezone}")
-        if "dev" not in IMAGE_NAME:
-            # Set timezone for the system, only in production environment
-            time.tzset()
-        os.environ['TZ'] = tz_name
     now = datetime.now()
     utc_offset = datetime.now().astimezone().utcoffset().total_seconds() / 3600
     logger.info(f"Current system timezone: {now.astimezone().tzname()} (UTC{utc_offset:+.0f})")

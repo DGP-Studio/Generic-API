@@ -4,6 +4,10 @@ from datetime import datetime
 from logging.handlers import TimedRotatingFileHandler
 import gzip
 import shutil
+from colorama import Fore, Style, init
+
+# Initialize colorama
+init(autoreset=True)
 
 log_dir = "log"
 os.makedirs(log_dir, exist_ok=True)
@@ -26,6 +30,24 @@ def compress_old_log(source_path):
 log_format = '%(levelname)s | %(asctime)s | %(name)s | %(funcName)s:%(lineno)d -> %(message)s'
 date_format = '%Y-%m-%dT%H:%M:%S %z (%Z)'
 
+# Define custom colors for each log level
+class ColoredFormatter(logging.Formatter):
+    COLORS = {
+        "DEBUG": Fore.CYAN,
+        "INFO": Fore.GREEN,
+        "WARNING": Fore.YELLOW,
+        "ERROR": Fore.RED,
+        "CRITICAL": Fore.MAGENTA + Style.BRIGHT,
+    }
+
+    def format(self, record):
+        color = self.COLORS.get(record.levelname, "")
+        reset = Style.RESET_ALL
+        record.levelname = f"{color}{record.levelname}{reset}"
+        record.name = f"{Fore.GREEN}{record.name}{reset}"
+        record.msg = f"{Fore.WHITE + Style.BRIGHT}{record.msg}{reset}"
+        return super().format(record)
+
 # Create logger instance
 logger = logging.getLogger()
 log_level = logging.DEBUG if os.getenv("DEBUG") == "1" else logging.INFO
@@ -34,7 +56,8 @@ logger.setLevel(log_level)
 # Create console handler
 console_handler = logging.StreamHandler()
 console_handler.setLevel(log_level)
-console_handler.setFormatter(logging.Formatter(fmt=log_format, datefmt=date_format))
+console_formatter = ColoredFormatter(fmt=log_format, datefmt=date_format)
+console_handler.setFormatter(console_formatter)
 
 # Create file handler
 log_file = get_log_filename()
@@ -47,7 +70,10 @@ file_handler = TimedRotatingFileHandler(
 )
 
 file_handler.setLevel(log_level)
-file_handler.setFormatter(logging.Formatter(fmt=log_format, datefmt=date_format))
+
+# Use a plain formatter for the file handler
+file_formatter = logging.Formatter(fmt=log_format, datefmt=date_format)
+file_handler.setFormatter(file_formatter)
 
 # Custom log file namer with log compression
 def custom_namer(name):
@@ -57,5 +83,6 @@ def custom_namer(name):
 
 file_handler.namer = custom_namer
 
+# Add handlers to the logger
 logger.addHandler(console_handler)
 logger.addHandler(file_handler)
