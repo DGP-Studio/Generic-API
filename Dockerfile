@@ -18,6 +18,9 @@ RUN pyinstaller -F main.py
 # Runtime
 FROM ubuntu:22.04 AS runtime
 WORKDIR /app
+RUN apt-get update && apt-get install -y tzdata \
+    && ln -snf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime \
+    && echo "Asia/Shanghai" > /etc/timezone
 COPY --from=builder /code/dist/main .
 COPY --from=builder /code/build_number.txt .
 COPY --from=builder /code/current_commit.txt .
