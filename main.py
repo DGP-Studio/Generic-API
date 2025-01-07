@@ -21,6 +21,8 @@ from utils.redis_tools import init_redis_data
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     logger.info("enter lifespan")
+    # System config
+    logger.info("Current system timezone:", datetime.now())
     # Create cache folder
     os.makedirs("cache", exist_ok=True)
     # Redis connection
