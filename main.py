@@ -2,6 +2,7 @@ from config import env_result
 import uvicorn
 import os
 import json
+import time
 from redis import asyncio as aioredis
 from fastapi import FastAPI, APIRouter, Request
 from fastapi.responses import RedirectResponse
@@ -22,7 +23,7 @@ from utils.redis_tools import init_redis_data
 async def lifespan(app: FastAPI):
     logger.info("enter lifespan")
     # System config
-    logger.info("Current system timezone:", datetime.now())
+    logger.info("Current system timezone:", time.tzname)
     # Create cache folder
     os.makedirs("cache", exist_ok=True)
     # Redis connection
