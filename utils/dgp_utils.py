@@ -73,8 +73,6 @@ async def update_recent_versions(redis_client) -> list[str]:
 
 
 async def validate_client_is_updated(request: Request, user_agent: Annotated[str, Header()]) -> bool:
-    if DEBUG:
-        logger.debug(f"Received request from user agent: {user_agent}")
     redis_client = aioredis.Redis.from_pool(request.app.state.redis)
     if BYPASS_CLIENT_VERIFICATION:
         logger.debug("Client verification is bypassed.")
