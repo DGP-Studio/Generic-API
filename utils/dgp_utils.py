@@ -6,7 +6,7 @@ from fastapi import HTTPException, status, Header, Request
 from redis import asyncio as aioredis
 from typing import Annotated
 from base_logger import logger
-from config import github_headers
+from config import github_headers, DEBUG
 
 try:
     WHITE_LIST_REPOSITORIES = json.loads(os.environ.get("WHITE_LIST_REPOSITORIES", "{}"))
@@ -75,11 +75,14 @@ async def update_recent_versions(redis_client) -> list[str]:
 async def validate_client_is_updated(request: Request, user_agent: Annotated[str, Header()]) -> bool:
     redis_client = aioredis.Redis.from_pool(request.app.state.redis)
     if BYPASS_CLIENT_VERIFICATION:
+        logger.debug("Client verification is bypassed.")
         return True
     logger.info(f"Received request from user agent: {user_agent}")
-    if user_agent.startswith("Snap Hutao/2024"):
+    if user_agent.startswith("Snap Hutao/2025"):
+        logger.info("Client is Snap Hutao Alpha, allowed.")
         return True
     if user_agent.startswith("PaimonsNotebook/"):
+        logger.info("Client is Paimon's Notebook, allowed.")
         return True
 
     allowed_user_agents = await redis_client.get("allowed_user_agents")
