@@ -262,7 +262,7 @@ async def get_bing_wallpaper(request: Request) -> StandardResponse:
         redis_key = "bing_wallpaper_global"
         bing_api = "https://www.bing.com/HPImageArchive.aspx?format=js&idx=0&n=1&mkt=en-US"
         bing_prefix = "www"
-    elif url_path.startswith("/cn"):
+    elif url_path.startswith("/cn") or url_path.startswith("/fj"):
         redis_key = "bing_wallpaper_cn"
         bing_api = "https://cn.bing.com/HPImageArchive.aspx?format=js&idx=0&n=1"
         bing_prefix = "cn"
