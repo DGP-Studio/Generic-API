@@ -2,11 +2,12 @@ from config import env_result
 import uvicorn
 import os
 import json
+from typing import Annotated
 from redis import asyncio as aioredis
-from fastapi import FastAPI, APIRouter
+from fastapi import FastAPI, APIRouter, Request, Header, Depends
 from fastapi.responses import RedirectResponse
 from fastapi.middleware.cors import CORSMiddleware
-from apitally.fastapi import ApitallyMiddleware
+from apitally.fastapi import ApitallyMiddleware, ApitallyConsumer
 from datetime import datetime
 from contextlib import asynccontextmanager
 from routers import (enka_network, metadata, patch_next, static, net, wallpaper, strategy, crowdin, system_email,
@@ -89,6 +90,14 @@ def get_commit_hash_str():
     return commit_desc
 
 
+async def collect_request_user_id(request: Request, x_hutao_device_id: Annotated[str, Annotated[str, Header()]],
+                                  user_agent: Annotated[str, Annotated[str, Header()]]):
+    request.state.apitally_consumer = ApitallyConsumer(
+        identifier=x_hutao_device_id if x_hutao_device_id else "0"*16,
+        group=user_agent if user_agent else "Unknown Client",
+    )
+
+
 app = FastAPI(redoc_url=None,
               title="Hutao Generic API",
               summary="Generic API to support various services for Snap Hutao project.",
@@ -99,7 +108,8 @@ app = FastAPI(redoc_url=None,
               license_info=LICENSE_INFO,
               openapi_url="/openapi.json",
               lifespan=lifespan,
-              debug=DEBUG)
+              debug=DEBUG,
+              dependencies=[Depends(collect_request_user_id)])
 
 
 china_root_router = APIRouter(tags=["China Router"], prefix="/cn")
