@@ -9,6 +9,8 @@ import threading
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
+from base_logger import logger
+
 
 admin_router = APIRouter(tags=["Email System"], prefix="/email")
 API_IMAGE_NAME = os.getenv("IMAGE_NAME", "dev")
@@ -39,7 +41,7 @@ class SMTPConnectionPool:
         for _ in range(self.pool_size):
             server = smtplib.SMTP_SSL(self.smtp_server, self.smtp_port)
             server.login(self.username, self.password)
-            print(f'Created SMTP connection: {self.smtp_server}')
+            logger.info(f'Created SMTP connection: {self.smtp_server}')
             self.pool.append(server)
 
     def _create_connection(self):

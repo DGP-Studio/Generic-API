@@ -12,10 +12,12 @@ init(autoreset=True)
 log_dir = "log"
 os.makedirs(log_dir, exist_ok=True)
 
+
 # Generate log file name
 def get_log_filename():
     current_time = datetime.now().strftime("%Y-%m-%d_%H")
     return os.path.join(log_dir, f"{current_time}.log")
+
 
 # Compose log file
 def compress_old_log(source_path):
@@ -26,9 +28,11 @@ def compress_old_log(source_path):
     os.remove(source_path)
     return gz_path
 
+
 # Logging format
-log_format = '%(levelname)s | %(asctime)s | %(name)s | %(funcName)s:%(lineno)d -> %(message)s'
+log_format = '%(levelname)s | %(asctime)s | %(name)s | %(funcName)s:%(lineno)d %(connector)s %(message)s'
 date_format = '%Y-%m-%dT%H:%M:%S %z (%Z)'
+
 
 # Define custom colors for each log level
 class ColoredFormatter(logging.Formatter):
@@ -45,8 +49,10 @@ class ColoredFormatter(logging.Formatter):
         reset = Style.RESET_ALL
         record.levelname = f"{color}{record.levelname}{reset}"
         record.name = f"{Fore.GREEN}{record.name}{reset}"
-        record.msg = f"{Fore.WHITE + Style.BRIGHT}{record.msg}{reset}"
+        record.msg = f"{Fore.YELLOW + Style.BRIGHT}{record.msg}{reset}"
+        record.connector = f"{Fore.YELLOW + Style.BRIGHT}->{reset}"
         return super().format(record)
+
 
 # Create logger instance
 logger = logging.getLogger()
@@ -75,11 +81,13 @@ file_handler.setLevel(log_level)
 file_formatter = logging.Formatter(fmt=log_format, datefmt=date_format)
 file_handler.setFormatter(file_formatter)
 
+
 # Custom log file namer with log compression
 def custom_namer(name):
     if name.endswith(".log"):
         compress_old_log(name)
     return name
+
 
 file_handler.namer = custom_namer
 
