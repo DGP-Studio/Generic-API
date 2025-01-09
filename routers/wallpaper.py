@@ -16,7 +16,6 @@ class WallpaperURL(BaseModel):
     url: str
 
 
-
 china_router = APIRouter(tags=["wallpaper"], prefix="/wallpaper")
 global_router = APIRouter(tags=["wallpaper"], prefix="/wallpaper")
 fujian_router = APIRouter(tags=["wallpaper"], prefix="/wallpaper")
@@ -248,7 +247,7 @@ async def reset_last_display(request: Request) -> StandardResponse:
 
 @china_router.get("/bing", response_model=StandardResponse)
 @global_router.get("/bing", response_model=StandardResponse)
-@china_router.get("/bing-wallpaper", response_model=StandardResponse)
+@fujian_router.get("/bing", response_model=StandardResponse)
 async def get_bing_wallpaper(request: Request) -> StandardResponse:
     """
     Get Bing wallpaper
@@ -263,7 +262,7 @@ async def get_bing_wallpaper(request: Request) -> StandardResponse:
         redis_key = "bing_wallpaper_global"
         bing_api = "https://www.bing.com/HPImageArchive.aspx?format=js&idx=0&n=1&mkt=en-US"
         bing_prefix = "www"
-    elif url_path.startswith("/cn"):
+    elif url_path.startswith("/cn") or url_path.startswith("/fj"):
         redis_key = "bing_wallpaper_cn"
         bing_api = "https://cn.bing.com/HPImageArchive.aspx?format=js&idx=0&n=1"
         bing_prefix = "cn"
@@ -359,9 +358,6 @@ async def get_genshin_launcher_wallpaper(request: Request, language: str = "en-u
 @china_router.get("/hoyoplay", response_model=StandardResponse)
 @global_router.get("/hoyoplay", response_model=StandardResponse)
 @fujian_router.get("/hoyoplay", response_model=StandardResponse)
-@china_router.get("/genshin-launcher", response_model=StandardResponse)
-@global_router.get("/genshin-launcher", response_model=StandardResponse)
-@fujian_router.get("/genshin-launcher", response_model=StandardResponse)
 async def get_genshin_launcher_wallpaper(request: Request) -> StandardResponse:
     """
     Get HoYoPlay wallpaper

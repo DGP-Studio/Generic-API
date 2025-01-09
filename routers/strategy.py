@@ -13,6 +13,11 @@ china_router = APIRouter(tags=["Strategy"], prefix="/strategy")
 global_router = APIRouter(tags=["Strategy"], prefix="/strategy")
 fujian_router = APIRouter(tags=["Strategy"], prefix="/strategy")
 
+"""
+miyoushe_strategy_url = "https://bbs.mihoyo.com/ys/strategy/channel/map/39/{mys_strategy_id}?bbs_presentation_style=no_header"
+hoyolab_strategy_url = "https://www.hoyolab.com/guidelist?game_id=2&guide_id={hoyolab_strategy_id}"
+"""
+
 
 async def refresh_miyoushe_avatar_strategy(redis_client: redis.client.Redis, db: Session) -> bool:
     """
@@ -146,8 +151,6 @@ async def get_avatar_strategy_item(request: Request, item_id: int) -> StandardRe
     :param item_id: Genshin internal avatar ID (compatible with weapon id if available)
     :return: strategy URLs for Miyoushe and Hoyolab
     """
-    miyoushe_strategy_url = "https://bbs.mihoyo.com/ys/strategy/channel/map/39/{mys_strategy_id}?bbs_presentation_style=no_header"
-    hoyolab_strategy_url = "https://www.hoyolab.com/guidelist?game_id=2&guide_id={hoyolab_strategy_id}"
     redis_client = redis.Redis.from_pool(request.app.state.redis)
     db = request.app.state.mysql
 
@@ -159,25 +162,27 @@ async def get_avatar_strategy_item(request: Request, item_id: int) -> StandardRe
             strategy_dict = json.loads(await redis_client.get("avatar_strategy"))
         strategy_set = strategy_dict.get(str(item_id), {})
         if strategy_set:
-            miyoushe_url = miyoushe_strategy_url.format(mys_strategy_id=strategy_set.get("mys_strategy_id"))
-            hoyolab_url = hoyolab_strategy_url.format(hoyolab_strategy_id=strategy_set.get("hoyolab_strategy_id"))
+            miyoushe_id = strategy_set.get("mys_strategy_id")
+            hoyolab_id = strategy_set.get("hoyolab_strategy_id")
         else:
-            miyoushe_url = None
-            hoyolab_url = None
+            miyoushe_id = None
+            hoyolab_id = None
     else:
         result = get_avatar_strategy_by_id(avatar_id=str(item_id), db=db)
         if result:
-            miyoushe_url = miyoushe_strategy_url.format(mys_strategy_id=result.mys_strategy_id)
-            hoyolab_url = hoyolab_strategy_url.format(hoyolab_strategy_id=result.hoyolab_strategy_id)
+            miyoushe_id = result.mys_strategy_id
+            hoyolab_id = result.hoyolab_strategy_id
         else:
-            miyoushe_url = None
-            hoyolab_url = None
+            miyoushe_id = None
+            hoyolab_id = None
     res = StandardResponse(
         retcode=0,
         message="Success",
         data={
-            "miyoushe_url": miyoushe_url,
-            "hoyolab_url": hoyolab_url
+            item_id: {
+                "mys_strategy_id": miyoushe_id,
+                "hoyolab_strategy_id": hoyolab_id
+            }
         }
     )
     return res
@@ -192,8 +197,6 @@ async def get_all_avatar_strategy_item(request: Request) -> StandardResponse:
     :param request: request object from FastAPI
     :return: all avatar strategy items
     """
-    miyoushe_strategy_url = "https://bbs.mihoyo.com/ys/strategy/channel/map/39/{mys_strategy_id}?bbs_presentation_style=no_header"
-    hoyolab_strategy_url = "https://www.hoyolab.com/guidelist?game_id=2&guide_id={hoyolab_strategy_id}"
     redis_client = redis.Redis.from_pool(request.app.state.redis)
 
     try:
@@ -201,10 +204,6 @@ async def get_all_avatar_strategy_item(request: Request) -> StandardResponse:
     except TypeError:
         await refresh_avatar_strategy(request, "all")
         strategy_dict = json.loads(await redis_client.get("avatar_strategy"))
-    for key in strategy_dict:
-        strategy_set = strategy_dict[key]
-        strategy_set["miyoushe_url"] = miyoushe_strategy_url.format(mys_strategy_id=strategy_set.get("mys_strategy_id"))
-        strategy_set["hoyolab_url"] = hoyolab_strategy_url.format(hoyolab_strategy_id=strategy_set.get("hoyolab_strategy_id"))
     return StandardResponse(
         retcode=0,
         message="Success",
