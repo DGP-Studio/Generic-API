@@ -90,11 +90,16 @@ def get_commit_hash_str():
     return commit_desc
 
 
-async def collect_request_user_id(request: Request, x_hutao_device_id: Annotated[str, Annotated[str, Header()]],
-                                  user_agent: Annotated[str, Annotated[str, Header()]]):
+def identify_user(request: Request) -> None:
+    # Extract headers
+    device_id = request.headers.get("x-hutao-device-id", "unknown-device")
+    user_agent = request.headers.get("User-Agent", "unknown-group")
+
+    # Assign to Apitally consumer
     request.state.apitally_consumer = ApitallyConsumer(
-        identifier=x_hutao_device_id if x_hutao_device_id else "0"*16,
-        group=user_agent if user_agent else "Unknown Client",
+        identifier=device_id,
+        name=device_id,
+        group=user_agent
     )
 
 
@@ -109,7 +114,7 @@ app = FastAPI(redoc_url=None,
               openapi_url="/openapi.json",
               lifespan=lifespan,
               debug=DEBUG,
-              dependencies=[Depends(collect_request_user_id)])
+              dependencies=[Depends(identify_user)])
 
 
 china_root_router = APIRouter(tags=["China Router"], prefix="/cn")
