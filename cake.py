@@ -3,7 +3,7 @@ from dotenv import load_dotenv
 
 
 if __name__ == "__main__":
-    load_dotenv()
+    load_dotenv(dotenv_path=".env")
 
     input_file = "docker-compose.yml.base"
     output_file = "docker-compose.yml"
