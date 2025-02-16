@@ -18,7 +18,7 @@ services:
     environment:
       - TZ=Asia/Shanghai
     depends_on:
-      - scheduled-tasks
+      - %scheduled_tasks_service_name%
     extra_hosts:
       - "host.docker.internal:host-gateway"
 
@@ -43,7 +43,7 @@ services:
       - ./cache:/app/cache
       - ./.env:/app/.env
     depends_on:
-      - redis
+      - %redis_service_name%
     environment:
       - TZ=Asia/Shanghai
     extra_hosts:
