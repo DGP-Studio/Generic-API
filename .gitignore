@@ -154,3 +154,4 @@ upstream/
 *.tar.gz
 cache/
 .DS_Store
+log/
