@@ -27,6 +27,7 @@ if __name__ == "__main__":
     EXTERNAL_PORT = os.getenv("EXTERNAL_PORT")
     variables = {
         "fastapi_service_name": f"{IMAGE_NAME}-{SERVER_TYPE}-server",
+        "fastapi_container_name": f"{IMAGE_NAME}-{SERVER_TYPE}-server",
         "redis_service_name": f"{IMAGE_NAME}-{SERVER_TYPE}-redis",
         "scheduled_tasks_service_name": f"{IMAGE_NAME}-{SERVER_TYPE}-scheduled-tasks",
         "tunnel_service_name": f"{IMAGE_NAME}-{SERVER_TYPE}-tunnel",

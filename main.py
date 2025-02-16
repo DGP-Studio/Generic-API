@@ -13,7 +13,8 @@ from contextlib import asynccontextmanager
 from routers import (enka_network, metadata, patch_next, static, net, wallpaper, strategy, crowdin, system_email,
                      client_feature, mgnt)
 from base_logger import logger
-from config import (MAIN_SERVER_DESCRIPTION, TOS_URL, CONTACT_INFO, LICENSE_INFO, VALID_PROJECT_KEYS, IMAGE_NAME, DEBUG)
+from config import (MAIN_SERVER_DESCRIPTION, TOS_URL, CONTACT_INFO, LICENSE_INFO, VALID_PROJECT_KEYS,
+                    IMAGE_NAME, DEBUG, SERVER_TYPE)
 from mysql_app.database import SessionLocal
 from utils.redis_tools import init_redis_data
 
@@ -63,7 +64,7 @@ async def lifespan(app: FastAPI):
 def get_version():
     if os.path.exists("build_number.txt"):
         with open("build_number.txt", 'r') as f:
-            build_number = f"Build {f.read().strip()}"
+            build_number = f"{IMAGE_NAME}-{SERVER_TYPE} Build {f.read().strip()}"
         logger.info(f"Server is running with Build number: {build_number}")
     else:
         build_number = f"Runtime {datetime.now().strftime('%Y.%m.%d.%H%M%S')}"
@@ -188,11 +189,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-if IMAGE_NAME != "" and "dev" not in os.getenv("IMAGE_NAME"):
+if SERVER_TYPE != "" and "dev" not in os.getenv("SERVER_TYPE"):
     app.add_middleware(
         ApitallyMiddleware,
         client_id=os.getenv("APITALLY_CLIENT_ID"),
-        env="dev" if "alpha" in IMAGE_NAME else "prod",
+        env="dev" if "alpha" in SERVER_TYPE else "prod",
         openapi_url="/openapi.json"
     )
 else:
