@@ -14,7 +14,7 @@ from routers import (enka_network, metadata, patch_next, static, net, wallpaper,
                      client_feature, mgnt)
 from base_logger import logger
 from config import (MAIN_SERVER_DESCRIPTION, TOS_URL, CONTACT_INFO, LICENSE_INFO, VALID_PROJECT_KEYS,
-                    IMAGE_NAME, DEBUG, SERVER_TYPE)
+                    IMAGE_NAME, DEBUG, SERVER_TYPE, REDIS_HOST)
 from mysql_app.database import SessionLocal
 from utils.redis_tools import init_redis_data
 
@@ -29,8 +29,7 @@ async def lifespan(app: FastAPI):
     # Create cache folder
     os.makedirs("cache", exist_ok=True)
     # Redis connection
-    redis_host = os.getenv("REDIS_HOST", "redis")
-    redis_pool = aioredis.ConnectionPool.from_url(f"redis://{redis_host}", db=0)
+    redis_pool = aioredis.ConnectionPool.from_url(f"redis://{REDIS_HOST}", db=0)
     app.state.redis = redis_pool
     redis_client = aioredis.Redis.from_pool(connection_pool=redis_pool)
     logger.info("Redis connection established")

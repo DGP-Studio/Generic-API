@@ -19,6 +19,8 @@ HOMA_SERVER_IP = os.environ.get("HOMA_SERVER_IP", None)
 
 DEBUG = True if "alpha" in IMAGE_NAME.lower() or "dev" in IMAGE_NAME.lower() else False
 
+REDIS_HOST = os.getenv("REDIS_HOST", "redis")
+
 
 # FastAPI Config
 TOS_URL = "https://hut.ao/statements/tos.html"
