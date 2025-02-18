@@ -17,6 +17,7 @@ services:
     restart: unless-stopped
     environment:
       - TZ=Asia/Shanghai
+      - redis=%redis_service_name%
     depends_on:
       - %scheduled_tasks_service_name%
     extra_hosts:
@@ -46,6 +47,7 @@ services:
       - %redis_service_name%
     environment:
       - TZ=Asia/Shanghai
+      - redis=%redis_service_name%
     extra_hosts:
       - "host.docker.internal:host-gateway"
 
