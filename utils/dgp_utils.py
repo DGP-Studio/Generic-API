@@ -84,6 +84,9 @@ async def validate_client_is_updated(request: Request, user_agent: Annotated[str
     if user_agent.startswith("PaimonsNotebook/"):
         logger.info("Client is Paimon's Notebook, allowed.")
         return True
+    if user_agent.startswith("Reqable/"):
+        logger.info("Client is Reqable, allowed.")
+        return True
 
     allowed_user_agents = await redis_client.get("allowed_user_agents")
     if allowed_user_agents:

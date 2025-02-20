@@ -6,6 +6,7 @@ env_result = load_dotenv()
 VALID_PROJECT_KEYS = ["snap-hutao", "snap-hutao-deployment"]
 
 IMAGE_NAME = os.getenv("IMAGE_NAME", "")
+SERVER_TYPE = os.getenv("SERVER_TYPE", "")
 
 github_headers = {
     "Authorization": f"Bearer {os.environ.get('GITHUB_PAT')}",
@@ -17,6 +18,8 @@ API_TOKEN = os.environ.get("API_TOKEN")
 HOMA_SERVER_IP = os.environ.get("HOMA_SERVER_IP", None)
 
 DEBUG = True if "alpha" in IMAGE_NAME.lower() or "dev" in IMAGE_NAME.lower() else False
+
+REDIS_HOST = os.getenv("REDIS_HOST", "redis")
 
 
 # FastAPI Config

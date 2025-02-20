@@ -2,18 +2,19 @@ from config import env_result
 import uvicorn
 import os
 import json
+from typing import Annotated
 from redis import asyncio as aioredis
-from fastapi import FastAPI, APIRouter, Request
+from fastapi import FastAPI, APIRouter, Request, Header, Depends
 from fastapi.responses import RedirectResponse
 from fastapi.middleware.cors import CORSMiddleware
-from starlette.responses import PlainTextResponse
-from apitally.fastapi import ApitallyMiddleware
+from apitally.fastapi import ApitallyMiddleware, ApitallyConsumer
 from datetime import datetime
 from contextlib import asynccontextmanager
 from routers import (enka_network, metadata, patch_next, static, net, wallpaper, strategy, crowdin, system_email,
                      client_feature, mgnt)
 from base_logger import logger
-from config import (MAIN_SERVER_DESCRIPTION, TOS_URL, CONTACT_INFO, LICENSE_INFO, VALID_PROJECT_KEYS, IMAGE_NAME, DEBUG)
+from config import (MAIN_SERVER_DESCRIPTION, TOS_URL, CONTACT_INFO, LICENSE_INFO, VALID_PROJECT_KEYS,
+                    IMAGE_NAME, DEBUG, SERVER_TYPE, REDIS_HOST)
 from mysql_app.database import SessionLocal
 from utils.redis_tools import init_redis_data
 
@@ -21,11 +22,14 @@ from utils.redis_tools import init_redis_data
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     logger.info("enter lifespan")
+    # System config
+    now = datetime.now()
+    utc_offset = datetime.now().astimezone().utcoffset().total_seconds() / 3600
+    logger.info(f"Current system timezone: {now.astimezone().tzname()} (UTC{utc_offset:+.0f})")
     # Create cache folder
     os.makedirs("cache", exist_ok=True)
     # Redis connection
-    redis_host = os.getenv("REDIS_HOST", "redis")
-    redis_pool = aioredis.ConnectionPool.from_url(f"redis://{redis_host}", db=0)
+    redis_pool = aioredis.ConnectionPool.from_url(f"redis://{REDIS_HOST}", db=0)
     app.state.redis = redis_pool
     redis_client = aioredis.Redis.from_pool(connection_pool=redis_pool)
     logger.info("Redis connection established")
@@ -59,7 +63,7 @@ async def lifespan(app: FastAPI):
 def get_version():
     if os.path.exists("build_number.txt"):
         with open("build_number.txt", 'r') as f:
-            build_number = f"Build {f.read().strip()}"
+            build_number = f"{IMAGE_NAME}-{SERVER_TYPE} Build {f.read().strip()}"
         logger.info(f"Server is running with Build number: {build_number}")
     else:
         build_number = f"Runtime {datetime.now().strftime('%Y.%m.%d.%H%M%S')}"
@@ -86,6 +90,20 @@ def get_commit_hash_str():
     return commit_desc
 
 
+def identify_user(request: Request) -> None:
+    # Extract headers
+    device_id = request.headers.get("x-hutao-device-id", "unknown-device")
+    reqable_id = request.headers.get("Reqable-Id", None)
+    user_agent = request.headers.get("User-Agent", "unknown-group")
+
+    # Assign to Apitally consumer
+    request.state.apitally_consumer = ApitallyConsumer(
+        identifier=device_id if reqable_id is None else reqable_id,
+        name=device_id,
+        group=user_agent if reqable_id is None else "Reqable",
+    )
+
+
 app = FastAPI(redoc_url=None,
               title="Hutao Generic API",
               summary="Generic API to support various services for Snap Hutao project.",
@@ -96,7 +114,8 @@ app = FastAPI(redoc_url=None,
               license_info=LICENSE_INFO,
               openapi_url="/openapi.json",
               lifespan=lifespan,
-              debug=DEBUG)
+              debug=DEBUG,
+              dependencies=[Depends(identify_user)])
 
 
 china_root_router = APIRouter(tags=["China Router"], prefix="/cn")
@@ -169,11 +188,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-if IMAGE_NAME != "" and "dev" not in os.getenv("IMAGE_NAME"):
+if SERVER_TYPE != "" and "dev" not in os.getenv("SERVER_TYPE"):
     app.add_middleware(
         ApitallyMiddleware,
         client_id=os.getenv("APITALLY_CLIENT_ID"),
-        env="dev" if "alpha" in IMAGE_NAME else "prod",
+        env="dev" if "alpha" in SERVER_TYPE else "prod",
         openapi_url="/openapi.json"
     )
 else:

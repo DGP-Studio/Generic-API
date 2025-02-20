@@ -1,51 +1,61 @@
 version: '3.8'
 
 services:
-  fastapi-app:
+  %fastapi_service_name%:
     build:
       context: .
       dockerfile: Dockerfile
       target: runtime
-    image: ${IMAGE_NAME}-server:latest
-    container_name: ${IMAGE_NAME}-server
+    image: ${IMAGE_NAME}-${SERVER_TYPE}-server
+    container_name: %fastapi_container_name%
     ports:
       - "${EXTERNAL_PORT}:8080"
     volumes:
       - ./cache:/app/cache
+      - ./log:/app/log
       - ./.env:/app/.env
     restart: unless-stopped
+    environment:
+      - TZ=Asia/Shanghai
+      - REDIS_HOST=%redis_service_name%
     depends_on:
-      - scheduled-tasks
+      - %scheduled_tasks_service_name%
     extra_hosts:
       - "host.docker.internal:host-gateway"
 
-  redis:
-    container_name: ${IMAGE_NAME}-redis
+  %redis_service_name%:
+    container_name: ${IMAGE_NAME}-${SERVER_TYPE}-redis
     image: redis:latest
     volumes:
       - /data/docker-service/redis_cache/${IMAGE_NAME}:/data
+    environment:
+      - TZ=Asia/Shanghai
     restart: unless-stopped
 
-  scheduled-tasks:
+  %scheduled_tasks_service_name%:
     build:
       context: .
       dockerfile: Dockerfile-scheduled-tasks
       target: runtime
-    image: scheduled_tasks
-    container_name: ${IMAGE_NAME}-scheduled-tasks
+    image: ${IMAGE_NAME}-${SERVER_TYPE}-scheduled-tasks
+    container_name: ${IMAGE_NAME}-${SERVER_TYPE}-scheduled-tasks
     restart: unless-stopped
     volumes:
       - ./cache:/app/cache
       - ./.env:/app/.env
     depends_on:
-      - redis
+      - %redis_service_name%
+    environment:
+      - TZ=Asia/Shanghai
+      - REDIS_HOST=%redis_service_name%
     extra_hosts:
       - "host.docker.internal:host-gateway"
 
-  tunnel:
-    container_name: ${IMAGE_NAME}-tunnel
+  %tunnel_service_name%:
+    container_name: ${IMAGE_NAME}-${SERVER_TYPE}-tunnel
     image: cloudflare/cloudflared:latest
     restart: unless-stopped
     command: tunnel --no-autoupdate run
     environment:
       - TUNNEL_TOKEN=${TUNNEL_TOKEN}
+      - TZ=Asia/Shanghai

@@ -14,11 +14,12 @@ from mysql_app.crud import dump_daily_active_user_stats, dump_daily_email_sent_s
 scan_duration = int(os.getenv("CENSOR_FILE_SCAN_DURATION", 30))  # Scan duration in *minutes*
 tz_shanghai = datetime.timezone(datetime.timedelta(hours=8))
 print(f"Scan duration: {scan_duration} minutes.")
+REDIS_HOST = os.getenv("REDIS_HOST", "redis")
 
 
 def dump_daily_active_user_data() -> None:
     db = SessionLocal()
-    redis_conn = redis.Redis(host="redis", port=6379, db=0)
+    redis_conn = redis.Redis(host=REDIS_HOST, port=6379, db=0)
 
     active_users_cn = redis_conn.scard("stat:active_users:cn")
     delete_cn_result = redis_conn.delete("stat:active_users:cn")
@@ -43,7 +44,7 @@ def dump_daily_active_user_data() -> None:
 
 def dump_daily_email_sent_data() -> None:
     db = SessionLocal()
-    redis_conn = redis.Redis(host="redis", port=6379, db=0)
+    redis_conn = redis.Redis(host=REDIS_HOST, port=6379, db=0)
 
     email_requested = redis_conn.getdel("stat:email_requested")
     email_sent = redis_conn.getdel("stat:email_sent")

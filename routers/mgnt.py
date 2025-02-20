@@ -1,10 +1,14 @@
-from fastapi import APIRouter, Request, HTTPException
+import os
+from fastapi import APIRouter, Request, HTTPException, Depends
+from starlette.responses import StreamingResponse
 from utils.redis_tools import INITIALIZED_REDIS_DATA
 from mysql_app.schemas import StandardResponse
 from redis import asyncio as aioredis
 from pydantic import BaseModel
+from utils.authentication import verify_api_token
 
-router = APIRouter(tags=["Management"], prefix="/mgnt")
+
+router = APIRouter(tags=["Management"], prefix="/mgnt", dependencies=[Depends(verify_api_token)])
 
 
 class UpdateRedirectRules(BaseModel):
@@ -57,3 +61,29 @@ async def update_redirect_rules(request: Request, update_data: UpdateRedirectRul
             update_data.rule_name: update_data.rule_template
         }
     )
+
+
+@router.get("/log", response_model=StandardResponse)
+async def list_current_logs() -> StandardResponse:
+    """
+    List the current logs of the API
+
+    :return: Standard response with the current logs
+    """
+    log_files = os.listdir("log")
+    return StandardResponse(
+        retcode=0,
+        message="success",
+        data=log_files
+    )
+
+@router.get("/log/{log_file}")
+async def download_log_file(log_file: str) -> StreamingResponse:
+    """
+    Download the log file specified by the user
+
+    :param log_file: Name of the log file to download
+
+    :return: Streaming response with the log file
+    """
+    return StreamingResponse(open(f"log/{log_file}", "rb"), media_type="text/plain")
