@@ -92,7 +92,7 @@ def get_commit_hash_str():
 
 def identify_user(request: Request) -> None:
     # Extract headers
-    device_id = request.headers.get("x-hutao-device-id", "unknown-device")
+    device_id = request.headers.get("User-Agent", "unknown-device")
     reqable_id = request.headers.get("Reqable-Id", None)
     user_agent = request.headers.get("User-Agent", "unknown-group")
 
