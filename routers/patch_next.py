@@ -139,13 +139,8 @@ async def update_snap_hutao_deployment_version(redis_client: aioredis.client.Red
     cn_patch_meta = github_patch_meta.model_copy(deep=True)
     static_deployment_mirror_list = [
         MirrorMeta(
-            url="https://static-next.snapgenshin.com/d/lz/Snap.Hutao.Deployment.exe",
-            mirror_name="Lanzou",
-            mirror_type="direct"
-        ),
-        MirrorMeta(
-            url="https://static-next.snapgenshin.com/d/lznew/Snap.Hutao.Deployment.exe",
-            mirror_name="Lanzou Pro",
+            url="https://api.qhy04.com/hutaocdn/deployment",
+            mirror_name="QHY CDN",
             mirror_type="direct"
         )
     ]
