@@ -266,7 +266,7 @@ async def get_snap_hutao_latest_download_direct_china_endpoint(request: Request)
     """
     Redirect to Snap Hutao latest download link in China endpoint (use first link in the list)
 
-    :return: 302 Redirect to the first download link
+    :return: 301 Redirect to the first download link
     """
     redis_client = aioredis.Redis.from_pool(request.app.state.redis)
     snap_hutao_latest_version = await redis_client.get("snap-hutao:patch")
@@ -275,7 +275,7 @@ async def get_snap_hutao_latest_download_direct_china_endpoint(request: Request)
     headers = {
         "X-Checksum-Sha256": checksum_value
     } if checksum_value else {}
-    return RedirectResponse(snap_hutao_latest_version["cn"]["mirrors"][-1]["url"], status_code=302, headers=headers)
+    return RedirectResponse(snap_hutao_latest_version["cn"]["mirrors"][-1]["url"], status_code=301, headers=headers)
 
 
 @global_router.get("/hutao", response_model=StandardResponse, dependencies=[Depends(record_device_id)])
@@ -308,7 +308,7 @@ async def get_snap_hutao_latest_download_direct_china_endpoint(request: Request)
     """
     Redirect to Snap Hutao latest download link in Global endpoint (use first link in the list)
 
-    :return: 302 Redirect to the first download link
+    :return: 301 Redirect to the first download link
     """
     redis_client = aioredis.Redis.from_pool(request.app.state.redis)
     snap_hutao_latest_version = await redis_client.get("snap-hutao:patch")
@@ -317,7 +317,7 @@ async def get_snap_hutao_latest_download_direct_china_endpoint(request: Request)
     headers = {
         "X-Checksum-Sha256": checksum_value
     } if checksum_value else {}
-    return RedirectResponse(snap_hutao_latest_version["global"]["mirrors"][-1]["url"], status_code=302, headers=headers)
+    return RedirectResponse(snap_hutao_latest_version["global"]["mirrors"][-1]["url"], status_code=301, headers=headers)
 
 
 @china_router.get("/alpha", include_in_schema=True, response_model=StandardResponse)
@@ -373,12 +373,12 @@ async def get_snap_hutao_latest_download_direct_china_endpoint(request: Request)
     """
     Redirect to Snap Hutao Deployment latest download link in China endpoint (use first link in the list)
 
-    :return: 302 Redirect to the first download link
+    :return: 301 Redirect to the first download link
     """
     redis_client = aioredis.Redis.from_pool(request.app.state.redis)
     snap_hutao_deployment_latest_version = await redis_client.get("snap-hutao-deployment:patch")
     snap_hutao_deployment_latest_version = json.loads(snap_hutao_deployment_latest_version)
-    return RedirectResponse(snap_hutao_deployment_latest_version["cn"]["mirrors"][-1]["url"], status_code=302)
+    return RedirectResponse(snap_hutao_deployment_latest_version["cn"]["mirrors"][-1]["url"], status_code=301)
 
 
 @global_router.get("/hutao-deployment", response_model=StandardResponse)
@@ -408,12 +408,12 @@ async def get_snap_hutao_latest_download_direct_china_endpoint(request: Request)
     """
     Redirect to Snap Hutao Deployment latest download link in Global endpoint (use first link in the list)
 
-    :return: 302 Redirect to the first download link
+    :return: 301 Redirect to the first download link
     """
     redis_client = aioredis.Redis.from_pool(request.app.state.redis)
     snap_hutao_deployment_latest_version = await redis_client.get("snap-hutao-deployment:patch")
     snap_hutao_deployment_latest_version = json.loads(snap_hutao_deployment_latest_version)
-    return RedirectResponse(snap_hutao_deployment_latest_version["global"]["mirrors"][-1]["url"], status_code=302)
+    return RedirectResponse(snap_hutao_deployment_latest_version["global"]["mirrors"][-1]["url"], status_code=301)
 
 
 @china_router.patch("/{project}", include_in_schema=True, response_model=StandardResponse)

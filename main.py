@@ -92,15 +92,13 @@ def get_commit_hash_str():
 
 def identify_user(request: Request) -> None:
     # Extract headers
-    device_id = request.headers.get("x-hutao-device-id", "unknown-device")
     reqable_id = request.headers.get("Reqable-Id", None)
-    user_agent = request.headers.get("User-Agent", "unknown-group")
+    user_agent = request.headers.get("User-Agent", "unknown-UA")
 
     # Assign to Apitally consumer
     request.state.apitally_consumer = ApitallyConsumer(
-        identifier=device_id if reqable_id is None else reqable_id,
-        name=device_id,
-        group=user_agent if reqable_id is None else "Reqable",
+        identifier="Reqable" if reqable_id else user_agent,
+        group="Reqable" if reqable_id else "Snap Hutao"
     )
 
 

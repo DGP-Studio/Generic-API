@@ -19,14 +19,14 @@ async def cn_get_enka_raw_data(request: Request, uid: str) -> RedirectResponse:
 
     :param uid: User's in-game UID
 
-    :return: HTTP 302 redirect to Enka-API
+    :return: HTTP 301 redirect to Enka-API
     """
     redis_client = aioredis.Redis.from_pool(request.app.state.redis)
 
     endpoint = await redis_client.get("url:china:enka-network")
     endpoint = endpoint.decode("utf-8").format(uid=uid)
 
-    return RedirectResponse(endpoint, status_code=302)
+    return RedirectResponse(endpoint, status_code=301)
 
 
 @global_router.get("/{uid}", dependencies=[Depends(validate_client_is_updated)])
@@ -38,14 +38,14 @@ async def global_get_enka_raw_data(request: Request, uid: str) -> RedirectRespon
 
     :param uid: User's in-game UID
 
-    :return: HTTP 302 redirect to Enka-API (Origin Endpoint)
+    :return: HTTP 301 redirect to Enka-API (Origin Endpoint)
     """
     redis_client = aioredis.Redis.from_pool(request.app.state.redis)
 
     endpoint = await redis_client.get("url:global:enka-network")
     endpoint = endpoint.decode("utf-8").format(uid=uid)
 
-    return RedirectResponse(endpoint, status_code=302)
+    return RedirectResponse(endpoint, status_code=301)
 
 
 @china_router.get("/{uid}/info", dependencies=[Depends(validate_client_is_updated)])
@@ -58,14 +58,14 @@ async def cn_get_enka_info_data(request: Request, uid: str) -> RedirectResponse:
 
     :param uid: User's in-game UID
 
-    :return: HTTP 302 redirect to Enka-API
+    :return: HTTP 301 redirect to Enka-API
     """
     redis_client = aioredis.Redis.from_pool(request.app.state.redis)
 
     endpoint = await redis_client.get("url:china:enka-network-info")
     endpoint = endpoint.decode("utf-8").format(uid=uid)
 
-    return RedirectResponse(endpoint, status_code=302)
+    return RedirectResponse(endpoint, status_code=301)
 
 
 @global_router.get("/{uid}/info", dependencies=[Depends(validate_client_is_updated)])
@@ -77,11 +77,11 @@ async def global_get_enka_info_data(request: Request, uid: str) -> RedirectRespo
 
     :param uid: User's in-game UID
 
-    :return: HTTP 302 redirect to Enka-API (Origin Endpoint)
+    :return: HTTP 301 redirect to Enka-API (Origin Endpoint)
     """
     redis_client = aioredis.Redis.from_pool(request.app.state.redis)
 
     endpoint = await redis_client.get("url:global:enka-network-info")
     endpoint = endpoint.decode("utf-8").format(uid=uid)
 
-    return RedirectResponse(endpoint, status_code=302)
+    return RedirectResponse(endpoint, status_code=301)
