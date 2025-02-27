@@ -29,7 +29,7 @@ async def cn_get_zipped_file(file_path: str, request: Request) -> RedirectRespon
 
     :param file_path: File relative path in Snap.Static.Zip
 
-    :return: 302 Redirect to the zip file
+    :return: 301 Redirect to the zip file
     """
     redis_client = aioredis.Redis.from_pool(request.app.state.redis)
     china_endpoint = await redis_client.get("url:china:static:zip")
@@ -61,7 +61,7 @@ async def cn_get_zipped_file(file_path: str, request: Request) -> RedirectRespon
         case _:
             raise HTTPException(status_code=404, detail="Invalid quality")
     logging.debug(f"Redirecting to {china_endpoint.format(file_path=file_path)}")
-    return RedirectResponse(china_endpoint.format(file_path=file_path), status_code=302)
+    return RedirectResponse(china_endpoint.format(file_path=file_path), status_code=301)
 
 
 @china_router.get("/raw/{file_path:path}")
@@ -74,7 +74,7 @@ async def cn_get_raw_file(file_path: str, request: Request) -> RedirectResponse:
 
     :param file_path: Raw file relative path in Snap.Static
 
-    :return: 302 Redirect to the raw file
+    :return: 301 Redirect to the raw file
     """
     quality = request.headers.get("x-hutao-quality", "high").lower()
     redis_client = aioredis.Redis.from_pool(request.app.state.redis)
@@ -91,7 +91,7 @@ async def cn_get_raw_file(file_path: str, request: Request) -> RedirectResponse:
         case _:
             raise HTTPException(status_code=404, detail="Invalid quality")
     logging.debug(f"Redirecting to {china_endpoint.format(file_path=file_path)}")
-    return RedirectResponse(china_endpoint.format(file_path=file_path), status_code=302)
+    return RedirectResponse(china_endpoint.format(file_path=file_path), status_code=301)
 
 
 @global_router.get("/zip/{file_path:path}")
@@ -131,12 +131,12 @@ async def global_get_zipped_file(file_path: str, request: Request) -> RedirectRe
         case "high":
             return RedirectResponse(
                 global_tiny_quality_endpoint.format(file_path=file_path, file_type="zip"),
-                status_code=302
+                status_code=301
             )
         case "raw":
             return RedirectResponse(
                 global_original_quality_endpoint.format(file_path=file_path),
-                status_code=302
+                status_code=301
             )
         case _:
             raise HTTPException(status_code=404, detail="Invalid quality")
@@ -150,7 +150,7 @@ async def global_get_raw_file(file_path: str, request: Request) -> RedirectRespo
     :param request: request object from FastAPI
     :param file_path: Relative path in Snap.Static
 
-    :return: 302 Redirect to the raw file
+    :return: 301 Redirect to the raw file
     """
     quality = request.headers.get("x-hutao-quality", "high").lower()
     redis_client = aioredis.Redis.from_pool(request.app.state.redis)
@@ -163,17 +163,17 @@ async def global_get_raw_file(file_path: str, request: Request) -> RedirectRespo
         case "high":
             return RedirectResponse(
                 global_tiny_quality_endpoint.format(file_type="raw", file_path=file_path),
-                status_code=302
+                status_code=301
             )
         case "raw":
             return RedirectResponse(
                 global_original_quality_endpoint.format(file_path=file_path),
-                status_code=302
+                status_code=301
             )
         case "original":
             return RedirectResponse(
                 global_original_quality_endpoint.format(file_path=file_path),
-                status_code=302
+                status_code=301
             )
         case _:
             raise HTTPException(status_code=404, detail="Invalid quality")
