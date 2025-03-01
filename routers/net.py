@@ -61,3 +61,17 @@ def get_client_ip_global(request: Request) -> StandardResponse:
             "division": "Oversea"
         }
     )
+
+
+@china_router.get("/ips")
+@global_router.get("/ips")
+@fujian_router.get("/ips")
+def return_ip_addr(request: Request):
+    """
+    Get the client's IP address.
+
+    :param request: Request object from FastAPI, used to identify the client's IP address
+
+    :return: Raw IP address
+    """
+    return request.client.host
