@@ -14,9 +14,17 @@ from routers import (enka_network, metadata, patch_next, static, net, wallpaper,
                      client_feature, mgnt)
 from base_logger import logger
 from config import (MAIN_SERVER_DESCRIPTION, TOS_URL, CONTACT_INFO, LICENSE_INFO, VALID_PROJECT_KEYS,
-                    IMAGE_NAME, DEBUG, SERVER_TYPE, REDIS_HOST)
+                    IMAGE_NAME, DEBUG, SERVER_TYPE, REDIS_HOST, SENTRY_URL)
 from mysql_app.database import SessionLocal
 from utils.redis_tools import init_redis_data
+import sentry_sdk
+
+
+sentry_sdk.init(
+    dsn=SENTRY_URL,
+    send_default_pii=True,
+    traces_sample_rate=1.0,
+)
 
 
 @asynccontextmanager
