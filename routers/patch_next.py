@@ -419,7 +419,7 @@ async def get_snap_hutao_latest_download_direct_china_endpoint(request: Request)
 
 @china_router.patch("/{project}", include_in_schema=True, response_model=StandardResponse)
 @global_router.patch("/{project}", include_in_schema=True, response_model=StandardResponse)
-@fujian_router.patch("/{project}", include_in_scdhema=True, response_model=StandardResponse)
+@fujian_router.patch("/{project}", include_in_schema=True, response_model=StandardResponse)
 async def generic_patch_latest_version(request: Request, response: Response, project: str) -> StandardResponse:
     """
     Update latest version of a project
