@@ -14,9 +14,13 @@ from routers import (enka_network, metadata, patch_next, static, net, wallpaper,
                      client_feature, mgnt)
 from base_logger import logger
 from config import (MAIN_SERVER_DESCRIPTION, TOS_URL, CONTACT_INFO, LICENSE_INFO, VALID_PROJECT_KEYS,
-                    IMAGE_NAME, DEBUG, SERVER_TYPE, REDIS_HOST)
+                    IMAGE_NAME, DEBUG, SERVER_TYPE, REDIS_HOST, SENTRY_URL)
 from mysql_app.database import SessionLocal
 from utils.redis_tools import init_redis_data
+import sentry_sdk
+from sentry_sdk.integrations.starlette import StarletteIntegration
+from sentry_sdk.integrations.fastapi import FastApiIntegration
+
 
 
 @asynccontextmanager
@@ -100,6 +104,27 @@ def identify_user(request: Request) -> None:
         identifier="Reqable" if reqable_id else user_agent,
         group="Reqable" if reqable_id else "Snap Hutao"
     )
+
+
+sentry_sdk.init(
+    dsn=SENTRY_URL,
+    send_default_pii=True,
+    traces_sample_rate=1.0,
+    integrations=[
+        StarletteIntegration(
+            transaction_style="url",
+            failed_request_status_codes={403, *range(500, 599)},
+        ),
+        FastApiIntegration(
+            transaction_style="url",
+            failed_request_status_codes={403, *range(500, 599)},
+        ),
+    ],
+    profiles_sample_rate=1.0,
+    release=SERVER_TYPE,
+    dist=get_version(),
+    server_name="US1",
+)
 
 
 app = FastAPI(redoc_url=None,

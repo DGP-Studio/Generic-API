@@ -74,4 +74,4 @@ def return_ip_addr(request: Request):
 
     :return: Raw IP address
     """
-    return request.client.host
+    return request.client.host.replace('"', '')
