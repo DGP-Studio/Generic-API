@@ -7,7 +7,6 @@ from redis import asyncio as aioredis
 from fastapi import FastAPI, APIRouter, Request, Header, Depends
 from fastapi.responses import RedirectResponse
 from fastapi.middleware.cors import CORSMiddleware
-from apitally.fastapi import ApitallyMiddleware, ApitallyConsumer
 from datetime import datetime
 from contextlib import asynccontextmanager
 from routers import (enka_network, metadata, patch_next, static, net, wallpaper, strategy, crowdin, system_email,
@@ -98,12 +97,6 @@ def identify_user(request: Request) -> None:
     # Extract headers
     reqable_id = request.headers.get("Reqable-Id", None)
     user_agent = request.headers.get("User-Agent", "unknown-UA")
-
-    # Assign to Apitally consumer
-    request.state.apitally_consumer = ApitallyConsumer(
-        identifier="Reqable" if reqable_id else user_agent,
-        group="Reqable" if reqable_id else "Snap Hutao"
-    )
 
 
 sentry_sdk.init(
@@ -210,16 +203,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-if SERVER_TYPE != "" and "dev" not in os.getenv("SERVER_TYPE"):
-    app.add_middleware(
-        ApitallyMiddleware,
-        client_id=os.getenv("APITALLY_CLIENT_ID"),
-        env="dev" if "alpha" in SERVER_TYPE else "prod",
-        openapi_url="/openapi.json"
-    )
-else:
-    logger.info("Apitally is disabled as the image is not a production image.")
 
 
 @app.get("/", response_class=RedirectResponse, status_code=301)
