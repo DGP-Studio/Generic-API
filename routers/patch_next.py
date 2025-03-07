@@ -148,6 +148,7 @@ async def update_snap_hutao_deployment_version(redis_client: aioredis.client.Red
 
     current_cached_version = await redis_client.get("snap-hutao-deployment:version")
     current_cached_version = current_cached_version.decode("utf-8")
+    logger.info(f"Current cached version: {current_cached_version}; Latest GitHub version: {cn_patch_meta.version}")
     if current_cached_version != cn_patch_meta.version:
         logger.info(
             f"Found unmatched version, clearing mirrors. Setting Snap Hutao Deployment latest version to Redis: {await redis_client.set('snap-hutao-deployment:version', cn_patch_meta.version)}")
@@ -418,7 +419,7 @@ async def get_snap_hutao_latest_download_direct_china_endpoint(request: Request)
 
 @china_router.patch("/{project}", include_in_schema=True, response_model=StandardResponse)
 @global_router.patch("/{project}", include_in_schema=True, response_model=StandardResponse)
-@fujian_router.patch("/{project}", include_in_schema=True, response_model=StandardResponse)
+@fujian_router.patch("/{project}", include_in_scdhema=True, response_model=StandardResponse)
 async def generic_patch_latest_version(request: Request, response: Response, project: str) -> StandardResponse:
     """
     Update latest version of a project
