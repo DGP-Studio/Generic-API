@@ -560,6 +560,9 @@ async def delete_mirror_url(response: Response, request: Request, delete_request
         for m in mirror_list:
             if m["mirror_name"] == mirror_name:
                 mirror_list.remove(m)
+    elif mirror_name == "all":
+        method = "cleared"
+        mirror_list = []
     else:
         method = "not found"
     logger.info(f"{method.capitalize()} {mirror_name} mirror URL for {project_key}")

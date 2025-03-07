@@ -7,7 +7,6 @@ RUN pip install fastapi["all"]
 RUN pip install redis
 RUN pip install pymysql
 RUN pip install cryptography
-RUN pip install "apitally[fastapi]"
 RUN pip install sqlalchemy
 RUN pip install pytz
 RUN pip install colorama
