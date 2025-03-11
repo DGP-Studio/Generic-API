@@ -19,6 +19,7 @@ from utils.redis_tools import init_redis_data
 import sentry_sdk
 from sentry_sdk.integrations.starlette import StarletteIntegration
 from sentry_sdk.integrations.fastapi import FastApiIntegration
+from sentry_sdk import set_user
 
 
 
@@ -96,7 +97,21 @@ def get_commit_hash_str():
 def identify_user(request: Request) -> None:
     # Extract headers
     reqable_id = request.headers.get("Reqable-Id", None)
-    user_agent = request.headers.get("User-Agent", "unknown-UA")
+    device_id = request.headers.get("x-hutao-device-id", None)
+    ip_addr = request.client.host
+
+    if device_id:
+        sentry_id = device_id
+    elif reqable_id:
+        sentry_id = reqable_id
+    else:
+        sentry_id = None
+
+    set_user(
+        {
+            "ip_address": ip_addr,
+            "id": sentry_id,
+        })
 
 
 sentry_sdk.init(
