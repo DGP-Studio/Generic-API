@@ -7,16 +7,20 @@ from redis import asyncio as aioredis
 from fastapi import FastAPI, APIRouter, Request, Header, Depends
 from fastapi.responses import RedirectResponse
 from fastapi.middleware.cors import CORSMiddleware
-from apitally.fastapi import ApitallyMiddleware, ApitallyConsumer
 from datetime import datetime
 from contextlib import asynccontextmanager
 from routers import (enka_network, metadata, patch_next, static, net, wallpaper, strategy, crowdin, system_email,
                      client_feature, mgnt)
 from base_logger import logger
 from config import (MAIN_SERVER_DESCRIPTION, TOS_URL, CONTACT_INFO, LICENSE_INFO, VALID_PROJECT_KEYS,
-                    IMAGE_NAME, DEBUG, SERVER_TYPE, REDIS_HOST)
+                    IMAGE_NAME, DEBUG, SERVER_TYPE, REDIS_HOST, SENTRY_URL)
 from mysql_app.database import SessionLocal
 from utils.redis_tools import init_redis_data
+import sentry_sdk
+from sentry_sdk.integrations.starlette import StarletteIntegration
+from sentry_sdk.integrations.fastapi import FastApiIntegration
+from sentry_sdk import set_user
+
 
 
 @asynccontextmanager
@@ -93,13 +97,42 @@ def get_commit_hash_str():
 def identify_user(request: Request) -> None:
     # Extract headers
     reqable_id = request.headers.get("Reqable-Id", None)
-    user_agent = request.headers.get("User-Agent", "unknown-UA")
+    device_id = request.headers.get("x-hutao-device-id", None)
+    ip_addr = request.client.host
 
-    # Assign to Apitally consumer
-    request.state.apitally_consumer = ApitallyConsumer(
-        identifier="Reqable" if reqable_id else user_agent,
-        group="Reqable" if reqable_id else "Snap Hutao"
-    )
+    if device_id:
+        sentry_id = device_id
+    elif reqable_id:
+        sentry_id = reqable_id
+    else:
+        sentry_id = None
+
+    set_user(
+        {
+            "ip_address": ip_addr,
+            "id": sentry_id,
+        })
+
+
+sentry_sdk.init(
+    dsn=SENTRY_URL,
+    send_default_pii=True,
+    traces_sample_rate=1.0,
+    integrations=[
+        StarletteIntegration(
+            transaction_style="url",
+            failed_request_status_codes={403, *range(500, 599)},
+        ),
+        FastApiIntegration(
+            transaction_style="url",
+            failed_request_status_codes={403, *range(500, 599)},
+        ),
+    ],
+    profiles_sample_rate=1.0,
+    release=SERVER_TYPE,
+    dist=get_version(),
+    server_name="US1",
+)
 
 
 app = FastAPI(redoc_url=None,
@@ -185,16 +218,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-if SERVER_TYPE != "" and "dev" not in os.getenv("SERVER_TYPE"):
-    app.add_middleware(
-        ApitallyMiddleware,
-        client_id=os.getenv("APITALLY_CLIENT_ID"),
-        env="dev" if "alpha" in SERVER_TYPE else "prod",
-        openapi_url="/openapi.json"
-    )
-else:
-    logger.info("Apitally is disabled as the image is not a production image.")
 
 
 @app.get("/", response_class=RedirectResponse, status_code=301)

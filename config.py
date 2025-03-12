@@ -1,5 +1,7 @@
 from dotenv import load_dotenv
 import os
+import socket
+
 
 env_result = load_dotenv()
 
@@ -21,6 +23,7 @@ DEBUG = True if "alpha" in IMAGE_NAME.lower() or "dev" in IMAGE_NAME.lower() els
 
 REDIS_HOST = os.getenv("REDIS_HOST", "redis")
 
+SENTRY_URL = f"http://{os.getenv('SENTRY_TOKEN')}@{socket.gethostbyname('host.docker.internal')}:9510/5"
 
 # FastAPI Config
 TOS_URL = "https://hut.ao/statements/tos.html"
