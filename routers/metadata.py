@@ -42,14 +42,15 @@ async def metadata_list_handler(request: Request, lang: str) -> dict:
 
     redis_client = aioredis.Redis.from_pool(request.app.state.redis)
 
-    if request.url.path.startswith("/china"):
-        metadata_endpoint = await redis_client.get("url:china:metadata").decode("utf-8")
+    if request.url.path.startswith("/cn"):
+        metadata_endpoint = await redis_client.get("url:china:metadata")
     elif request.url.path.startswith("/global"):
-        metadata_endpoint = await redis_client.get("url:global:metadata").decode("utf-8")
+        metadata_endpoint = await redis_client.get("url:global:metadata")
     elif request.url.path.startswith("/fj"):
-        metadata_endpoint = await redis_client.get("url:fujian:metadata").decode("utf-8")
+        metadata_endpoint = await redis_client.get("url:fujian:metadata")
     else:
         raise HTTPException(status_code=400, detail="Invalid router")
+    metadata_endpoint = metadata_endpoint.decode("utf-8")
 
     metadata_file_list = await redis_client.smembers(f"metadata:{lang}")
     if not metadata_file_list:
