@@ -49,7 +49,7 @@ async def fetch_metadata_repo_file_list(redis_client: aioredis.Redis) -> None:
 @china_router.get("/list", dependencies=[Depends(validate_client_is_updated)])
 @global_router.get("/list", dependencies=[Depends(validate_client_is_updated)])
 @fujian_router.get("/list", dependencies=[Depends(validate_client_is_updated)])
-async def metadata_list_handler(request: Request, lang: str) -> dict:
+async def metadata_list_handler(request: Request, lang: str) -> StandardResponse:
     """
     List all available metadata files.
 
