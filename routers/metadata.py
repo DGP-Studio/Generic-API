@@ -3,6 +3,7 @@ from fastapi.responses import RedirectResponse
 from redis import asyncio as aioredis
 from mysql_app.schemas import StandardResponse
 from utils.dgp_utils import validate_client_is_updated
+from base_logger import logger
 import httpx
 import os
 
@@ -21,7 +22,7 @@ async def fetch_metadata_repo_file_list(redis_client: aioredis.Redis) -> None:
     tree_data = [file["path"] for file in tree_data if file["type"] == "blob" and file["path"].endswith(".json")]
     async with redis_client.pipeline() as pipe:
         for file in tree_data:
-            file_language = file.split("/")[1]
+            file_language = file.split("/")[1].lower()
             sub_path = '/'.join(file.split("/")[2:])
             await pipe.sadd(f"metadata:{file_language}", sub_path)
             await pipe.expire(f"metadata:{file_language}", 15 * 60)
@@ -39,7 +40,7 @@ async def metadata_list_handler(request: Request, lang: str) -> dict:
 
     :param lang: Language of the metadata files
     """
-
+    lang = lang.lower()
     redis_client = aioredis.Redis.from_pool(request.app.state.redis)
 
     if request.url.path.startswith("/cn"):
@@ -56,6 +57,7 @@ async def metadata_list_handler(request: Request, lang: str) -> dict:
     if not metadata_file_list:
         await fetch_metadata_repo_file_list(redis_client)
         metadata_file_list = await redis_client.smembers(f"metadata:{lang}")
+        logger.info(f"{len(metadata_file_list)} metadata files are available: {metadata_file_list}")
     if not metadata_file_list:
         raise HTTPException(status_code=404, detail="No metadata files found")
     metadata_file_list = [file.decode("utf-8") for file in metadata_file_list]
