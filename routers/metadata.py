@@ -37,10 +37,12 @@ async def fetch_metadata_repo_file_list(redis_client: aioredis.Redis) -> None:
             file_language = parts[1].upper()
             sub_path = '/'.join(parts[2:])
             logger.info(f"Adding metadata file {sub_path} to metadata:{file_language}")
+            # Do not await; add to queue
             pipe.sadd(f"metadata:{file_language}", sub_path)
 
         # 为每个语言集合设置过期时间
         for lang in languages:
+            # Do not await; add to queue
             pipe.expire(f"metadata:{lang}", 15 * 60)
 
         await pipe.execute()
@@ -78,7 +80,7 @@ async def metadata_list_handler(request: Request, lang: str) -> StandardResponse
     if not metadata_file_list:
         raise HTTPException(status_code=404, detail="No metadata files found")
     metadata_file_list = [file.decode("utf-8") for file in metadata_file_list]
-    download_links = [metadata_endpoint.format(file_path=file) for file in metadata_file_list]
+    download_links = [metadata_endpoint.format(file_path=f"{lang}/{file}") for file in metadata_file_list]
 
     return StandardResponse(
         data=download_links
