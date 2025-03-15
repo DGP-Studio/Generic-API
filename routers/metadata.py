@@ -87,6 +87,35 @@ async def metadata_list_handler(request: Request, lang: str) -> StandardResponse
     )
 
 
+@china_router.get("/template", dependencies=[Depends(validate_client_is_updated)])
+@global_router.get("/template", dependencies=[Depends(validate_client_is_updated)])
+@fujian_router.get("/template", dependencies=[Depends(validate_client_is_updated)])
+async def metadata_template_handler(request: Request) -> StandardResponse:
+    """
+    Get the metadata template.
+
+    :param request: Request object
+    """
+    redis_client = aioredis.Redis.from_pool(request.app.state.redis)
+
+    if request.url.path.startswith("/cn"):
+        metadata_endpoint = await redis_client.get("url:china:metadata")
+    elif request.url.path.startswith("/global"):
+        metadata_endpoint = await redis_client.get("url:global:metadata")
+    elif request.url.path.startswith("/fj"):
+        metadata_endpoint = await redis_client.get("url:fujian:metadata")
+    else:
+        raise HTTPException(status_code=400, detail="Invalid router")
+    metadata_endpoint = metadata_endpoint.decode("utf-8")
+
+    metadata_endpoint = metadata_endpoint.decode("utf-8")
+
+    return StandardResponse(
+        data=metadata_endpoint
+    )
+
+
+
 @china_router.get("/{file_path:path}", dependencies=[Depends(validate_client_is_updated)])
 async def china_metadata_request_handler(request: Request, file_path: str) -> RedirectResponse:
     """
