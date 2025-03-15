@@ -20,9 +20,10 @@ async def fetch_metadata_repo_file_list(redis_client: aioredis.Redis) -> None:
     }
     tree_data = httpx.get(api_endpoint, headers=headers).json()["tree"]
     tree_data = [file["path"] for file in tree_data if file["type"] == "blob" and file["path"].endswith(".json")]
+    logger.info(f"Fetched metadata for {len(tree_data)} files: {tree_data}")
     async with redis_client.pipeline() as pipe:
         for file in tree_data:
-            file_language = file.split("/")[1].lower()
+            file_language = file.split("/")[1].upper()
             sub_path = '/'.join(file.split("/")[2:])
             await pipe.sadd(f"metadata:{file_language}", sub_path)
             await pipe.expire(f"metadata:{file_language}", 15 * 60)
@@ -40,7 +41,7 @@ async def metadata_list_handler(request: Request, lang: str) -> dict:
 
     :param lang: Language of the metadata files
     """
-    lang = lang.lower()
+    lang = lang.upper()
     redis_client = aioredis.Redis.from_pool(request.app.state.redis)
 
     if request.url.path.startswith("/cn"):
