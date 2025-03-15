@@ -18,16 +18,32 @@ async def fetch_metadata_repo_file_list(redis_client: aioredis.Redis) -> None:
     headers = {
         "Authorization": f"Bearer {os.getenv('GITHUB_PAT')}",
     }
-    tree_data = httpx.get(api_endpoint, headers=headers).json()["tree"]
-    tree_data = [file["path"] for file in tree_data if file["type"] == "blob" and file["path"].endswith(".json")]
+    valid_files = httpx.get(api_endpoint, headers=headers).json()["tree"]
+    valid_files = [file["path"] for file in valid_files if file["type"] == "blob" and file["path"].endswith(".json")]
+
+    languages = set()
+    for file_path in valid_files:
+        parts = file_path.split("/")
+        if len(parts) < 3:
+            continue
+        lang = parts[1].upper()
+        languages.add(lang)
+
     async with redis_client.pipeline() as pipe:
-        for file in tree_data:
-            file_language = file.split("/")[1].upper()
-            sub_path = '/'.join(file.split("/")[2:])
+        for file_path in valid_files:
+            parts = file_path.split("/")
+            if len(parts) < 3:
+                continue
+            file_language = parts[1].upper()
+            sub_path = '/'.join(parts[2:])
             logger.info(f"Adding metadata file {sub_path} to metadata:{file_language}")
-            await pipe.sadd(f"metadata:{file_language}", sub_path)
-    await pipe.expire(f"metadata:{file_language}", 15 * 60)
-    await pipe.execute()
+            pipe.sadd(f"metadata:{file_language}", sub_path)
+
+        # 为每个语言集合设置过期时间
+        for lang in languages:
+            pipe.expire(f"metadata:{lang}", 15 * 60)
+
+        await pipe.execute()
 
 
 @china_router.get("/list", dependencies=[Depends(validate_client_is_updated)])
