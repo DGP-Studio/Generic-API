@@ -107,6 +107,7 @@ async def metadata_template_handler(request: Request) -> StandardResponse:
     else:
         raise HTTPException(status_code=400, detail="Invalid router")
     metadata_endpoint = metadata_endpoint.decode("utf-8")
+    metadata_endpoint = metadata_endpoint.replace("{file_path}", "{0}")
     return StandardResponse(
         data={"template": metadata_endpoint}
     )
