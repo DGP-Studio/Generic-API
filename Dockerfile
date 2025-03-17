@@ -12,7 +12,7 @@ RUN pip install pytz
 RUN pip install colorama
 RUN pip install "sentry-sdk[fastapi]"
 #RUN pip install --no-cache-dir -r /code/requirements.txt
-RUN date '+%Y.%m.%d.%H%M%S' > build_number.txt
+RUN date '+%Y.%m.%d' > build_number.txt
 RUN pip install pyinstaller
 RUN pyinstaller -F main.py
 

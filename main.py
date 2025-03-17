@@ -66,17 +66,13 @@ async def lifespan(app: FastAPI):
 
 def get_version():
     if os.path.exists("build_number.txt"):
-        build_info = f"{IMAGE_NAME}-{SERVER_TYPE} Build {BUILD_NUMBER}"
+        build_info = f"{BUILD_NUMBER}-{SERVER_TYPE}+{CURRENT_COMMIT_HASH}"
         logger.info(f"Server is running with Build number: {build_info}")
     else:
         build_info = f"Runtime {datetime.now().strftime('%Y.%m.%d.%H%M%S')}"
         logger.info(f"Server is running with Runtime version: {build_info}")
     if DEBUG:
         build_info += " DEBUG"
-    if os.path.exists("current_commit.txt"):
-        with open("current_commit.txt", 'r') as f:
-            commit_hash = f.read().strip()
-            build_info += f" {commit_hash[:7] if len(commit_hash) > 7 else commit_hash}"
     return build_info
 
 
