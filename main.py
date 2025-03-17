@@ -120,7 +120,7 @@ sentry_sdk.init(
         ),
     ],
     profiles_sample_rate=1.0,
-    release=f"{BUILD_NUMBER}-{SERVER_TYPE}+{CURRENT_COMMIT_HASH}",
+    release=f"generic-api@{BUILD_NUMBER}-{SERVER_TYPE}+{CURRENT_COMMIT_HASH}",
     environment=SERVER_TYPE,
     dist=CURRENT_COMMIT_HASH,
     server_name="US1",
