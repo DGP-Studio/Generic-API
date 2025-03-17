@@ -81,11 +81,13 @@ def get_version():
     return build_number
 
 
-def get_commit_hash_str():
+def get_commit_hash_str(hash_only: bool = False):
     commit_desc = ""
     if os.path.exists("current_commit.txt"):
         with open("current_commit.txt", 'r') as f:
             commit_hash = f.read().strip()
+        if hash_only:
+            return commit_hash
         logger.info(f"Server is running with Commit hash: {commit_hash}")
         commit_desc = f"Build hash: [**{commit_hash}**](https://github.com/DGP-Studio/Generic-API/commit/{commit_hash})"
     if DEBUG:
@@ -129,8 +131,9 @@ sentry_sdk.init(
         ),
     ],
     profiles_sample_rate=1.0,
-    release=SERVER_TYPE,
-    dist=get_version(),
+    release=f"generic-api@{get_commit_hash_str(hash_only=True)}",
+    environment=SERVER_TYPE,
+    dist=get_commit_hash_str(hash_only=True),
     server_name="US1",
 )
 
