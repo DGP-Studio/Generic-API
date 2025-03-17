@@ -18,7 +18,9 @@ async def fetch_metadata_repo_file_list(redis_client: aioredis.Redis) -> None:
     headers = {
         "Authorization": f"Bearer {os.getenv('GITHUB_PAT')}",
     }
-    valid_files = httpx.get(api_endpoint, headers=headers).json()["tree"]
+    async with httpx.AsyncClient() as client:
+        response = await client.get(api_endpoint, headers=headers)
+    valid_files = response.json()["tree"]
     valid_files = [file["path"] for file in valid_files if file["type"] == "blob" and file["path"].endswith(".json")]
 
     languages = set()
