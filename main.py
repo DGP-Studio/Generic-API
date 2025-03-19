@@ -13,7 +13,7 @@ from routers import (enka_network, metadata, patch_next, static, net, wallpaper,
                      client_feature, mgnt)
 from base_logger import logger
 from config import (MAIN_SERVER_DESCRIPTION, TOS_URL, CONTACT_INFO, LICENSE_INFO, VALID_PROJECT_KEYS,
-                    IMAGE_NAME, DEBUG, SERVER_TYPE, REDIS_HOST, SENTRY_URL)
+                    IMAGE_NAME, DEBUG, SERVER_TYPE, REDIS_HOST, SENTRY_URL, BUILD_NUMBER, CURRENT_COMMIT_HASH)
 from mysql_app.database import SessionLocal
 from utils.redis_tools import init_redis_data
 import sentry_sdk
@@ -66,28 +66,19 @@ async def lifespan(app: FastAPI):
 
 def get_version():
     if os.path.exists("build_number.txt"):
-        with open("build_number.txt", 'r') as f:
-            build_number = f"{IMAGE_NAME}-{SERVER_TYPE} Build {f.read().strip()}"
-        logger.info(f"Server is running with Build number: {build_number}")
+        build_info = f"{BUILD_NUMBER}-{SERVER_TYPE}+{CURRENT_COMMIT_HASH}"
+        logger.info(f"Server is running with Build number: {build_info}")
     else:
-        build_number = f"Runtime {datetime.now().strftime('%Y.%m.%d.%H%M%S')}"
-        logger.info(f"Server is running with Runtime version: {build_number}")
+        build_info = f"Runtime {datetime.now().strftime('%Y.%m.%d.%H%M%S')}"
+        logger.info(f"Server is running with Runtime version: {build_info}")
     if DEBUG:
-        build_number += " DEBUG"
-    if os.path.exists("current_commit.txt"):
-        with open("current_commit.txt", 'r') as f:
-            commit_hash = f.read().strip()
-            build_number += f" {commit_hash[:7]}"
-    return build_number
+        build_info += " DEBUG"
+    return build_info
 
 
-def get_commit_hash_str():
-    commit_desc = ""
-    if os.path.exists("current_commit.txt"):
-        with open("current_commit.txt", 'r') as f:
-            commit_hash = f.read().strip()
-        logger.info(f"Server is running with Commit hash: {commit_hash}")
-        commit_desc = f"Build hash: [**{commit_hash}**](https://github.com/DGP-Studio/Generic-API/commit/{commit_hash})"
+def get_commit_hash_desc():
+    logger.info(f"Server is running with Commit hash: {CURRENT_COMMIT_HASH}")
+    commit_desc = f"Build hash: [**{CURRENT_COMMIT_HASH}**](https://github.com/DGP-Studio/Generic-API/commit/{CURRENT_COMMIT_HASH})"
     if DEBUG:
         commit_desc += "\n\n**Debug mode is enabled.**"
         commit_desc += "\n\n![Image](https://github.com/user-attachments/assets/64ce064c-c399-4d2f-ac72-cac4379d8725)"
@@ -129,8 +120,9 @@ sentry_sdk.init(
         ),
     ],
     profiles_sample_rate=1.0,
-    release=SERVER_TYPE,
-    dist=get_version(),
+    release=f"generic-api@{BUILD_NUMBER}-{SERVER_TYPE}+{CURRENT_COMMIT_HASH}",
+    environment=SERVER_TYPE,
+    dist=CURRENT_COMMIT_HASH,
     server_name="US1",
 )
 
@@ -139,7 +131,7 @@ app = FastAPI(redoc_url=None,
               title="Hutao Generic API",
               summary="Generic API to support various services for Snap Hutao project.",
               version=get_version(),
-              description=MAIN_SERVER_DESCRIPTION + "\n" + get_commit_hash_str(),
+              description=MAIN_SERVER_DESCRIPTION + "\n" + get_commit_hash_desc(),
               terms_of_service=TOS_URL,
               contact=CONTACT_INFO,
               license_info=LICENSE_INFO,

@@ -1,6 +1,15 @@
 import os
 from dotenv import load_dotenv
+import subprocess
 
+
+def get_short_commit_hash(length=7):
+    try:
+        short_hash = subprocess.check_output(['git', 'rev-parse', f'--short={length}', 'HEAD']).strip().decode('utf-8')
+        return short_hash
+    except subprocess.CalledProcessError as e:
+        print(f"Error: {e}")
+        return None
 
 if __name__ == "__main__":
     load_dotenv(dotenv_path=".env")
@@ -43,5 +52,11 @@ if __name__ == "__main__":
 
     with open(output_file, "w+", encoding="utf-8") as file:
         file.write(content)
+
+    short_hash = get_short_commit_hash()
+    if short_hash:
+        with open("current_commit.txt", "w+", encoding="utf-8") as file:
+            file.write(short_hash)
+        print(f"Commit hash {short_hash} saved successfully.")
 
     print(f"{output_file} generated successfully.")

@@ -7,8 +7,12 @@ env_result = load_dotenv()
 
 VALID_PROJECT_KEYS = ["snap-hutao", "snap-hutao-deployment"]
 
-IMAGE_NAME = os.getenv("IMAGE_NAME", "")
-SERVER_TYPE = os.getenv("SERVER_TYPE", "")
+IMAGE_NAME = os.getenv("IMAGE_NAME", "generic-api")
+SERVER_TYPE = os.getenv("SERVER_TYPE", "[Unknown Server Type]")
+with open("build_number.txt", 'r') as f:
+    BUILD_NUMBER = f.read().strip()
+with open("current_commit.txt", 'r') as f:
+    CURRENT_COMMIT_HASH = f.read().strip()
 
 github_headers = {
     "Authorization": f"Bearer {os.environ.get('GITHUB_PAT')}",
