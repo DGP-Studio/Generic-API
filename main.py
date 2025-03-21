@@ -13,7 +13,6 @@ from routers import (enka_network, metadata, patch_next, static, net, wallpaper,
 from base_logger import logger
 from config import (MAIN_SERVER_DESCRIPTION, TOS_URL, CONTACT_INFO, LICENSE_INFO, VALID_PROJECT_KEYS,
                     DEBUG, SERVER_TYPE, REDIS_HOST, SENTRY_URL, BUILD_NUMBER, CURRENT_COMMIT_HASH)
-from mysql_app.database import SessionLocal
 from utils.redis_tools import init_redis_data
 import sentry_sdk
 from sentry_sdk.integrations.starlette import StarletteIntegration
@@ -36,8 +35,6 @@ async def lifespan(app: FastAPI):
     app.state.redis = redis_pool
     redis_client = aioredis.Redis.from_pool(connection_pool=redis_pool)
     logger.info("Redis connection established")
-    # MySQL connection
-    app.state.mysql = SessionLocal()
 
     # Patch module lifespan
     try:
@@ -60,6 +57,8 @@ async def lifespan(app: FastAPI):
 
     logger.info("ending lifespan startup")
     yield
+    from mysql_app.database import engine
+    engine.dispose()
     logger.info("entering lifespan shutdown")
 
 
