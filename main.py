@@ -2,9 +2,8 @@ from config import env_result
 import uvicorn
 import os
 import json
-from typing import Annotated
 from redis import asyncio as aioredis
-from fastapi import FastAPI, APIRouter, Request, Header, Depends
+from fastapi import FastAPI, APIRouter, Request, Depends
 from fastapi.responses import RedirectResponse
 from fastapi.middleware.cors import CORSMiddleware
 from datetime import datetime
@@ -13,7 +12,7 @@ from routers import (enka_network, metadata, patch_next, static, net, wallpaper,
                      client_feature, mgnt)
 from base_logger import logger
 from config import (MAIN_SERVER_DESCRIPTION, TOS_URL, CONTACT_INFO, LICENSE_INFO, VALID_PROJECT_KEYS,
-                    IMAGE_NAME, DEBUG, SERVER_TYPE, REDIS_HOST, SENTRY_URL, BUILD_NUMBER, CURRENT_COMMIT_HASH)
+                    DEBUG, SERVER_TYPE, REDIS_HOST, SENTRY_URL, BUILD_NUMBER, CURRENT_COMMIT_HASH)
 from mysql_app.database import SessionLocal
 from utils.redis_tools import init_redis_data
 import sentry_sdk
