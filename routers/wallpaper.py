@@ -105,6 +105,7 @@ async def disable_wallpaper_with_url(request: Request, db: Session=Depends(get_d
     db_result = crud.disable_wallpaper_with_url(db, url)
     if db_result:
         return StandardResponse(data=db_result.to_dict())
+    raise HTTPException(status_code=500, detail="Failed to disable wallpaper, it may not exist")
 
 
 @china_router.post("/enable", dependencies=[Depends(verify_api_token)], tags=["admin"], response_model=StandardResponse)
@@ -286,7 +287,18 @@ async def get_bing_wallpaper(request: Request) -> StandardResponse:
     except (json.JSONDecodeError, TypeError):
         pass
     # Get Bing wallpaper
-    bing_output = httpx.get(bing_api).json()
+    max_try = 3
+    bing_output = None
+    for _ in range(max_try):
+        try:
+            bing_output = httpx.get(bing_api, timeout=10).json()
+            break
+        except (httpx.ConnectError, httpx.ConnectTimeout, httpx.ReadTimeout, json.JSONDecodeError):
+            import time
+            time.sleep(1)
+            continue
+    if not bing_output:
+        raise HTTPException(status_code=500, detail="Failed to get Bing wallpaper from upstream. Something went wrong on Microsoft's side.")
     data = {
         "url": f"https://{bing_prefix}.bing.com{bing_output['images'][0]['url']}",
         "source_url": bing_output['images'][0]['copyrightlink'],
