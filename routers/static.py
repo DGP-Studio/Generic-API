@@ -76,20 +76,10 @@ async def cn_get_raw_file(file_path: str, request: Request) -> RedirectResponse:
 
     :return: 301 Redirect to the raw file
     """
-    quality = request.headers.get("x-hutao-quality", "high").lower()
+    # quality = request.headers.get("x-hutao-quality", "high").lower()
     redis_client = aioredis.Redis.from_pool(request.app.state.redis)
     china_endpoint = await redis_client.get("url:china:static:raw")
     china_endpoint = china_endpoint.decode("utf-8")
-
-    match quality:
-        case "high":
-            file_path = "tiny-raw/" + file_path
-        case "raw":
-            file_path = "raw/" + file_path
-        case "original":
-            file_path = "raw/" + file_path
-        case _:
-            raise HTTPException(status_code=404, detail="Invalid quality")
     logging.debug(f"Redirecting to {china_endpoint.format(file_path=file_path)}")
     return RedirectResponse(china_endpoint.format(file_path=file_path), status_code=301)
 

@@ -2,14 +2,16 @@ import pymysql
 import json
 import random
 import httpx
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, Request, HTTPException
 from pydantic import BaseModel
 from datetime import date
 from redis import asyncio as aioredis
+from sqlalchemy.orm import Session
 from utils.authentication import verify_api_token
 from mysql_app import crud, schemas
 from mysql_app.schemas import Wallpaper, StandardResponse
 from base_logger import logger
+from utils.dependencies import get_db
 
 
 class WallpaperURL(BaseModel):
@@ -27,15 +29,14 @@ fujian_router = APIRouter(tags=["wallpaper"], prefix="/wallpaper")
                    tags=["admin"])
 @fujian_router.get("/all", response_model=schemas.StandardResponse, dependencies=[Depends(verify_api_token)],
                    tags=["admin"])
-async def get_all_wallpapers(request: Request) -> schemas.StandardResponse:
+async def get_all_wallpapers(db: Session=Depends(get_db)) -> schemas.StandardResponse:
     """
     Get all wallpapers in database. **This endpoint requires API token verification**
 
-    :param request: Request object from FastAPI
+    :param db: Database session
 
     :return: A list of wallpapers objects
     """
-    db = request.app.state.mysql
     wallpapers = crud.get_all_wallpapers(db)
     wallpaper_schema = [
         schemas.Wallpaper.model_validate(wall.to_dict())
@@ -50,17 +51,16 @@ async def get_all_wallpapers(request: Request) -> schemas.StandardResponse:
                     tags=["admin"])
 @fujian_router.post("/add", response_model=schemas.StandardResponse, dependencies=[Depends(verify_api_token)],
                     tags=["admin"])
-async def add_wallpaper(request: Request, wallpaper: schemas.Wallpaper):
+async def add_wallpaper(wallpaper: schemas.Wallpaper, db: Session=Depends(get_db)):
     """
     Add a new wallpaper to database. **This endpoint requires API token verification**
 
-    :param request: Request object from FastAPI
-
     :param wallpaper: Wallpaper object
+
+    :param db: Database session
 
     :return: StandardResponse object
     """
-    db = request.app.state.mysql
     response = StandardResponse()
     wallpaper.display_date = None
     wallpaper.last_display_date = None
@@ -85,16 +85,17 @@ async def add_wallpaper(request: Request, wallpaper: schemas.Wallpaper):
                     response_model=StandardResponse)
 @fujian_router.post("/disable", dependencies=[Depends(verify_api_token)], tags=["admin"],
                     response_model=StandardResponse)
-async def disable_wallpaper_with_url(request: Request) -> StandardResponse:
+async def disable_wallpaper_with_url(request: Request, db: Session=Depends(get_db)) -> StandardResponse:
     """
     Disable a wallpaper with its URL, so it won't be picked by the random wallpaper picker.
     **This endpoint requires API token verification**
 
     :param request: Request object from FastAPI
 
+    :param db: Database session
+
     :return: False if failed, Wallpaper object if successful
     """
-    db = request.app.state.mysql
     data = await request.json()
     url = data.get("url", "")
     if not url:
@@ -104,6 +105,7 @@ async def disable_wallpaper_with_url(request: Request) -> StandardResponse:
     db_result = crud.disable_wallpaper_with_url(db, url)
     if db_result:
         return StandardResponse(data=db_result.to_dict())
+    raise HTTPException(status_code=500, detail="Failed to disable wallpaper, it may not exist")
 
 
 @china_router.post("/enable", dependencies=[Depends(verify_api_token)], tags=["admin"], response_model=StandardResponse)
@@ -111,16 +113,17 @@ async def disable_wallpaper_with_url(request: Request) -> StandardResponse:
                     response_model=StandardResponse)
 @fujian_router.post("/enable", dependencies=[Depends(verify_api_token)], tags=["admin"],
                     response_model=StandardResponse)
-async def enable_wallpaper_with_url(request: Request) -> StandardResponse:
+async def enable_wallpaper_with_url(request: Request, db: Session=Depends(get_db)) -> StandardResponse:
     """
     Enable a wallpaper with its URL, so it will be picked by the random wallpaper picker.
     **This endpoint requires API token verification**
 
     :param request: Request object from FastAPI
 
+    :param db: Database session
+
     :return: false if failed, Wallpaper object if successful
     """
-    db = request.app.state.mysql
     data = await request.json()
     url = data.get("url", "")
     if not url:
@@ -130,18 +133,22 @@ async def enable_wallpaper_with_url(request: Request) -> StandardResponse:
     db_result = crud.enable_wallpaper_with_url(db, url)
     if db_result:
         return StandardResponse(data=db_result.to_dict())
+    raise HTTPException(status_code=404, detail="Wallpaper not found")
 
 
-async def random_pick_wallpaper(request: Request, force_refresh: bool = False) -> Wallpaper:
+async def random_pick_wallpaper(request: Request, force_refresh: bool = False, db: Session=Depends(get_db)) -> Wallpaper:
     """
     Randomly pick a wallpaper from the database
 
     :param request: Request object from FastAPI
+
     :param force_refresh: True to force refresh the wallpaper, False to use the cached one
+
+    :param db: Database session
+
     :return: schema.Wallpaper object
     """
     redis_client = aioredis.Redis.from_pool(request.app.state.redis)
-    db = request.app.state.mysql
     # Check wallpaper cache from Redis
     today_wallpaper = await redis_client.get("hutao_today_wallpaper")
     if today_wallpaper:
@@ -229,15 +236,15 @@ async def get_today_wallpaper(request: Request) -> StandardResponse:
                    tags=["admin"])
 @fujian_router.get("/reset", response_model=StandardResponse, dependencies=[Depends(verify_api_token)],
                    tags=["admin"])
-async def reset_last_display(request: Request) -> StandardResponse:
+async def reset_last_display(db: Session=Depends(get_db)) -> StandardResponse:
     """
     Reset last display date of all wallpapers. **This endpoint requires API token verification**
 
-    :param request: Request object from FastAPI
+    :param db: Database session
 
     :return: StandardResponse object with result in data field
     """
-    db = request.app.state.mysql
+    
     response = StandardResponse()
     response.data = {
         "result": crud.reset_last_display(db)
@@ -280,7 +287,18 @@ async def get_bing_wallpaper(request: Request) -> StandardResponse:
     except (json.JSONDecodeError, TypeError):
         pass
     # Get Bing wallpaper
-    bing_output = httpx.get(bing_api).json()
+    max_try = 3
+    bing_output = None
+    for _ in range(max_try):
+        try:
+            bing_output = httpx.get(bing_api, timeout=10).json()
+            break
+        except (httpx.ConnectError, httpx.ConnectTimeout, httpx.ReadTimeout, json.JSONDecodeError):
+            import time
+            time.sleep(1)
+            continue
+    if not bing_output:
+        raise HTTPException(status_code=500, detail="Failed to get Bing wallpaper from upstream. Something went wrong on Microsoft's side.")
     data = {
         "url": f"https://{bing_prefix}.bing.com{bing_output['images'][0]['url']}",
         "source_url": bing_output['images'][0]['copyrightlink'],

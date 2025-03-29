@@ -7,6 +7,7 @@ from redis import asyncio as redis
 from utils.authentication import verify_api_token
 from mysql_app.schemas import AvatarStrategy, StandardResponse
 from mysql_app.crud import add_avatar_strategy, get_all_avatar_strategy, get_avatar_strategy_by_id
+from utils.dependencies import get_db
 
 
 china_router = APIRouter(tags=["Strategy"], prefix="/strategy")
@@ -19,11 +20,14 @@ hoyolab_strategy_url = "https://www.hoyolab.com/guidelist?game_id=2&guide_id={ho
 """
 
 
-async def refresh_miyoushe_avatar_strategy(redis_client: redis.client.Redis, db: Session) -> bool:
+async def refresh_miyoushe_avatar_strategy(redis_client: redis.client.Redis, db: Session=Depends(get_db)) -> bool:
     """
     Refresh avatar strategy from Miyoushe
+
     :param redis_client: redis client object
+
     :param db: Database session
+
     :return: True if successful else raise RuntimeError
     """
     avatar_strategy = []
@@ -58,11 +62,14 @@ async def refresh_miyoushe_avatar_strategy(redis_client: redis.client.Redis, db:
     return True
 
 
-async def refresh_hoyolab_avatar_strategy(redis_client: redis.client.Redis, db: Session) -> bool:
+async def refresh_hoyolab_avatar_strategy(redis_client: redis.client.Redis, db: Session=Depends(get_db)) -> bool:
     """
     Refresh avatar strategy from Hoyolab
+
     :param redis_client: redis client object
+
     :param db: Database session
+
     :return: true if successful else raise RuntimeError
     """
     avatar_strategy = []
@@ -102,22 +109,26 @@ async def refresh_hoyolab_avatar_strategy(redis_client: redis.client.Redis, db: 
 @china_router.get("/refresh", response_model=StandardResponse, dependencies=[Depends(verify_api_token)])
 @global_router.get("/refresh", response_model=StandardResponse, dependencies=[Depends(verify_api_token)])
 @fujian_router.get("/refresh", response_model=StandardResponse, dependencies=[Depends(verify_api_token)])
-async def refresh_avatar_strategy(request: Request, channel: str) -> StandardResponse:
+async def refresh_avatar_strategy(request: Request, channel: str, db: Session=Depends(get_db)) -> StandardResponse:
     """
     Refresh avatar strategy from Miyoushe or Hoyolab
+
     :param request: request object from FastAPI
+
     :param channel: one of `miyoushe`, `hoyolab`, `all`
+
+    :param db: Database session
+
     :return: StandardResponse with DB operation result and full cached strategy dict
     """
-    db = request.app.state.mysql
     redis_client = redis.Redis.from_pool(request.app.state.redis)
     if channel == "miyoushe":
-        result = {"mys": await refresh_miyoushe_avatar_strategy(redis_client, db)}
+        result = {"mys": await refresh_miyoushe_avatar_strategy(redis_client)}
     elif channel == "hoyolab":
-        result = {"hoyolab": await refresh_hoyolab_avatar_strategy(redis_client, db)}
+        result = {"hoyolab": await refresh_hoyolab_avatar_strategy(redis_client)}
     elif channel == "all":
-        result = {"mys": await refresh_miyoushe_avatar_strategy(redis_client, db),
-                  "hoyolab": await refresh_hoyolab_avatar_strategy(redis_client, db)
+        result = {"mys": await refresh_miyoushe_avatar_strategy(redis_client),
+                  "hoyolab": await refresh_hoyolab_avatar_strategy(redis_client)
                   }
     else:
         raise HTTPException(status_code=400, detail="Invalid channel")
@@ -144,15 +155,19 @@ async def refresh_avatar_strategy(request: Request, channel: str) -> StandardRes
 @china_router.get("/item", response_model=StandardResponse)
 @global_router.get("/item", response_model=StandardResponse)
 @fujian_router.get("/item", response_model=StandardResponse)
-async def get_avatar_strategy_item(request: Request, item_id: int) -> StandardResponse:
+async def get_avatar_strategy_item(request: Request, item_id: int, db: Session=Depends(get_db)) -> StandardResponse:
     """
     Get avatar strategy item by avatar ID
+
     :param request: request object from FastAPI
+
     :param item_id: Genshin internal avatar ID (compatible with weapon id if available)
+
+    :param db: Database session
+
     :return: strategy URLs for Miyoushe and Hoyolab
     """
     redis_client = redis.Redis.from_pool(request.app.state.redis)
-    db = request.app.state.mysql
 
     if redis_client:
         try:
@@ -194,7 +209,9 @@ async def get_avatar_strategy_item(request: Request, item_id: int) -> StandardRe
 async def get_all_avatar_strategy_item(request: Request) -> StandardResponse:
     """
     Get all avatar strategy items
+
     :param request: request object from FastAPI
+
     :return: all avatar strategy items
     """
     redis_client = redis.Redis.from_pool(request.app.state.redis)

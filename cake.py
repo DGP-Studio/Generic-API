@@ -5,8 +5,8 @@ import subprocess
 
 def get_short_commit_hash(length=7):
     try:
-        short_hash = subprocess.check_output(['git', 'rev-parse', f'--short={length}', 'HEAD']).strip().decode('utf-8')
-        return short_hash
+        short_hash_result = subprocess.check_output(['git', 'rev-parse', f'--short={length}', 'HEAD']).strip().decode('utf-8')
+        return short_hash_result
     except subprocess.CalledProcessError as e:
         print(f"Error: {e}")
         return None
