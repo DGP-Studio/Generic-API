@@ -29,7 +29,7 @@ fujian_router = APIRouter(tags=["wallpaper"], prefix="/wallpaper")
                    tags=["admin"])
 @fujian_router.get("/all", response_model=schemas.StandardResponse, dependencies=[Depends(verify_api_token)],
                    tags=["admin"])
-async def get_all_wallpapers(db: Session=get_db()) -> schemas.StandardResponse:
+async def get_all_wallpapers(db: Session=Depends(get_db)) -> schemas.StandardResponse:
     """
     Get all wallpapers in database. **This endpoint requires API token verification**
 
@@ -51,7 +51,7 @@ async def get_all_wallpapers(db: Session=get_db()) -> schemas.StandardResponse:
                     tags=["admin"])
 @fujian_router.post("/add", response_model=schemas.StandardResponse, dependencies=[Depends(verify_api_token)],
                     tags=["admin"])
-async def add_wallpaper(wallpaper: schemas.Wallpaper, db: Session=get_db()):
+async def add_wallpaper(wallpaper: schemas.Wallpaper, db: Session=Depends(get_db)):
     """
     Add a new wallpaper to database. **This endpoint requires API token verification**
 
@@ -85,7 +85,7 @@ async def add_wallpaper(wallpaper: schemas.Wallpaper, db: Session=get_db()):
                     response_model=StandardResponse)
 @fujian_router.post("/disable", dependencies=[Depends(verify_api_token)], tags=["admin"],
                     response_model=StandardResponse)
-async def disable_wallpaper_with_url(request: Request, db: Session=get_db()) -> StandardResponse:
+async def disable_wallpaper_with_url(request: Request, db: Session=Depends(get_db)) -> StandardResponse:
     """
     Disable a wallpaper with its URL, so it won't be picked by the random wallpaper picker.
     **This endpoint requires API token verification**
@@ -113,7 +113,7 @@ async def disable_wallpaper_with_url(request: Request, db: Session=get_db()) -> 
                     response_model=StandardResponse)
 @fujian_router.post("/enable", dependencies=[Depends(verify_api_token)], tags=["admin"],
                     response_model=StandardResponse)
-async def enable_wallpaper_with_url(request: Request, db: Session=get_db()) -> StandardResponse:
+async def enable_wallpaper_with_url(request: Request, db: Session=Depends(get_db)) -> StandardResponse:
     """
     Enable a wallpaper with its URL, so it will be picked by the random wallpaper picker.
     **This endpoint requires API token verification**
@@ -136,7 +136,7 @@ async def enable_wallpaper_with_url(request: Request, db: Session=get_db()) -> S
     raise HTTPException(status_code=404, detail="Wallpaper not found")
 
 
-async def random_pick_wallpaper(request: Request, force_refresh: bool = False, db: Session=get_db()) -> Wallpaper:
+async def random_pick_wallpaper(request: Request, force_refresh: bool = False, db: Session=Depends(get_db)) -> Wallpaper:
     """
     Randomly pick a wallpaper from the database
 
@@ -236,7 +236,7 @@ async def get_today_wallpaper(request: Request) -> StandardResponse:
                    tags=["admin"])
 @fujian_router.get("/reset", response_model=StandardResponse, dependencies=[Depends(verify_api_token)],
                    tags=["admin"])
-async def reset_last_display(db: Session=get_db()) -> StandardResponse:
+async def reset_last_display(db: Session=Depends(get_db)) -> StandardResponse:
     """
     Reset last display date of all wallpapers. **This endpoint requires API token verification**
 
