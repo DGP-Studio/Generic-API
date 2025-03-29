@@ -543,6 +543,7 @@ async def delete_mirror_url(response: Response, request: Request, delete_request
     project_key = delete_request.project_name
     mirror_name = delete_request.mirror_name
     current_version = await redis_client.get(f"{project_key}:version")
+    current_version = current_version.decode("utf-8")
     project_mirror_redis_key = f"{project_key}:mirrors:{current_version}"
 
     if not mirror_name or project_key not in VALID_PROJECT_KEYS:
