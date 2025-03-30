@@ -136,7 +136,7 @@ async def enable_wallpaper_with_url(request: Request, db: Session=Depends(get_db
     raise HTTPException(status_code=404, detail="Wallpaper not found")
 
 
-async def random_pick_wallpaper(request: Request, force_refresh: bool = False, db: Session=Depends(get_db)) -> Wallpaper:
+async def random_pick_wallpaper(request: Request, force_refresh: bool = False, db: Session = None) -> Wallpaper:
     """
     Randomly pick a wallpaper from the database
 
@@ -177,7 +177,7 @@ async def random_pick_wallpaper(request: Request, force_refresh: bool = False, d
 @china_router.get("/today", response_model=StandardResponse)
 @global_router.get("/today", response_model=StandardResponse)
 @fujian_router.get("/today", response_model=StandardResponse)
-async def get_today_wallpaper(request: Request) -> StandardResponse:
+async def get_today_wallpaper(request: Request, db: Session=Depends(get_db)) -> StandardResponse:
     """
     Get today's wallpaper
 
@@ -185,7 +185,7 @@ async def get_today_wallpaper(request: Request) -> StandardResponse:
 
     :return: StandardResponse object with wallpaper data in data field
     """
-    wallpaper = await random_pick_wallpaper(request, False)
+    wallpaper = await random_pick_wallpaper(request, False, db)
     response = StandardResponse()
     response.retcode = 0
     response.message = "ok"
@@ -204,7 +204,7 @@ async def get_today_wallpaper(request: Request) -> StandardResponse:
                    tags=["admin"])
 @fujian_router.get("/refresh", response_model=StandardResponse, dependencies=[Depends(verify_api_token)],
                    tags=["admin"])
-async def get_today_wallpaper(request: Request) -> StandardResponse:
+async def get_today_wallpaper(request: Request, db: Session=Depends(get_db)) -> StandardResponse:
     """
     Refresh today's wallpaper. **This endpoint requires API token verification**
 
@@ -214,7 +214,7 @@ async def get_today_wallpaper(request: Request) -> StandardResponse:
     """
     while True:
         try:
-            wallpaper = await random_pick_wallpaper(request, True)
+            wallpaper = await random_pick_wallpaper(request, True, db)
             response = StandardResponse()
             response.retcode = 0
             response.message = "Wallpaper refreshed"
