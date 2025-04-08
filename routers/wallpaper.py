@@ -244,7 +244,6 @@ async def reset_last_display(db: Session=Depends(get_db)) -> StandardResponse:
 
     :return: StandardResponse object with result in data field
     """
-    db = request.app.state.mysql
     response = StandardResponse()
     response.data = {
         "result": crud.reset_last_display(db)
