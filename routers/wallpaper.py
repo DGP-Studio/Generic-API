@@ -136,7 +136,7 @@ async def enable_wallpaper_with_url(request: Request, db: Session=Depends(get_db
     raise HTTPException(status_code=404, detail="Wallpaper not found")
 
 
-async def random_pick_wallpaper(request: Request, force_refresh: bool = False, db: Session=Depends(get_db)) -> Wallpaper:
+async def random_pick_wallpaper(request: Request, force_refresh: bool = False, db: Session = None) -> Wallpaper:
     """
     Randomly pick a wallpaper from the database
 
@@ -177,7 +177,7 @@ async def random_pick_wallpaper(request: Request, force_refresh: bool = False, d
 @china_router.get("/today", response_model=StandardResponse)
 @global_router.get("/today", response_model=StandardResponse)
 @fujian_router.get("/today", response_model=StandardResponse)
-async def get_today_wallpaper(request: Request) -> StandardResponse:
+async def get_today_wallpaper(request: Request, db: Session=Depends(get_db)) -> StandardResponse:
     """
     Get today's wallpaper
 
@@ -185,7 +185,7 @@ async def get_today_wallpaper(request: Request) -> StandardResponse:
 
     :return: StandardResponse object with wallpaper data in data field
     """
-    wallpaper = await random_pick_wallpaper(request, False)
+    wallpaper = await random_pick_wallpaper(request, False, db)
     response = StandardResponse()
     response.retcode = 0
     response.message = "ok"
@@ -204,7 +204,7 @@ async def get_today_wallpaper(request: Request) -> StandardResponse:
                    tags=["admin"])
 @fujian_router.get("/refresh", response_model=StandardResponse, dependencies=[Depends(verify_api_token)],
                    tags=["admin"])
-async def get_today_wallpaper(request: Request) -> StandardResponse:
+async def get_today_wallpaper(request: Request, db: Session=Depends(get_db)) -> StandardResponse:
     """
     Refresh today's wallpaper. **This endpoint requires API token verification**
 
@@ -214,7 +214,7 @@ async def get_today_wallpaper(request: Request) -> StandardResponse:
     """
     while True:
         try:
-            wallpaper = await random_pick_wallpaper(request, True)
+            wallpaper = await random_pick_wallpaper(request, True, db)
             response = StandardResponse()
             response.retcode = 0
             response.message = "Wallpaper refreshed"
@@ -244,7 +244,7 @@ async def reset_last_display(db: Session=Depends(get_db)) -> StandardResponse:
 
     :return: StandardResponse object with result in data field
     """
-    
+    db = request.app.state.mysql
     response = StandardResponse()
     response.data = {
         "result": crud.reset_last_display(db)
@@ -287,18 +287,7 @@ async def get_bing_wallpaper(request: Request) -> StandardResponse:
     except (json.JSONDecodeError, TypeError):
         pass
     # Get Bing wallpaper
-    max_try = 3
-    bing_output = None
-    for _ in range(max_try):
-        try:
-            bing_output = httpx.get(bing_api, timeout=10).json()
-            break
-        except (httpx.ConnectError, httpx.ConnectTimeout, httpx.ReadTimeout, json.JSONDecodeError):
-            import time
-            time.sleep(1)
-            continue
-    if not bing_output:
-        raise HTTPException(status_code=500, detail="Failed to get Bing wallpaper from upstream. Something went wrong on Microsoft's side.")
+    bing_output = httpx.get(bing_api).json()
     data = {
         "url": f"https://{bing_prefix}.bing.com{bing_output['images'][0]['url']}",
         "source_url": bing_output['images'][0]['copyrightlink'],
