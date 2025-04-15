@@ -3,7 +3,7 @@ from fastapi.responses import RedirectResponse
 from redis import asyncio as aioredis
 from mysql_app.schemas import StandardResponse
 from utils.dgp_utils import validate_client_is_updated
-from base_logger import logger
+from base_logger import get_logger
 import httpx
 import os
 

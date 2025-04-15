@@ -10,7 +10,7 @@ from datetime import datetime
 from contextlib import asynccontextmanager
 from routers import (enka_network, metadata, patch_next, static, net, wallpaper, strategy, crowdin, system_email,
                      client_feature, mgnt)
-from base_logger import logger
+from base_logger import get_logger
 from config import (MAIN_SERVER_DESCRIPTION, TOS_URL, CONTACT_INFO, LICENSE_INFO, VALID_PROJECT_KEYS,
                     IS_DEBUG, IS_DEV, SERVER_TYPE, REDIS_HOST, SENTRY_URL, BUILD_NUMBER, CURRENT_COMMIT_HASH)
 from utils.redis_tools import init_redis_data
@@ -18,6 +18,8 @@ import sentry_sdk
 from sentry_sdk.integrations.starlette import StarletteIntegration
 from sentry_sdk.integrations.fastapi import FastApiIntegration
 from sentry_sdk import set_user
+
+logger = get_logger("main")
 
 
 @asynccontextmanager

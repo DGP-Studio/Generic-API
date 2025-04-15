@@ -1,7 +1,8 @@
 from redis import asyncio as redis
-from base_logger import logger
+from base_logger import get_logger
 
 
+logger = get_logger(__name__)
 INITIALIZED_REDIS_DATA = {
     "url:china:client-feature": "https://static-next.snapgenshin.com/d/meta/client-feature/{file_path}",
     "url:global:client-feature": "https://hutao-client-pages.snapgenshin.cn/{file_path}",

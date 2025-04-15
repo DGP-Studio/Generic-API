@@ -14,8 +14,9 @@ from utils.authentication import verify_api_token
 from utils.stats import record_device_id
 from mysql_app.schemas import StandardResponse
 from config import github_headers, VALID_PROJECT_KEYS
-from base_logger import logger
+from base_logger import get_logger
 
+logger = get_logger(__name__)
 china_router = APIRouter(tags=["Patch"], prefix="/patch")
 global_router = APIRouter(tags=["Patch"], prefix="/patch")
 fujian_router = APIRouter(tags=["Patch"], prefix="/patch")
@@ -166,7 +167,6 @@ async def update_snap_hutao_deployment_version(redis_client: aioredis.client.Red
             # New initialization
             mirror_json = json.dumps(cn_patch_meta.mirrors, default=pydantic_encoder)
             await redis_client.set(f"snap-hutao-deployment:mirrors:{cn_patch_meta.version}", mirror_json)
-
 
     return_data = {
         "global": github_patch_meta.model_dump(),
@@ -341,6 +341,7 @@ async def generic_patch_snap_hutao_alpha_latest_version(request: Request) -> Sta
         message="Alpha means testing",
         data=cached_data
     )
+
 
 # Snap Hutao Deployment
 @china_router.get("/hutao-deployment", response_model=StandardResponse)
@@ -526,7 +527,8 @@ class MirrorDeleteModel(BaseModel):
                       dependencies=[Depends(verify_api_token)], response_model=StandardResponse)
 @fujian_router.delete("/mirror", tags=["admin"], include_in_schema=True,
                       dependencies=[Depends(verify_api_token)], response_model=StandardResponse)
-async def delete_mirror_url(response: Response, request: Request, delete_request: MirrorDeleteModel) -> StandardResponse:
+async def delete_mirror_url(response: Response, request: Request,
+                            delete_request: MirrorDeleteModel) -> StandardResponse:
     """
     Delete overwritten China URL for a project, this url will be placed at first priority when fetching latest version.
     **This endpoint requires API token verification**

@@ -7,7 +7,7 @@ from fastapi.responses import RedirectResponse
 from pydantic import BaseModel
 from mysql_app.schemas import StandardResponse
 from utils.authentication import verify_api_token
-from base_logger import logger
+from base_logger import get_logger
 
 
 class StaticUpdateURL(BaseModel):
@@ -15,6 +15,7 @@ class StaticUpdateURL(BaseModel):
     url: str
 
 
+logger = get_logger(__name__)
 china_router = APIRouter(tags=["Static"], prefix="/static")
 global_router = APIRouter(tags=["Static"], prefix="/static")
 fujian_router = APIRouter(tags=["Static"], prefix="/static")

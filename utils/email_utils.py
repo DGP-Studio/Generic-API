@@ -2,13 +2,15 @@ import os
 import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
-from base_logger import logger
+from base_logger import get_logger
 
 FROM_EMAIL = os.getenv("FROM_EMAIL")
 SMTP_SERVER = os.getenv("SMTP_SERVER")
 SMTP_PORT = int(os.getenv("SMTP_PORT"))
 SMTP_USERNAME = os.getenv("SMTP_USERNAME")
 SMTP_PASSWORD = os.getenv("SMTP_PASSWORD")
+
+logger = get_logger(__name__)
 
 
 def send_system_email(subject, message, to_email) -> bool:

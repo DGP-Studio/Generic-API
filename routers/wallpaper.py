@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session
 from utils.authentication import verify_api_token
 from mysql_app import crud, schemas
 from mysql_app.schemas import Wallpaper, StandardResponse
-from base_logger import logger
+from base_logger import get_logger
 from utils.dependencies import get_db
 
 
@@ -18,6 +18,7 @@ class WallpaperURL(BaseModel):
     url: str
 
 
+logger = get_logger(__name__)
 china_router = APIRouter(tags=["wallpaper"], prefix="/wallpaper")
 global_router = APIRouter(tags=["wallpaper"], prefix="/wallpaper")
 fujian_router = APIRouter(tags=["wallpaper"], prefix="/wallpaper")
