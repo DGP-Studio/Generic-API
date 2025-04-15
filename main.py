@@ -12,13 +12,12 @@ from routers import (enka_network, metadata, patch_next, static, net, wallpaper,
                      client_feature, mgnt)
 from base_logger import logger
 from config import (MAIN_SERVER_DESCRIPTION, TOS_URL, CONTACT_INFO, LICENSE_INFO, VALID_PROJECT_KEYS,
-                    DEBUG, SERVER_TYPE, REDIS_HOST, SENTRY_URL, BUILD_NUMBER, CURRENT_COMMIT_HASH)
+                    IS_DEBUG, IS_DEV, SERVER_TYPE, REDIS_HOST, SENTRY_URL, BUILD_NUMBER, CURRENT_COMMIT_HASH)
 from utils.redis_tools import init_redis_data
 import sentry_sdk
 from sentry_sdk.integrations.starlette import StarletteIntegration
 from sentry_sdk.integrations.fastapi import FastApiIntegration
 from sentry_sdk import set_user
-
 
 
 @asynccontextmanager
@@ -69,7 +68,7 @@ def get_version():
     else:
         build_info = f"Runtime {datetime.now().strftime('%Y.%m.%d.%H%M%S')}"
         logger.info(f"Server is running with Runtime version: {build_info}")
-    if DEBUG:
+    if IS_DEBUG:
         build_info += " DEBUG"
     return build_info
 
@@ -77,7 +76,7 @@ def get_version():
 def get_commit_hash_desc():
     logger.info(f"Server is running with Commit hash: {CURRENT_COMMIT_HASH}")
     commit_desc = f"Build hash: [**{CURRENT_COMMIT_HASH}**](https://github.com/DGP-Studio/Generic-API/commit/{CURRENT_COMMIT_HASH})"
-    if DEBUG:
+    if IS_DEBUG:
         commit_desc += "\n\n**Debug mode is enabled.**"
         commit_desc += "\n\n![Image](https://github.com/user-attachments/assets/64ce064c-c399-4d2f-ac72-cac4379d8725)"
     return commit_desc
@@ -103,27 +102,29 @@ def identify_user(request: Request) -> None:
         })
 
 
-sentry_sdk.init(
-    dsn=SENTRY_URL,
-    send_default_pii=True,
-    traces_sample_rate=1.0,
-    integrations=[
-        StarletteIntegration(
-            transaction_style="url",
-            failed_request_status_codes={403, *range(500, 599)},
-        ),
-        FastApiIntegration(
-            transaction_style="url",
-            failed_request_status_codes={403, *range(500, 599)},
-        ),
-    ],
-    profiles_sample_rate=1.0,
-    release=f"generic-api@{BUILD_NUMBER}-{SERVER_TYPE}+{CURRENT_COMMIT_HASH}",
-    environment=SERVER_TYPE,
-    dist=CURRENT_COMMIT_HASH,
-    server_name="US1",
-)
-
+if IS_DEV:
+    logger.info(f"Sentry is disabled in dev mode")
+else:
+    sentry_sdk.init(
+        dsn=SENTRY_URL,
+        send_default_pii=True,
+        traces_sample_rate=1.0,
+        integrations=[
+            StarletteIntegration(
+                transaction_style="url",
+                failed_request_status_codes={403, *range(500, 599)},
+            ),
+            FastApiIntegration(
+                transaction_style="url",
+                failed_request_status_codes={403, *range(500, 599)},
+            ),
+        ],
+        profiles_sample_rate=1.0,
+        release=f"generic-api@{BUILD_NUMBER}-{SERVER_TYPE}+{CURRENT_COMMIT_HASH}",
+        environment=SERVER_TYPE,
+        dist=CURRENT_COMMIT_HASH,
+        server_name="US1",
+    )
 
 app = FastAPI(redoc_url=None,
               title="Hutao Generic API",
@@ -135,9 +136,8 @@ app = FastAPI(redoc_url=None,
               license_info=LICENSE_INFO,
               openapi_url="/openapi.json",
               lifespan=lifespan,
-              debug=DEBUG,
+              debug=IS_DEBUG,
               dependencies=[Depends(identify_user)])
-
 
 china_root_router = APIRouter(tags=["China Router"], prefix="/cn")
 global_root_router = APIRouter(tags=["Global Router"], prefix="/global")

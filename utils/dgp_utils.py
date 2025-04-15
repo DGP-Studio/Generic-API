@@ -6,7 +6,7 @@ from fastapi import HTTPException, status, Header, Request
 from redis import asyncio as aioredis
 from typing import Annotated
 from base_logger import logger
-from config import github_headers, DEBUG
+from config import github_headers, IS_DEBUG
 
 try:
     WHITE_LIST_REPOSITORIES = json.loads(os.environ.get("WHITE_LIST_REPOSITORIES", "{}"))
