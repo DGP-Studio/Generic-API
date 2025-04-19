@@ -7,7 +7,6 @@ from base_logger import get_logger
 import httpx
 import os
 
-
 china_router = APIRouter(tags=["Hutao Metadata"], prefix="/metadata")
 global_router = APIRouter(tags=["Hutao Metadata"], prefix="/metadata")
 fujian_router = APIRouter(tags=["Hutao Metadata"], prefix="/metadata")
@@ -113,7 +112,6 @@ async def metadata_template_handler(request: Request) -> StandardResponse:
     return StandardResponse(
         data={"template": metadata_endpoint}
     )
-
 
 
 @china_router.get("/{file_path:path}", dependencies=[Depends(validate_client_is_updated)])

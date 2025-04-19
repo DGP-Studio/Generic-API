@@ -8,8 +8,6 @@ from typing import Annotated
 from base_logger import get_logger
 from config import github_headers, IS_DEBUG
 
-
-
 logger = get_logger(__name__)
 try:
     WHITE_LIST_REPOSITORIES = json.loads(os.environ.get("WHITE_LIST_REPOSITORIES", "{}"))
@@ -76,6 +74,9 @@ async def update_recent_versions(redis_client) -> list[str]:
 
 
 async def validate_client_is_updated(request: Request, user_agent: Annotated[str, Header()]) -> bool:
+    requested_hostname = request.headers.get("Host")
+    if "snapgenshin.cn" in requested_hostname:
+        return True
     redis_client = aioredis.Redis.from_pool(request.app.state.redis)
     if BYPASS_CLIENT_VERIFICATION:
         logger.debug("Client verification is bypassed.")
