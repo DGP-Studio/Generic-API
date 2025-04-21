@@ -21,7 +21,7 @@ global_router = APIRouter(tags=["Static"], prefix="/static")
 fujian_router = APIRouter(tags=["Static"], prefix="/static")
 
 
-# @china_router.get("/zip/{file_path:path}")
+@china_router.get("/zip/{file_path:path}")
 async def cn_get_zipped_file(file_path: str, request: Request) -> RedirectResponse:
     """
     Endpoint used to redirect to the zipped static file in China server
@@ -36,31 +36,13 @@ async def cn_get_zipped_file(file_path: str, request: Request) -> RedirectRespon
     china_endpoint = await redis_client.get("url:china:static:zip")
     china_endpoint = china_endpoint.decode("utf-8")
 
-    quality = request.headers.get("x-hutao-quality", "high").lower()
-    archive_type = request.headers.get("x-hutao-archive", "minimum").lower()
+    quality = request.headers.get("x-hutao-quality", "high").lower()  # high/original
+    archive_type = request.headers.get("x-hutao-archive", "minimum").lower()  # minimum/full
 
-    if quality == "unknown" or archive_type == "unknown":
-        raise HTTPException(status_code=418, detail="Invalid request")
+    if archive_type == "minimum":
+        if file_path == "ItemIcon.zip" or file_path == "EmotionIcon.zip":
+            file_path = file_path.replace(".zip", "-Minimum.zip")
 
-    match archive_type:
-        case "minimum":
-            if file_path == "ItemIcon.zip" or file_path == "EmotionIcon.zip":
-                file_path = file_path.replace(".zip", "-Minimum.zip")
-        case "full":
-            pass
-        case _:
-            raise HTTPException(status_code=404, detail="Invalid minimum package")
-
-    match quality:
-        case "high":
-            file_path = file_path.replace(".zip", "-tiny.zip")
-            file_path = "tiny-zip/" + file_path
-        case "raw":
-            file_path = "zip/" + file_path
-        case "original":
-            file_path = "zip/" + file_path
-        case _:
-            raise HTTPException(status_code=404, detail="Invalid quality")
     logging.debug(f"Redirecting to {china_endpoint.format(file_path=file_path)}")
     return RedirectResponse(china_endpoint.format(file_path=file_path), status_code=301)
 
@@ -170,7 +152,7 @@ async def global_get_raw_file(file_path: str, request: Request) -> RedirectRespo
             raise HTTPException(status_code=404, detail="Invalid quality")
 
 
-async def list_static_files_size(redis_client) -> dict:
+async def list_static_files_size_by_alist(redis_client) -> dict:
     # Raw
     api_url = "https://static-next.snapgenshin.com/api/fs/list"
     payload = {
@@ -231,7 +213,7 @@ async def get_static_files_size(request: Request) -> StandardResponse:
         static_files_size = json.loads(static_files_size)
     else:
         logger.info("Redis cache for static files size not found, fetching from API")
-        static_files_size = await list_static_files_size(redis_client)
+        static_files_size = await list_static_files_size_by_alist(redis_client)
     response = StandardResponse(
         retcode=0,
         message="Success",
@@ -245,7 +227,7 @@ async def get_static_files_size(request: Request) -> StandardResponse:
 @fujian_router.get("/size/reset", response_model=StandardResponse, dependencies=[Depends(verify_api_token)])
 async def reset_static_files_size(request: Request) -> StandardResponse:
     redis_client = aioredis.Redis.from_pool(request.app.state.redis)
-    new_data = await list_static_files_size(redis_client)
+    new_data = await list_static_files_size_by_alist(redis_client)
     response = StandardResponse(
         retcode=0,
         message="Success",

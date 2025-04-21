@@ -13,7 +13,7 @@ from routers import (enka_network, metadata, patch_next, static, net, wallpaper,
 from base_logger import get_logger
 from config import (MAIN_SERVER_DESCRIPTION, TOS_URL, CONTACT_INFO, LICENSE_INFO, VALID_PROJECT_KEYS,
                     IS_DEBUG, IS_DEV, SERVER_TYPE, REDIS_HOST, SENTRY_URL, BUILD_NUMBER, CURRENT_COMMIT_HASH)
-from utils.redis_tools import init_redis_data
+from utils.redis_tools import init_redis_data, reinit_redis_data
 import sentry_sdk
 from sentry_sdk.integrations.starlette import StarletteIntegration
 from sentry_sdk.integrations.fastapi import FastApiIntegration
@@ -54,6 +54,7 @@ async def lifespan(app: FastAPI):
     await fetch_snap_hutao_alpha_latest_version(redis_client)
 
     # Initial Redis data
+    await reinit_redis_data(redis_client)
     await init_redis_data(redis_client)
 
     logger.info("ending lifespan startup")
