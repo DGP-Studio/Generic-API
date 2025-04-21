@@ -199,7 +199,28 @@ async def list_static_files_size_by_alist(redis_client) -> dict:
         "tiny_full": tiny_full_size
     }
     await redis_client.set("static_files_size", json.dumps(zip_size_data), ex=60 * 60 * 3)
-    logger.info(f"Updated static files size data: {zip_size_data}")
+    logger.info(f"Updated static files size data via Alist API: {zip_size_data}")
+    return zip_size_data
+
+async def list_static_files_size_by_archive_json(redis_client) -> dict:
+    original_file_size_json_url = "https://static-archive.snapgenshin.cn/original/file_info.json"
+    tiny_file_size_json_url = "https://static-archive.snapgenshin.cn/tiny/file_info.json"
+    original_size = httpx.get(original_file_size_json_url).json()
+    tiny_size = httpx.get(tiny_file_size_json_url).json()
+
+    # Calculate the total size for each category
+    original_full = sum(item["size"] for item in original_size if "Minimum" not in item["name"])
+    original_minimum = sum(item["size"] for item in original_size if item["name"] not in ["EmotionIcon.zip", "ItemIcon.zip"])
+    tiny_full = sum(item["size"] for item in tiny_size if "Minimum" not in item["name"])
+    tiny_minimum = sum(item["size"] for item in tiny_size if item["name"] not in ["EmotionIcon.zip", "ItemIcon.zip"])
+    zip_size_data = {
+        "raw_minimum": original_minimum,
+        "raw_full": original_full,
+        "tiny_minimum": tiny_minimum,
+        "tiny_full": tiny_full
+    }
+    await redis_client.set("static_files_size", json.dumps(zip_size_data), ex=60 * 60 * 3)
+    logger.info(f"Updated static files size data via Static Archive Json: {zip_size_data}")
     return zip_size_data
 
 
@@ -212,8 +233,8 @@ async def get_static_files_size(request: Request) -> StandardResponse:
     if static_files_size:
         static_files_size = json.loads(static_files_size)
     else:
-        logger.info("Redis cache for static files size not found, fetching from API")
-        static_files_size = await list_static_files_size_by_alist(redis_client)
+        logger.info("Redis cache for static files size not found, refreshing data")
+        static_files_size = await list_static_files_size_by_archive_json(redis_client)
     response = StandardResponse(
         retcode=0,
         message="Success",
@@ -227,7 +248,7 @@ async def get_static_files_size(request: Request) -> StandardResponse:
 @fujian_router.get("/size/reset", response_model=StandardResponse, dependencies=[Depends(verify_api_token)])
 async def reset_static_files_size(request: Request) -> StandardResponse:
     redis_client = aioredis.Redis.from_pool(request.app.state.redis)
-    new_data = await list_static_files_size_by_alist(redis_client)
+    new_data = await list_static_files_size_by_archive_json(redis_client)
     response = StandardResponse(
         retcode=0,
         message="Success",
