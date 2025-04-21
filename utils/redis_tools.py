@@ -52,7 +52,7 @@ INITIALIZED_REDIS_DATA = {
 
 async def reinit_redis_data(r: redis.Redis):
     logger.info(f"Reinitializing redis data")
-    for key, value in REINITIALIZED_REDIS_DATA:
+    for key, value in REINITIALIZED_REDIS_DATA.items():
         if value is None:
             await r.delete(key)
             logger.info(f"Removing {key} from Redis")
