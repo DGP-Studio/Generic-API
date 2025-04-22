@@ -193,14 +193,15 @@ async def list_static_files_size_by_alist(redis_client) -> dict:
     tiny_minimum_size = sum([f["size"] for f in tiny_minimum])
     tiny_full_size = sum([f["size"] for f in tiny_full])
     zip_size_data = {
-        "raw_minimum": raw_minimum_size,
-        "raw_full": raw_full_size,
+        "original_minimum": raw_minimum_size,
+        "original_full": raw_full_size,
         "tiny_minimum": tiny_minimum_size,
         "tiny_full": tiny_full_size
     }
     await redis_client.set("static_files_size", json.dumps(zip_size_data), ex=60 * 60 * 3)
     logger.info(f"Updated static files size data via Alist API: {zip_size_data}")
     return zip_size_data
+
 
 async def list_static_files_size_by_archive_json(redis_client) -> dict:
     original_file_size_json_url = "https://static-archive.snapgenshin.cn/original/file_info.json"
@@ -210,12 +211,13 @@ async def list_static_files_size_by_archive_json(redis_client) -> dict:
 
     # Calculate the total size for each category
     original_full = sum(item["size"] for item in original_size if "Minimum" not in item["name"])
-    original_minimum = sum(item["size"] for item in original_size if item["name"] not in ["EmotionIcon.zip", "ItemIcon.zip"])
+    original_minimum = sum(
+        item["size"] for item in original_size if item["name"] not in ["EmotionIcon.zip", "ItemIcon.zip"])
     tiny_full = sum(item["size"] for item in tiny_size if "Minimum" not in item["name"])
     tiny_minimum = sum(item["size"] for item in tiny_size if item["name"] not in ["EmotionIcon.zip", "ItemIcon.zip"])
     zip_size_data = {
-        "raw_minimum": original_minimum,
-        "raw_full": original_full,
+        "original_minimum": original_minimum,
+        "original_full": original_full,
         "tiny_minimum": tiny_minimum,
         "tiny_full": tiny_full
     }
