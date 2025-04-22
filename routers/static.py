@@ -22,7 +22,7 @@ fujian_router = APIRouter(tags=["Static"], prefix="/static")
 
 
 @china_router.get("/zip/{file_path:path}")
-async def cn_get_zipped_file(file_path: str, request: Request) -> RedirectResponse:
+async def cn_get_zipped_image(file_path: str, request: Request) -> RedirectResponse:
     """
     Endpoint used to redirect to the zipped static file in China server
 
@@ -33,9 +33,6 @@ async def cn_get_zipped_file(file_path: str, request: Request) -> RedirectRespon
     :return: 301 Redirect to the zip file
     """
     redis_client = aioredis.Redis.from_pool(request.app.state.redis)
-    china_endpoint = await redis_client.get("url:china:static:zip")
-    china_endpoint = china_endpoint.decode("utf-8")
-
     quality = request.headers.get("x-hutao-quality", "high").lower()  # high/original
     archive_type = request.headers.get("x-hutao-archive", "minimum").lower()  # minimum/full
 
@@ -43,13 +40,19 @@ async def cn_get_zipped_file(file_path: str, request: Request) -> RedirectRespon
         if file_path == "ItemIcon.zip" or file_path == "EmotionIcon.zip":
             file_path = file_path.replace(".zip", "-Minimum.zip")
 
-    logging.debug(f"Redirecting to {china_endpoint.format(file_path=file_path)}")
-    return RedirectResponse(china_endpoint.format(file_path=file_path), status_code=301)
+    if quality == "high":
+        resource_endpoint = await redis_client.get("url:china:static:zip:tiny")
+    elif quality == "original":
+        resource_endpoint = await redis_client.get("url:china:static:zip:original")
+    else:
+        raise HTTPException(status_code=422, detail=f"{quality} is not a valid quality value")
+    resource_endpoint = resource_endpoint.decode("utf-8")
+    logging.debug(f"Redirecting to {resource_endpoint.format(file_path=file_path)}")
+    return RedirectResponse(resource_endpoint.format(file_path=file_path), status_code=301)
 
 
 @china_router.get("/raw/{file_path:path}")
-@fujian_router.get("/raw/{file_path:path}")
-async def cn_get_raw_file(file_path: str, request: Request) -> RedirectResponse:
+async def cn_get_raw_image(file_path: str, request: Request) -> RedirectResponse:
     """
     Endpoint used to redirect to the raw static file in China server
 
@@ -59,17 +62,20 @@ async def cn_get_raw_file(file_path: str, request: Request) -> RedirectResponse:
 
     :return: 301 Redirect to the raw file
     """
-    # quality = request.headers.get("x-hutao-quality", "high").lower()
+    quality = request.headers.get("x-hutao-quality", "high").lower()
     redis_client = aioredis.Redis.from_pool(request.app.state.redis)
-    china_endpoint = await redis_client.get("url:china:static:raw")
-    china_endpoint = china_endpoint.decode("utf-8")
-    logging.debug(f"Redirecting to {china_endpoint.format(file_path=file_path)}")
-    return RedirectResponse(china_endpoint.format(file_path=file_path), status_code=301)
+    if quality == "high":
+        resource_endpoint = await redis_client.get("url:china:static:raw:tiny")
+    elif quality == "original":
+        resource_endpoint = await redis_client.get("url:china:static:raw:original")
+    else:
+        raise HTTPException(status_code=422, detail=f"{quality} is not a valid quality value")
+    resource_endpoint = resource_endpoint.decode("utf-8")
+    logging.debug(f"Redirecting to {resource_endpoint.format(file_path=file_path)}")
+    return RedirectResponse(resource_endpoint.format(file_path=file_path), status_code=301)
 
 
 @global_router.get("/zip/{file_path:path}")
-@china_router.get("/zip/{file_path:path}")
-@fujian_router.get("/zip/{file_path:path}")
 async def global_get_zipped_file(file_path: str, request: Request) -> RedirectResponse:
     """
     Endpoint used to redirect to the zipped static file in Global server
@@ -80,39 +86,23 @@ async def global_get_zipped_file(file_path: str, request: Request) -> RedirectRe
 
     :return: Redirect to the zip file
     """
-    quality = request.headers.get("x-hutao-quality", "high").lower()
-    archive_type = request.headers.get("x-hutao-archive", "minimum").lower()
     redis_client = aioredis.Redis.from_pool(request.app.state.redis)
-    global_original_quality_endpoint = await redis_client.get("url:global:static:zip")
-    global_original_quality_endpoint = global_original_quality_endpoint.decode("utf-8")
-    global_tiny_quality_endpoint = await redis_client.get("url:global:static:tiny")
-    global_tiny_quality_endpoint = global_tiny_quality_endpoint.decode("utf-8")
+    quality = request.headers.get("x-hutao-quality", "high").lower()  # high/original
+    archive_type = request.headers.get("x-hutao-archive", "minimum").lower()  # minimum/full
 
-    if quality == "unknown" or archive_type == "unknown":
-        raise HTTPException(status_code=418, detail="Invalid request")
+    if archive_type == "minimum":
+        if file_path == "ItemIcon.zip" or file_path == "EmotionIcon.zip":
+            file_path = file_path.replace(".zip", "-Minimum.zip")
 
-    match archive_type:
-        case "minimum":
-            if file_path == "ItemIcon.zip" or file_path == "EmotionIcon.zip":
-                file_path = file_path.replace(".zip", "-Minimum.zip")
-        case "full":
-            pass
-        case _:
-            raise HTTPException(status_code=404, detail="Invalid minimum package")
-
-    match quality:
-        case "high":
-            return RedirectResponse(
-                global_tiny_quality_endpoint.format(file_path=file_path, file_type="zip"),
-                status_code=301
-            )
-        case "raw":
-            return RedirectResponse(
-                global_original_quality_endpoint.format(file_path=file_path),
-                status_code=301
-            )
-        case _:
-            raise HTTPException(status_code=404, detail="Invalid quality")
+    if quality == "high":
+        resource_endpoint = await redis_client.get("url:global:static:zip:tiny")
+    elif quality == "original":
+        resource_endpoint = await redis_client.get("url:global:static:zip:original")
+    else:
+        raise HTTPException(status_code=422, detail=f"{quality} is not a valid quality value")
+    resource_endpoint = resource_endpoint.decode("utf-8")
+    logging.debug(f"Redirecting to {resource_endpoint.format(file_path=file_path)}")
+    return RedirectResponse(resource_endpoint.format(file_path=file_path), status_code=301)
 
 
 @global_router.get("/raw/{file_path:path}")
@@ -127,29 +117,68 @@ async def global_get_raw_file(file_path: str, request: Request) -> RedirectRespo
     """
     quality = request.headers.get("x-hutao-quality", "high").lower()
     redis_client = aioredis.Redis.from_pool(request.app.state.redis)
-    global_original_quality_endpoint = await redis_client.get("url:global:static:raw")
-    global_original_quality_endpoint = global_original_quality_endpoint.decode("utf-8")
-    global_tiny_quality_endpoint = await redis_client.get("url:global:static:tiny")
-    global_tiny_quality_endpoint = global_tiny_quality_endpoint.decode("utf-8")
+    if quality == "high":
+        resource_endpoint = await redis_client.get("url:global:static:raw:tiny")
+    elif quality == "original":
+        resource_endpoint = await redis_client.get("url:global:static:raw:original")
+    else:
+        raise HTTPException(status_code=422, detail=f"{quality} is not a valid quality value")
+    resource_endpoint = resource_endpoint.decode("utf-8")
+    logging.debug(f"Redirecting to {resource_endpoint.format(file_path=file_path)}")
+    return RedirectResponse(resource_endpoint.format(file_path=file_path), status_code=301)
 
-    match quality:
-        case "high":
-            return RedirectResponse(
-                global_tiny_quality_endpoint.format(file_type="raw", file_path=file_path),
-                status_code=301
-            )
-        case "raw":
-            return RedirectResponse(
-                global_original_quality_endpoint.format(file_path=file_path),
-                status_code=301
-            )
-        case "original":
-            return RedirectResponse(
-                global_original_quality_endpoint.format(file_path=file_path),
-                status_code=301
-            )
-        case _:
-            raise HTTPException(status_code=404, detail="Invalid quality")
+
+@fujian_router.get("/zip/{file_path:path}")
+async def global_get_zipped_file(file_path: str, request: Request) -> RedirectResponse:
+    """
+    Endpoint used to redirect to the zipped static file in Fujian server
+
+    :param request: request object from FastAPI
+
+    :param file_path: Relative path in Snap.Static.Zip
+
+    :return: Redirect to the zip file
+    """
+    redis_client = aioredis.Redis.from_pool(request.app.state.redis)
+    quality = request.headers.get("x-hutao-quality", "high").lower()  # high/original
+    archive_type = request.headers.get("x-hutao-archive", "minimum").lower()  # minimum/full
+
+    if archive_type == "minimum":
+        if file_path == "ItemIcon.zip" or file_path == "EmotionIcon.zip":
+            file_path = file_path.replace(".zip", "-Minimum.zip")
+
+    if quality == "high":
+        resource_endpoint = await redis_client.get("url:fujian:static:zip:tiny")
+    elif quality == "original":
+        resource_endpoint = await redis_client.get("url:fujian:static:zip:original")
+    else:
+        raise HTTPException(status_code=422, detail=f"{quality} is not a valid quality value")
+    resource_endpoint = resource_endpoint.decode("utf-8")
+    logging.debug(f"Redirecting to {resource_endpoint.format(file_path=file_path)}")
+    return RedirectResponse(resource_endpoint.format(file_path=file_path), status_code=301)
+
+
+@global_router.get("/raw/{file_path:path}")
+async def global_get_raw_file(file_path: str, request: Request) -> RedirectResponse:
+    """
+    Endpoint used to redirect to the raw static file in Fujian server
+
+    :param request: request object from FastAPI
+    :param file_path: Relative path in Snap.Static
+
+    :return: 301 Redirect to the raw file
+    """
+    quality = request.headers.get("x-hutao-quality", "high").lower()
+    redis_client = aioredis.Redis.from_pool(request.app.state.redis)
+    if quality == "high":
+        resource_endpoint = await redis_client.get("url:fujian:static:raw:tiny")
+    elif quality == "original":
+        resource_endpoint = await redis_client.get("url:fujian:static:raw:original")
+    else:
+        raise HTTPException(status_code=422, detail=f"{quality} is not a valid quality value")
+    resource_endpoint = resource_endpoint.decode("utf-8")
+    logging.debug(f"Redirecting to {resource_endpoint.format(file_path=file_path)}")
+    return RedirectResponse(resource_endpoint.format(file_path=file_path), status_code=301)
 
 
 async def list_static_files_size_by_alist(redis_client) -> dict:
