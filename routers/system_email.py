@@ -14,8 +14,8 @@ from base_logger import get_logger
 
 logger = get_logger(__name__)
 admin_router = APIRouter(tags=["Email System"], prefix="/email")
-API_IMAGE_NAME = os.getenv("IMAGE_NAME", "dev")
-if "dev" in API_IMAGE_NAME.lower():
+SERVER_TYPE = os.getenv("SERVER_TYPE", "dev")
+if SERVER_TYPE == "dev":
     thread_size = 1
 else:
     thread_size = 5
