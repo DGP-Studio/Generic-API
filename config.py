@@ -9,10 +9,16 @@ VALID_PROJECT_KEYS = ["snap-hutao", "snap-hutao-deployment"]
 
 IMAGE_NAME = os.getenv("IMAGE_NAME", "generic-api")
 SERVER_TYPE = os.getenv("SERVER_TYPE", "[Unknown Server Type]")
-with open("build_number.txt", 'r') as f:
-    BUILD_NUMBER = f.read().strip()
-with open("current_commit.txt", 'r') as f:
-    CURRENT_COMMIT_HASH = f.read().strip()
+IS_DEBUG = True if "alpha" in IMAGE_NAME.lower() or "dev" in IMAGE_NAME.lower() else False
+IS_DEV = True if os.getenv("IS_DEV", "False").lower() == "true" or SERVER_TYPE in ["dev"] else False
+if IS_DEV:
+    BUILD_NUMBER = "DEV"
+    CURRENT_COMMIT_HASH = "DEV"
+else:
+    with open("build_number.txt", 'r') as f:
+        BUILD_NUMBER = f.read().strip()
+    with open("current_commit.txt", 'r') as f:
+        CURRENT_COMMIT_HASH = f.read().strip()
 
 github_headers = {
     "Authorization": f"Bearer {os.environ.get('GITHUB_PAT')}",
@@ -22,8 +28,6 @@ github_headers = {
 API_TOKEN = os.environ.get("API_TOKEN")
 
 HOMA_SERVER_IP = os.environ.get("HOMA_SERVER_IP", None)
-
-DEBUG = True if "alpha" in IMAGE_NAME.lower() or "dev" in IMAGE_NAME.lower() else False
 
 REDIS_HOST = os.getenv("REDIS_HOST", "redis")
 

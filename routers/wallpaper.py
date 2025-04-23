@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session
 from utils.authentication import verify_api_token
 from mysql_app import crud, schemas
 from mysql_app.schemas import Wallpaper, StandardResponse
-from base_logger import logger
+from base_logger import get_logger
 from utils.dependencies import get_db
 
 
@@ -18,6 +18,7 @@ class WallpaperURL(BaseModel):
     url: str
 
 
+logger = get_logger(__name__)
 china_router = APIRouter(tags=["wallpaper"], prefix="/wallpaper")
 global_router = APIRouter(tags=["wallpaper"], prefix="/wallpaper")
 fujian_router = APIRouter(tags=["wallpaper"], prefix="/wallpaper")
@@ -244,7 +245,6 @@ async def reset_last_display(db: Session=Depends(get_db)) -> StandardResponse:
 
     :return: StandardResponse object with result in data field
     """
-    
     response = StandardResponse()
     response.data = {
         "result": crud.reset_last_display(db)
@@ -287,26 +287,24 @@ async def get_bing_wallpaper(request: Request) -> StandardResponse:
     except (json.JSONDecodeError, TypeError):
         pass
     # Get Bing wallpaper
-    max_try = 3
-    bing_output = None
-    for _ in range(max_try):
-        try:
-            bing_output = httpx.get(bing_api, timeout=10).json()
-            break
-        except (httpx.ConnectError, httpx.ConnectTimeout, httpx.ReadTimeout, json.JSONDecodeError):
-            import time
-            time.sleep(1)
-            continue
-    if not bing_output:
-        raise HTTPException(status_code=500, detail="Failed to get Bing wallpaper from upstream. Something went wrong on Microsoft's side.")
-    data = {
-        "url": f"https://{bing_prefix}.bing.com{bing_output['images'][0]['url']}",
-        "source_url": bing_output['images'][0]['copyrightlink'],
-        "author": bing_output['images'][0]['copyright'],
-        "uploader": "Microsoft Bing"
-    }
-    res = await redis_client.set(redis_key, json.dumps(data), ex=3600)
-    logger.info(f"Set bing_wallpaper to Redis result: {res}")
+    try:
+        bing_output = httpx.get(bing_api).json()
+        data = {
+            "url": f"https://{bing_prefix}.bing.com{bing_output['images'][0]['url']}",
+            "source_url": bing_output['images'][0]['copyrightlink'],
+            "author": bing_output['images'][0]['copyright'],
+            "uploader": "Microsoft Bing"
+        }
+        res = await redis_client.set(redis_key, json.dumps(data), ex=3600)
+        logger.info(f"Set bing_wallpaper to Redis result: {res}")
+    except Exception as e:
+        logger.error(f"Failed to fetch Bing wallpaper: {e}")
+        data = {
+            "url": "https://www.bing.com/th?id=OHR.YellowstoneSpring_EN-US2710865870_1920x1080.jpg&rf=LaDigue_1920x1080.jpg&pid=hp",
+            "source_url": "https://www.bing.com/",
+            "author": "Microsoft Bing",
+            "uploader": "Microsoft Bing"
+        }
     response = StandardResponse()
     response.message = f"sourced: {redis_key}"
     response.data = data

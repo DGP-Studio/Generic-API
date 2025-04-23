@@ -2,9 +2,11 @@ import os
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
-from base_logger import logging
+from base_logger import get_logger
 import socket
 
+
+logger = get_logger(__name__)
 if "dev" in os.getenv("SERVER_TYPE", "").lower():
     MYSQL_HOST = os.getenv("MYSQL_HOST")
 else:
@@ -24,4 +26,4 @@ engine = create_engine(SQLALCHEMY_DATABASE_URL,
                        )
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
-logging.info(f"MySQL connection established to {MYSQL_HOST}/{MYSQL_DATABASE}")
+logger.info(f"MySQL connection established to {MYSQL_HOST}/{MYSQL_DATABASE}")

@@ -2,7 +2,9 @@ import time
 from fastapi import Header, Request
 from redis import asyncio as aioredis
 from typing import Optional
-from base_logger import logger
+from base_logger import get_logger
+
+logger = get_logger(__name__)
 
 
 async def record_device_id(request: Request, x_region: Optional[str] = Header(None),

@@ -5,12 +5,13 @@ import redis
 from datetime import date, timedelta
 from scheduler import Scheduler
 import config  # DO NOT REMOVE
-from base_logger import logger
+from base_logger import get_logger
 from mysql_app.schemas import DailyActiveUserStats, DailyEmailSentStats
 from mysql_app.database import SessionLocal
 from mysql_app.crud import dump_daily_active_user_stats, dump_daily_email_sent_stats
 
 
+logger = get_logger(__name__)
 scan_duration = int(os.getenv("CENSOR_FILE_SCAN_DURATION", 30))  # Scan duration in *minutes*
 tz_shanghai = datetime.timezone(datetime.timedelta(hours=8))
 print(f"Scan duration: {scan_duration} minutes.")

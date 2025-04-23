@@ -1,9 +1,11 @@
 from fastapi import HTTPException, Header
 from typing import Annotated
 from config import API_TOKEN, HOMA_SERVER_IP
-from base_logger import logger
+from base_logger import get_logger
 from mysql_app.homa_schemas import HomaPassport
 import httpx
+
+logger = get_logger(__name__)
 
 
 def verify_api_token(api_token: Annotated[str, Header()]) -> bool:
