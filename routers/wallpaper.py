@@ -287,15 +287,24 @@ async def get_bing_wallpaper(request: Request) -> StandardResponse:
     except (json.JSONDecodeError, TypeError):
         pass
     # Get Bing wallpaper
-    bing_output = httpx.get(bing_api).json()
-    data = {
-        "url": f"https://{bing_prefix}.bing.com{bing_output['images'][0]['url']}",
-        "source_url": bing_output['images'][0]['copyrightlink'],
-        "author": bing_output['images'][0]['copyright'],
-        "uploader": "Microsoft Bing"
-    }
-    res = await redis_client.set(redis_key, json.dumps(data), ex=3600)
-    logger.info(f"Set bing_wallpaper to Redis result: {res}")
+    try:
+        bing_output = httpx.get(bing_api).json()
+        data = {
+            "url": f"https://{bing_prefix}.bing.com{bing_output['images'][0]['url']}",
+            "source_url": bing_output['images'][0]['copyrightlink'],
+            "author": bing_output['images'][0]['copyright'],
+            "uploader": "Microsoft Bing"
+        }
+        res = await redis_client.set(redis_key, json.dumps(data), ex=3600)
+        logger.info(f"Set bing_wallpaper to Redis result: {res}")
+    except Exception as e:
+        logger.error(f"Failed to fetch Bing wallpaper: {e}")
+        data = {
+            "url": "https://www.bing.com/th?id=OHR.YellowstoneSpring_EN-US2710865870_1920x1080.jpg&rf=LaDigue_1920x1080.jpg&pid=hp",
+            "source_url": "https://www.bing.com/",
+            "author": "Microsoft Bing",
+            "uploader": "Microsoft Bing"
+        }
     response = StandardResponse()
     response.message = f"sourced: {redis_key}"
     response.data = data
