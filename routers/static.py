@@ -59,7 +59,7 @@ async def get_zip_resource(file_path: str, request: Request) -> RedirectResponse
         raise HTTPException(status_code=422, detail=f"{quality} is not a valid quality value")
     resource_endpoint = resource_endpoint.decode("utf-8")
 
-    logging.debug(f"Redirecting to {resource_endpoint.format(file_path=file_path)}")
+    logger.debug(f"Redirecting to {resource_endpoint.format(file_path=file_path)}")
     return RedirectResponse(resource_endpoint.format(file_path=file_path), status_code=301)
 
 
@@ -97,7 +97,7 @@ async def get_raw_resource(file_path: str, request: Request) -> RedirectResponse
         raise HTTPException(status_code=422, detail=f"{quality} is not a valid quality value")
     resource_endpoint = resource_endpoint.decode("utf-8")
 
-    logging.debug(f"Redirecting to {resource_endpoint.format(file_path=file_path)}")
+    logger.debug(f"Redirecting to {resource_endpoint.format(file_path=file_path)}")
     return RedirectResponse(resource_endpoint.format(file_path=file_path), status_code=301)
 
 
