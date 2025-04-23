@@ -167,6 +167,8 @@ async def list_static_files_size_by_archive_json(redis_client) -> dict:
     zip_size_data = {
         "original_minimum": original_minimum,
         "original_full": original_full,
+        "raw_minimum": original_minimum,  # For compatibility with old clients
+        "raw_full": original_full,  # For compatibility with old clients
         "tiny_minimum": tiny_minimum,
         "tiny_full": tiny_full
     }
