@@ -101,6 +101,51 @@ async def get_raw_resource(file_path: str, request: Request) -> RedirectResponse
     return RedirectResponse(resource_endpoint.format(file_path=file_path), status_code=301)
 
 
+@china_router.get("/template", response_model=StandardResponse)
+@global_router.get("/template", response_model=StandardResponse)
+@fujian_router.get("/template", response_model=StandardResponse)
+async def get_static_files_template(request: Request) -> StandardResponse:
+    """
+    Endpoint used to get the template URL for static files
+
+    :param request: request object from FastAPI
+
+    :return: 301 Redirect to the template URL
+    """
+    redis_client = aioredis.Redis.from_pool(request.app.state.redis)
+    quality = request.headers.get("x-hutao-quality", "high").lower()
+    if quality != "original":
+        quality = "tiny"
+    zip_template = None
+    raw_template = None
+
+    if request.url.path.startswith("/cn"):
+        region = "china"
+    elif request.url.path.startswith("/global"):
+        region = "global"
+    elif request.url.path.startswith("/fj"):
+        region = "fujian"
+    else:
+        raise HTTPException(status_code=400, detail="Invalid router")
+    try:
+        zip_template = await redis_client.get(f"url:{region}:static:zip:{quality}")
+        zip_template = zip_template.decode("utf-8")
+        raw_template = await redis_client.get(f"url:{region}:static:raw:{quality}")
+        raw_template = raw_template.decode("utf-8")
+        zip_template = zip_template.replace("{file_path}", "{0}")
+        raw_template = raw_template.replace("{file_path}", "{0}")
+    except TypeError:
+        logger.error("Failed to decode template URL from Redis")
+        raise HTTPException(status_code=500, detail="Template URL not found")
+
+    return StandardResponse(
+        data={
+            "zip_template": zip_template,
+            "raw_template": raw_template
+        }
+    )
+
+
 async def list_static_files_size_by_alist(redis_client) -> dict:
     # Raw
     api_url = "https://static-next.snapgenshin.com/api/fs/list"
