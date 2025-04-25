@@ -129,13 +129,17 @@ async def get_static_files_template(request: Request) -> StandardResponse:
         raise HTTPException(status_code=400, detail="Invalid router")
     try:
         zip_template = await redis_client.get(f"url:{region}:static:zip:{quality}")
+        if zip_template is None:
+            raise ValueError("Zip template URL not found in Redis")
         zip_template = zip_template.decode("utf-8")
         raw_template = await redis_client.get(f"url:{region}:static:raw:{quality}")
+        if raw_template is None:
+            raise ValueError("Raw template URL not found in Redis")
         raw_template = raw_template.decode("utf-8")
         zip_template = zip_template.replace("{file_path}", "{0}")
         raw_template = raw_template.replace("{file_path}", "{0}")
-    except TypeError:
-        logger.error("Failed to decode template URL from Redis")
+    except (TypeError, ValueError) as e:
+        logger.error(f"Failed to retrieve or decode template URL from Redis: {e}")
         raise HTTPException(status_code=500, detail="Template URL not found")
 
     return StandardResponse(
