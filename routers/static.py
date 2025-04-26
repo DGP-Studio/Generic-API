@@ -53,7 +53,7 @@ async def get_zip_resource(file_path: str, request: Request) -> RedirectResponse
 
     if quality == "high":
         resource_endpoint = await redis_client.get(f"url:{region}:static:zip:tiny")
-    elif quality == "original":
+    elif quality == "original" or quality == "raw":
         resource_endpoint = await redis_client.get(f"url:{region}:static:zip:original")
     else:
         raise HTTPException(status_code=422, detail=f"{quality} is not a valid quality value")
@@ -91,7 +91,7 @@ async def get_raw_resource(file_path: str, request: Request) -> RedirectResponse
 
     if quality == "high":
         resource_endpoint = await redis_client.get(f"url:{region}:static:raw:tiny")
-    elif quality == "original":
+    elif quality == "original" or quality == "raw":
         resource_endpoint = await redis_client.get(f"url:{region}:static:raw:original")
     else:
         raise HTTPException(status_code=422, detail=f"{quality} is not a valid quality value")
