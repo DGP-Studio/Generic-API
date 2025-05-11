@@ -20,7 +20,7 @@ hoyolab_strategy_url = "https://www.hoyolab.com/guidelist?game_id=2&guide_id={ho
 """
 
 
-async def refresh_miyoushe_avatar_strategy(redis_client: redis.client.Redis, db: Session=Depends(get_db)) -> bool:
+async def refresh_miyoushe_avatar_strategy(redis_client: redis.client.Redis, db: Session) -> bool:
     """
     Refresh avatar strategy from Miyoushe
 
@@ -62,7 +62,7 @@ async def refresh_miyoushe_avatar_strategy(redis_client: redis.client.Redis, db:
     return True
 
 
-async def refresh_hoyolab_avatar_strategy(redis_client: redis.client.Redis, db: Session=Depends(get_db)) -> bool:
+async def refresh_hoyolab_avatar_strategy(redis_client: redis.client.Redis, db: Session) -> bool:
     """
     Refresh avatar strategy from Hoyolab
 
@@ -109,7 +109,7 @@ async def refresh_hoyolab_avatar_strategy(redis_client: redis.client.Redis, db: 
 @china_router.get("/refresh", response_model=StandardResponse, dependencies=[Depends(verify_api_token)])
 @global_router.get("/refresh", response_model=StandardResponse, dependencies=[Depends(verify_api_token)])
 @fujian_router.get("/refresh", response_model=StandardResponse, dependencies=[Depends(verify_api_token)])
-async def refresh_avatar_strategy(request: Request, channel: str, db: Session=Depends(get_db)) -> StandardResponse:
+async def refresh_avatar_strategy(request: Request, channel: str, db: Session = Depends(get_db)) -> StandardResponse:
     """
     Refresh avatar strategy from Miyoushe or Hoyolab
 
@@ -123,12 +123,12 @@ async def refresh_avatar_strategy(request: Request, channel: str, db: Session=De
     """
     redis_client = redis.Redis.from_pool(request.app.state.redis)
     if channel == "miyoushe":
-        result = {"mys": await refresh_miyoushe_avatar_strategy(redis_client)}
+        result = {"mys": await refresh_miyoushe_avatar_strategy(redis_client, db)}
     elif channel == "hoyolab":
-        result = {"hoyolab": await refresh_hoyolab_avatar_strategy(redis_client)}
+        result = {"hoyolab": await refresh_hoyolab_avatar_strategy(redis_client, db)}
     elif channel == "all":
-        result = {"mys": await refresh_miyoushe_avatar_strategy(redis_client),
-                  "hoyolab": await refresh_hoyolab_avatar_strategy(redis_client)
+        result = {"mys": await refresh_miyoushe_avatar_strategy(redis_client, db),
+                  "hoyolab": await refresh_hoyolab_avatar_strategy(redis_client, db)
                   }
     else:
         raise HTTPException(status_code=400, detail="Invalid channel")
@@ -226,3 +226,4 @@ async def get_all_avatar_strategy_item(request: Request) -> StandardResponse:
         message="Success",
         data=strategy_dict
     )
+
