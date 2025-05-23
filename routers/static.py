@@ -1,3 +1,4 @@
+import os
 import httpx
 import json
 from redis import asyncio as aioredis
@@ -224,8 +225,8 @@ async def list_static_files_size_by_archive_json(redis_client) -> dict:
     tiny_minimum = sum(item["size"] for item in tiny_size if item["name"] not in ["EmotionIcon.zip", "ItemIcon.zip"])
 
     # Static Meta
-    original_cache_time = original_meta["time"]
-    tiny_cache_time = tiny_meta["time"]
+    original_cache_time = original_meta["time"] # Format str - "05/06/2025 13:03:40"
+    tiny_cache_time = tiny_meta["time"] # Format str - "05/06/2025 13:03:40"
     original_commit_hash = original_meta["commit"][:7]
     tiny_commit_hash = tiny_meta["commit"][:7]
 
@@ -275,3 +276,51 @@ async def reset_static_files_size(request: Request) -> StandardResponse:
         data=new_data
     )
     return response
+
+
+async def upload_all_static_archive_to_cdn(redis_client: aioredis.Redis):
+    """
+    Upload all static archive to CDN
+
+    :param redis_client: Redis client
+    :return: True if upload is successful, False otherwise
+    """
+    archive_type = ["original", "tiny"]
+    upload_endpoint = f"{os.getenv("CDN_UPLOAD_HOSTNAME")}/api/upload?name="
+    for archive_quality in archive_type:
+        file_list_url = f"https://static-archive.snapgenshin.cn/{archive_quality}/file_info.json"
+        meta_url = f"https://static-archive.snapgenshin.cn/{archive_quality}/meta.json"
+        file_list = httpx.get(file_list_url).json()
+        meta = httpx.get(meta_url).json()
+        commit_hash = meta["commit"][:7]
+        os.makedirs(f"./cache/static/{archive_quality}-{commit_hash}", exist_ok=True)
+        for archive_file in file_list:
+            file_name = archive_file["name"].replace(".zip", "")
+            # Check redis cache, if exists, skip
+            if await redis_client.exists(f"static-cdn:{archive_quality}:{commit_hash}:{file_name}"):
+                logger.info(f"File {archive_file['name']} already exists in CDN, skipping upload")
+                continue
+            try:
+                file_url = f"https://static-archive.snapgenshin.cn/{archive_quality}/{archive_file['name']}"
+                # Download file
+                response = httpx.get(file_url)
+                with open(f"./cache/static/{archive_quality}-{commit_hash}/{archive_file['name']}", "wb+") as f:
+                    f.write(response.content)
+                # Upload file to CDN with PUT method
+                with open(f"./cache/static/{archive_quality}-{commit_hash}/{archive_file['name']}", "rb") as f:
+                    upload_response = httpx.put(upload_endpoint + archive_file["name"], data=f, timeout=180)
+                    if upload_response.status_code != 200:
+                        logger.error(f"Failed to upload {archive_file['name']} to CDN")
+                    else:
+                        resp_url = upload_response.text
+                        if not resp_url.startswith("http"):
+                            logger.error(f"Failed to upload {archive_file['name']} to CDN, response: {resp_url}")
+                        else:
+                            logger.info(f"Uploaded {archive_file['name']} to CDN, response: {resp_url}")
+                            await redis_client.set(f"static-cdn:{archive_quality}:{commit_hash}:{file_name}", resp_url)
+            except Exception as e:
+                logger.error(f"Failed to upload {archive_file['name']} to CDN, error: {e}")
+                continue
+            finally:
+                # Clean up local file
+                os.remove(f"./cache/static/{archive_quality}-{commit_hash}/{archive_file['name']}")
