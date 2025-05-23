@@ -15,6 +15,7 @@ from utils.stats import record_device_id
 from mysql_app.schemas import StandardResponse
 from config import github_headers, VALID_PROJECT_KEYS
 from base_logger import get_logger
+from typing import Literal
 
 logger = get_logger(__name__)
 china_router = APIRouter(tags=["Patch"], prefix="/patch")
@@ -24,8 +25,13 @@ fujian_router = APIRouter(tags=["Patch"], prefix="/patch")
 
 def fetch_snap_hutao_github_latest_version() -> PatchMeta:
     """
-    Fetch Snap Hutao latest version metadata from GitHub
-    :return: PatchMeta of latest version metadata
+    ## Fetch Snap Hutao GitHub Latest Version
+
+    Fetches the latest release metadata from GitHub for Snap Hutao. Extracts the MSIX asset download URL and, if available, the SHA256SUMS.
+    
+    **Restrictions:**
+    - Requires valid GitHub headers.
+    - Raises ValueError if the MSIX asset is missing.
     """
 
     # Output variables
@@ -75,8 +81,13 @@ def fetch_snap_hutao_github_latest_version() -> PatchMeta:
 
 async def update_snap_hutao_latest_version(redis_client: aioredis.client.Redis) -> dict:
     """
-    Update Snap Hutao latest version from GitHub
-    :return: dict of latest version metadata
+    ## Update Snap Hutao Latest Version (GitHub)
+
+    Retrieves the latest Snap Hutao version from GitHub, updates Redis cache, and merges any overridden mirror URLs.
+    
+    **Restrictions:**
+    - Expects a valid Redis client.
+    - Assumes data in Redis is correctly formatted.
     """
     github_message = ""
 
@@ -121,8 +132,13 @@ async def update_snap_hutao_latest_version(redis_client: aioredis.client.Redis) 
 
 async def update_snap_hutao_deployment_version(redis_client: aioredis.client.Redis) -> dict:
     """
-    Update Snap Hutao Deployment latest version from GitHub
-    :return: dict of Snap Hutao Deployment latest version metadata
+    ## Update Snap Hutao Deployment Latest Version (GitHub)
+
+    Retrieves and updates Snap Hutao Deployment version information from GitHub. Updates mirror URLs in Redis.
+    
+    **Restrictions:**
+    - Raises ValueError if the executable asset is not found.
+    - Requires a valid Redis client.
     """
     github_meta = httpx.get("https://api.github.com/repos/DGP-Studio/Snap.Hutao.Deployment/releases/latest",
                             headers=github_headers).json()
@@ -179,8 +195,13 @@ async def update_snap_hutao_deployment_version(redis_client: aioredis.client.Red
 
 async def fetch_snap_hutao_alpha_latest_version(redis_client: aioredis.client.Redis) -> dict | None:
     """
-    Fetch Snap Hutao Alpha latest version from GitHub
-    :return: dict of Snap Hutao Alpha latest version metadata
+    ## Fetch Snap Hutao Alpha Latest Version (GitHub Actions)
+
+    Retrieves the latest Snap Hutao Alpha version using GitHub Actions workflow runs and artifacts.
+    
+    **Restrictions:**
+    - Returns None if no successful workflow run meeting criteria is found.
+    - Requires valid GitHub Actions response.
     """
     # Fetch the workflow runs
     github_meta = httpx.get("https://api.github.com/repos/DGP-Studio/Snap.Hutao/actions/workflows/alpha.yml/runs",
@@ -240,9 +261,12 @@ async def fetch_snap_hutao_alpha_latest_version(redis_client: aioredis.client.Re
 @fujian_router.get("/hutao", response_model=StandardResponse, dependencies=[Depends(record_device_id)])
 async def generic_get_snap_hutao_latest_version_china_endpoint(request: Request) -> StandardResponse:
     """
-    Get Snap Hutao latest version from China endpoint
+    ## Get Snap Hutao Latest Version (China Endpoint)
 
-    :return: Standard response with latest version metadata in China endpoint
+    Returns the latest Snap Hutao version metadata from Redis for China users, including mirror URLs and SHA256 validation.
+    
+    **Restrictions:**
+    - Expects valid JSON data from Redis.
     """
     redis_client = aioredis.Redis.from_pool(request.app.state.redis)
     snap_hutao_latest_version = await redis_client.get("snap-hutao:patch")
@@ -266,9 +290,12 @@ async def generic_get_snap_hutao_latest_version_china_endpoint(request: Request)
 @fujian_router.get("/hutao/download")
 async def get_snap_hutao_latest_download_direct_china_endpoint(request: Request) -> RedirectResponse:
     """
-    Redirect to Snap Hutao latest download link in China endpoint (use first link in the list)
+    ## Redirect to Snap Hutao Download (China Endpoint)
 
-    :return: 301 Redirect to the first download link
+    Redirects the user to the primary download link for the Snap Hutao China version, appending SHA256 checksum if available.
+    
+    **Restrictions:**
+    - Assumes available mirror URLs in Redis.
     """
     redis_client = aioredis.Redis.from_pool(request.app.state.redis)
     snap_hutao_latest_version = await redis_client.get("snap-hutao:patch")
@@ -283,9 +310,12 @@ async def get_snap_hutao_latest_download_direct_china_endpoint(request: Request)
 @global_router.get("/hutao", response_model=StandardResponse, dependencies=[Depends(record_device_id)])
 async def generic_get_snap_hutao_latest_version_global_endpoint(request: Request) -> StandardResponse:
     """
-    Get Snap Hutao latest version from Global endpoint (GitHub)
+    ## Get Snap Hutao Latest Version (Global Endpoint)
 
-    :return: Standard response with latest version metadata in Global endpoint
+    Retrieves the Snap Hutao latest version metadata from Redis for global users, merging mirror URLs and validation data.
+    
+    **Restrictions:**
+    - Expects properly structured Redis data.
     """
     redis_client = aioredis.Redis.from_pool(request.app.state.redis)
     snap_hutao_latest_version = await redis_client.get("snap-hutao:patch")
@@ -308,9 +338,12 @@ async def generic_get_snap_hutao_latest_version_global_endpoint(request: Request
 @global_router.get("/hutao/download")
 async def get_snap_hutao_latest_download_direct_china_endpoint(request: Request) -> RedirectResponse:
     """
-    Redirect to Snap Hutao latest download link in Global endpoint (use first link in the list)
+    ## Redirect to Snap Hutao Download (Global Endpoint)
 
-    :return: 301 Redirect to the first download link
+    Redirects the user to the primary download link for the Snap Hutao global version, with checksum in headers if available.
+    
+    **Restrictions:**
+    - Assumes valid global mirror data exists in Redis.
     """
     redis_client = aioredis.Redis.from_pool(request.app.state.redis)
     snap_hutao_latest_version = await redis_client.get("snap-hutao:patch")
@@ -327,8 +360,12 @@ async def get_snap_hutao_latest_download_direct_china_endpoint(request: Request)
 @fujian_router.get("/alpha", include_in_schema=True, response_model=StandardResponse)
 async def generic_patch_snap_hutao_alpha_latest_version(request: Request) -> StandardResponse:
     """
-    Update Snap Hutao Alpha latest version from GitHub
-    :return: dict of Snap Hutao Alpha latest version metadata
+    ## Update Snap Hutao Alpha Latest Version
+
+    Fetches and returns the latest version metadata for Snap Hutao Alpha from GitHub Actions. Uses Redis as a cache.
+    
+    **Restrictions:**
+    - Returns previously cached data if available.
     """
     redis_client = aioredis.Redis.from_pool(request.app.state.redis)
     cached_data = await redis_client.get("snap-hutao-alpha:patch")
@@ -348,9 +385,12 @@ async def generic_patch_snap_hutao_alpha_latest_version(request: Request) -> Sta
 @fujian_router.get("/hutao-deployment", response_model=StandardResponse)
 async def generic_get_snap_hutao_latest_version_china_endpoint(request: Request) -> StandardResponse:
     """
-    Get Snap Hutao Deployment latest version from China endpoint
+    ## Get Snap Hutao Deployment Latest Version (China Endpoint)
 
-    :return: Standard response with latest version metadata in China endpoint
+    Retrieves the latest Snap Hutao Deployment metadata from Redis for China users and prepares mirror URLs.
+    
+    **Restrictions:**
+    - Data must be available in Redis with proper formatting.
     """
     redis_client = aioredis.Redis.from_pool(request.app.state.redis)
     snap_hutao_deployment_latest_version = await redis_client.get("snap-hutao-deployment:patch")
@@ -374,9 +414,12 @@ async def generic_get_snap_hutao_latest_version_china_endpoint(request: Request)
 @fujian_router.get("/hutao-deployment/download")
 async def get_snap_hutao_latest_download_direct_china_endpoint(request: Request) -> RedirectResponse:
     """
-    Redirect to Snap Hutao Deployment latest download link in China endpoint (use first link in the list)
+    ## Redirect to Snap Hutao Deployment Download (China Endpoint)
 
-    :return: 301 Redirect to the first download link
+    Redirects to the primary download URL of the Snap Hutao Deployment version in China as listed in Redis.
+    
+    **Restrictions:**
+    - Assumes a valid mirror list exists.
     """
     redis_client = aioredis.Redis.from_pool(request.app.state.redis)
     snap_hutao_deployment_latest_version = await redis_client.get("snap-hutao-deployment:patch")
@@ -387,9 +430,12 @@ async def get_snap_hutao_latest_download_direct_china_endpoint(request: Request)
 @global_router.get("/hutao-deployment", response_model=StandardResponse)
 async def generic_get_snap_hutao_latest_version_global_endpoint(request: Request) -> StandardResponse:
     """
-    Get Snap Hutao Deployment latest version from Global endpoint (GitHub)
+    ## Get Snap Hutao Deployment Latest Version (Global Endpoint)
 
-    :return: Standard response with latest version metadata in Global endpoint
+    Retrieves and returns the latest Snap Hutao Deployment version metadata for global users from Redis.
+    
+    **Restrictions:**
+    - Expects both global and China data to be available for merging.
     """
     redis_client = aioredis.Redis.from_pool(request.app.state.redis)
     snap_hutao_deployment_latest_version = await redis_client.get("snap-hutao-deployment:patch")
@@ -409,9 +455,12 @@ async def generic_get_snap_hutao_latest_version_global_endpoint(request: Request
 @global_router.get("/hutao-deployment/download")
 async def get_snap_hutao_latest_download_direct_china_endpoint(request: Request) -> RedirectResponse:
     """
-    Redirect to Snap Hutao Deployment latest download link in Global endpoint (use first link in the list)
+    ## Redirect to Snap Hutao Deployment Download (Global Endpoint)
 
-    :return: 301 Redirect to the first download link
+    Redirects to the primary download URL for the Snap Hutao Deployment version (global) as stored in Redis.
+    
+    **Restrictions:**
+    - Valid mirror data must exist.
     """
     redis_client = aioredis.Redis.from_pool(request.app.state.redis)
     snap_hutao_deployment_latest_version = await redis_client.get("snap-hutao-deployment:patch")
@@ -424,15 +473,12 @@ async def get_snap_hutao_latest_download_direct_china_endpoint(request: Request)
 @fujian_router.patch("/{project}", include_in_schema=True, response_model=StandardResponse)
 async def generic_patch_latest_version(request: Request, response: Response, project: str) -> StandardResponse:
     """
-    Update latest version of a project
+    ## Update Project Latest Version
 
-    :param request: Request model from FastAPI
-
-    :param response: Response model from FastAPI
-
-    :param project: Key name of the project to update
-
-    :return: Latest version metadata of the project updated
+    Updates the latest version for a given project by calling the corresponding update function. Refreshes Redis cache accordingly.
+    
+    **Restrictions:**
+    - Valid project key required; otherwise returns HTTP 404.
     """
     redis_client = aioredis.Redis.from_pool(request.app.state.redis)
     new_version = None
@@ -451,10 +497,10 @@ async def generic_patch_latest_version(request: Request, response: Response, pro
 
 
 class MirrorCreateModel(BaseModel):
-    key: str
+    key: Literal["snap-hutao", "snap-hutao-deployment", "snap-hutao-alpha"]
     url: str
     mirror_name: str
-    mirror_type: str
+    mirror_type: Literal["direct", "browser"]
 
 
 @china_router.post("/mirror", tags=["admin"], include_in_schema=True,
@@ -465,7 +511,13 @@ class MirrorCreateModel(BaseModel):
                     dependencies=[Depends(verify_api_token)], response_model=StandardResponse)
 async def add_mirror_url(response: Response, request: Request, mirror: MirrorCreateModel) -> StandardResponse:
     """
-    Update overwritten China URL for a project using a pydantic model.
+    ## Add or Update Mirror URL
+
+    Adds a new mirror URL or updates an existing one for a specified project. The function validates the request and updates Redis.
+    
+    **Restrictions:**
+    - The project key must be one of the predefined VALID_PROJECT_KEYS.
+    - All mirror data (url, mirror_name, mirror_type) must be non-empty.
     """
     redis_client = aioredis.Redis.from_pool(request.app.state.redis)
     PROJECT_KEY = mirror.key.lower()
@@ -509,7 +561,7 @@ async def add_mirror_url(response: Response, request: Request, mirror: MirrorCre
 
 
 class MirrorDeleteModel(BaseModel):
-    project_name: str
+    project_name: Literal["snap-hutao", "snap-hutao-deployment", "snap-hutao-alpha"]
     mirror_name: str
 
 
@@ -522,16 +574,13 @@ class MirrorDeleteModel(BaseModel):
 async def delete_mirror_url(response: Response, request: Request,
                             delete_request: MirrorDeleteModel) -> StandardResponse:
     """
-    Delete overwritten China URL for a project, this url will be placed at first priority when fetching latest version.
-    **This endpoint requires API token verification**
+    ## Delete Mirror URL
 
-    :param response: Response model from FastAPI
-
-    :param request: Request model from FastAPI
-
-    :param delete_request: MirrorDeleteModel
-
-    :return: Json response with message
+    Deletes a mirror URL for a specified project. If mirror_name is "all", clears the mirror list.
+    
+    **Restrictions:**
+    - The project must be one of the predefined VALID_PROJECT_KEYS.
+    - Returns HTTP 400 for invalid requests.
     """
     redis_client = aioredis.Redis.from_pool(request.app.state.redis)
     project_key = delete_request.project_name
@@ -585,14 +634,12 @@ async def delete_mirror_url(response: Response, request: Request,
                    dependencies=[Depends(verify_api_token)], response_model=StandardResponse)
 async def get_mirror_url(request: Request, project: str) -> StandardResponse:
     """
-    Get overwritten China URL for a project, this url will be placed at first priority when fetching latest version.
-    **This endpoint requires API token verification**
+    ## Get Overridden Mirror URLs
 
-    :param request: Request model from FastAPI
-
-    :param project: Project key name
-
-    :return: Json response with message
+    Returns the list of overridden mirror URLs for the specified project from Redis.
+    
+    **Restrictions:**
+    - The project must be a valid project key.
     """
     redis_client = aioredis.Redis.from_pool(request.app.state.redis)
     if project not in VALID_PROJECT_KEYS:
