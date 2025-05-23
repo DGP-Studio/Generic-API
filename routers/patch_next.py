@@ -257,7 +257,7 @@ async def generic_get_snap_hutao_latest_version_china_endpoint(request: Request)
 
     return StandardResponse(
         retcode=0,
-        message=f"CN endpoint reached. {snap_hutao_latest_version["gitlab_message"]}",
+        message=f"CN endpoint reached. {snap_hutao_latest_version['gitlab_message']}",
         data=return_data
     )
 
@@ -450,9 +450,12 @@ async def generic_patch_latest_version(request: Request, response: Response, pro
     return StandardResponse(data={"version": new_version})
 
 
-# Yae Patch API handled by https://github.com/Masterain98/SnapHutao-Yae-Patch-Backend
-# @china_router.get("/yae") -> use Nginx reverse proxy instead
-# @global_router.get("/yae") -> use Nginx reverse proxy instead
+class MirrorCreateModel(BaseModel):
+    key: str
+    url: str
+    mirror_name: str
+    mirror_type: str
+
 
 @china_router.post("/mirror", tags=["admin"], include_in_schema=True,
                    dependencies=[Depends(verify_api_token)], response_model=StandardResponse)
@@ -460,23 +463,15 @@ async def generic_patch_latest_version(request: Request, response: Response, pro
                     dependencies=[Depends(verify_api_token)], response_model=StandardResponse)
 @fujian_router.post("/mirror", tags=["admin"], include_in_schema=True,
                     dependencies=[Depends(verify_api_token)], response_model=StandardResponse)
-async def add_mirror_url(response: Response, request: Request) -> StandardResponse:
+async def add_mirror_url(response: Response, request: Request, mirror: MirrorCreateModel) -> StandardResponse:
     """
-    Update overwritten China URL for a project, this url will be placed at first priority when fetching latest version.
-    **This endpoint requires API token verification**
-
-    :param response: Response model from FastAPI
-
-    :param request: Request model from FastAPI
-
-    :return: Json response with message
+    Update overwritten China URL for a project using a pydantic model.
     """
     redis_client = aioredis.Redis.from_pool(request.app.state.redis)
-    data = await request.json()
-    PROJECT_KEY = data.get("key", "").lower()
-    MIRROR_URL = data.get("url", None)
-    MIRROR_NAME = data.get("mirror_name", None)
-    MIRROR_TYPE = data.get("mirror_type", None)
+    PROJECT_KEY = mirror.key.lower()
+    MIRROR_URL = mirror.url
+    MIRROR_NAME = mirror.mirror_name
+    MIRROR_TYPE = mirror.mirror_type
     current_version = await redis_client.get(f"{PROJECT_KEY}:version")
     current_version = current_version.decode("utf-8")
     project_mirror_redis_key = f"{PROJECT_KEY}:mirrors:{current_version}"
@@ -492,7 +487,6 @@ async def add_mirror_url(response: Response, request: Request) -> StandardRespon
     current_mirror_names = [m["mirror_name"] for m in mirror_list]
     if MIRROR_NAME in current_mirror_names:
         method = "updated"
-        # Update the url
         for m in mirror_list:
             if m["mirror_name"] == MIRROR_NAME:
                 m["url"] = MIRROR_URL
@@ -501,11 +495,9 @@ async def add_mirror_url(response: Response, request: Request) -> StandardRespon
         mirror_list.append(MirrorMeta(mirror_name=MIRROR_NAME, url=MIRROR_URL, mirror_type=MIRROR_TYPE))
     logger.info(f"{method.capitalize()} {MIRROR_NAME} mirror URL for {PROJECT_KEY} to {MIRROR_URL}")
 
-    # Overwrite overwritten_china_url to Redis
     update_result = await redis_client.set(project_mirror_redis_key, json.dumps(mirror_list, default=pydantic_encoder))
     logger.info(f"Set {project_mirror_redis_key} to Redis: {update_result}")
 
-    # Refresh project patch
     if PROJECT_KEY == "snap-hutao":
         await update_snap_hutao_latest_version(redis_client)
     elif PROJECT_KEY == "snap-hutao-deployment":
