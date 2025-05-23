@@ -1,4 +1,3 @@
-import logging
 import httpx
 import json
 from redis import asyncio as aioredis
@@ -151,6 +150,12 @@ async def get_static_files_template(request: Request) -> StandardResponse:
 
 
 async def list_static_files_size_by_alist(redis_client) -> dict:
+    """
+    List the size of static files using Alist API
+
+    DEPRECATED: This function is deprecated and may be removed in the future.
+    """
+
     # Raw
     api_url = "https://static-next.snapgenshin.com/api/fs/list"
     payload = {
@@ -204,8 +209,12 @@ async def list_static_files_size_by_alist(redis_client) -> dict:
 async def list_static_files_size_by_archive_json(redis_client) -> dict:
     original_file_size_json_url = "https://static-archive.snapgenshin.cn/original/file_info.json"
     tiny_file_size_json_url = "https://static-archive.snapgenshin.cn/tiny/file_info.json"
+    original_meta_url = "https://static-archive.snapgenshin.cn/original/meta.json"
+    tiny_meta_url = "https://static-archive.snapgenshin.cn/tiny/meta.json"
     original_size = httpx.get(original_file_size_json_url).json()
     tiny_size = httpx.get(tiny_file_size_json_url).json()
+    original_meta = httpx.get(original_meta_url).json()
+    tiny_meta = httpx.get(tiny_meta_url).json()
 
     # Calculate the total size for each category
     original_full = sum(item["size"] for item in original_size if "Minimum" not in item["name"])
@@ -213,13 +222,22 @@ async def list_static_files_size_by_archive_json(redis_client) -> dict:
         item["size"] for item in original_size if item["name"] not in ["EmotionIcon.zip", "ItemIcon.zip"])
     tiny_full = sum(item["size"] for item in tiny_size if "Minimum" not in item["name"])
     tiny_minimum = sum(item["size"] for item in tiny_size if item["name"] not in ["EmotionIcon.zip", "ItemIcon.zip"])
+
+    # Static Meta
+    original_cache_time = original_meta["time"]
+    tiny_cache_time = tiny_meta["time"]
+    original_commit_hash = original_meta["commit"][:7]
+    tiny_commit_hash = tiny_meta["commit"][:7]
+
     zip_size_data = {
         "original_minimum": original_minimum,
         "original_full": original_full,
-        "raw_minimum": original_minimum,  # For compatibility with old clients
-        "raw_full": original_full,  # For compatibility with old clients
         "tiny_minimum": tiny_minimum,
-        "tiny_full": tiny_full
+        "tiny_full": tiny_full,
+        "original_cache_time": original_cache_time,
+        "tiny_cache_time": tiny_cache_time,
+        "original_commit_hash": original_commit_hash,
+        "tiny_commit_hash": tiny_commit_hash
     }
     await redis_client.set("static_files_size", json.dumps(zip_size_data), ex=60 * 60 * 3)
     logger.info(f"Updated static files size data via Static Archive Json: {zip_size_data}")
