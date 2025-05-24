@@ -318,7 +318,7 @@ async def upload_all_static_archive_to_cdn(redis_client: aioredis.Redis):
                     f.write(response.content)
                 # Upload file to CDN with PUT method
                 with open(f"./cache/static/{archive_quality}-{commit_hash}/{archive_file['name']}", "rb") as f:
-                    upload_response = httpx.put(upload_endpoint + archive_file["name"], data=f, timeout=180)
+                    upload_response = httpx.put(upload_endpoint + archive_file['name'], data=f, timeout=180)
                     if upload_response.status_code != 200:
                         logger.error(f"Failed to upload {archive_file['name']} to CDN")
                     else:
@@ -343,3 +343,23 @@ async def background_upload_to_cdn(request: Request, background_tasks: Backgroun
     redis_client = aioredis.Redis.from_pool(request.app.state.redis)
     background_tasks.add_task(upload_all_static_archive_to_cdn, redis_client)
     return {"message": "Background CDN upload started."}
+
+
+@china_router.get("/cdn/resources")
+@global_router.get("/cdn/resources")
+@fujian_router.get("/cdn/resources")
+async def list_cdn_resources(request: Request):
+    redis_client = aioredis.Redis.from_pool(request.app.state.redis)
+    keys = await redis_client.keys("static-cdn:*")
+    resources = {}
+    for key in keys:
+        key_str = key.decode("utf-8")
+        # key format: static-cdn:{archive_quality}:{commit_hash}:{file_name}
+        parts = key_str.split(":")
+        if len(parts) == 4:
+            quality = parts[1]
+            file_name = parts[3]
+            url_val = await redis_client.get(key)
+            if url_val:
+                resources[f"{file_name}:{quality}"] = url_val.decode("utf-8")
+    return resources
