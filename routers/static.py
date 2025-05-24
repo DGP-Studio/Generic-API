@@ -1,8 +1,9 @@
 import os
 import httpx
 import json
+import asyncio  # added asyncio import
 from redis import asyncio as aioredis
-from fastapi import APIRouter, Depends, Request, HTTPException
+from fastapi import APIRouter, Depends, Request, HTTPException, BackgroundTasks
 from fastapi.responses import RedirectResponse
 from pydantic import BaseModel
 from mysql_app.schemas import StandardResponse
@@ -27,12 +28,6 @@ fujian_router = APIRouter(tags=["Static"], prefix="/static")
 async def get_zip_resource(file_path: str, request: Request) -> RedirectResponse:
     """
     Endpoint used to redirect to the zipped static file
-
-    :param request: request object from FastAPI
-
-    :param file_path: File relative path in Snap.Static.Zip
-
-    :return: 301 Redirect to the zip file
     """
     req_path = request.url.path
     if req_path.startswith("/cn"):
@@ -51,15 +46,30 @@ async def get_zip_resource(file_path: str, request: Request) -> RedirectResponse
         if file_path == "ItemIcon.zip" or file_path == "EmotionIcon.zip":
             file_path = file_path.replace(".zip", "-Minimum.zip")
 
+    # For china and fujian: try to use real-time commit hash from Redis.
+    if region in ("china", "fujian"):
+        archive_quality = "original" if quality in ["original", "raw"] else "tiny"
+        commit_key = f"commit:static-archive:{archive_quality}"
+        commit_hash = await redis_client.get(commit_key)
+        if commit_hash:
+            commit_hash = commit_hash.decode("utf-8")
+            real_key = f"static-cdn:{archive_quality}:{commit_hash}:{file_path.replace('.zip', '')}"
+            real_url = await redis_client.get(real_key)
+            if real_url:
+                real_url = real_url.decode("utf-8")
+                logger.debug(f"Redirecting to real-time zip URL: {real_url}")
+                return RedirectResponse(real_url.format(file_path=file_path), status_code=301)
+
+    # Fallback using template URL from Redis.
     if quality == "high":
-        resource_endpoint = await redis_client.get(f"url:{region}:static:zip:tiny")
-    elif quality == "original" or quality == "raw":
-        resource_endpoint = await redis_client.get(f"url:{region}:static:zip:original")
+        fallback_key = f"url:{region}:static:zip:tiny"
+    elif quality in ("original", "raw"):
+        fallback_key = f"url:{region}:static:zip:original"
     else:
         raise HTTPException(status_code=422, detail=f"{quality} is not a valid quality value")
+    resource_endpoint = await redis_client.get(fallback_key)
     resource_endpoint = resource_endpoint.decode("utf-8")
-
-    logger.debug(f"Redirecting to {resource_endpoint.format(file_path=file_path)}")
+    logger.debug(f"Redirecting to fallback template zip URL: {resource_endpoint.format(file_path=file_path)}")
     return RedirectResponse(resource_endpoint.format(file_path=file_path), status_code=301)
 
 
@@ -229,6 +239,8 @@ async def list_static_files_size_by_archive_json(redis_client) -> dict:
     tiny_cache_time = tiny_meta["time"] # Format str - "05/06/2025 13:03:40"
     original_commit_hash = original_meta["commit"][:7]
     tiny_commit_hash = tiny_meta["commit"][:7]
+    await redis_client.set(f"commit:static-archive:original", original_commit_hash)
+    await redis_client.set(f"commit:static-archive:tiny", tiny_commit_hash)
 
     zip_size_data = {
         "original_minimum": original_minimum,
@@ -286,7 +298,7 @@ async def upload_all_static_archive_to_cdn(redis_client: aioredis.Redis):
     :return: True if upload is successful, False otherwise
     """
     archive_type = ["original", "tiny"]
-    upload_endpoint = f"{os.getenv("CDN_UPLOAD_HOSTNAME")}/api/upload?name="
+    upload_endpoint = f"{os.getenv('CDN_UPLOAD_HOSTNAME')}/api/upload?name="
     for archive_quality in archive_type:
         file_list_url = f"https://static-archive.snapgenshin.cn/{archive_quality}/file_info.json"
         meta_url = f"https://static-archive.snapgenshin.cn/{archive_quality}/meta.json"
@@ -324,3 +336,12 @@ async def upload_all_static_archive_to_cdn(redis_client: aioredis.Redis):
             finally:
                 # Clean up local file
                 os.remove(f"./cache/static/{archive_quality}-{commit_hash}/{archive_file['name']}")
+
+
+@china_router.post("/cdn/upload", dependencies=[Depends(verify_api_token)])
+@global_router.post("/cdn/upload", dependencies=[Depends(verify_api_token)])
+@fujian_router.post("/cdn/upload", dependencies=[Depends(verify_api_token)])
+def background_upload_to_cdn(request: Request, background_tasks: BackgroundTasks):
+    redis_client = aioredis.Redis.from_pool(request.app.state.redis)
+    background_tasks.add_task(lambda: asyncio.create_task(upload_all_static_archive_to_cdn(redis_client)))
+    return {"message": "Background CDN upload started."}
