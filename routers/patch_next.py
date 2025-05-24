@@ -457,26 +457,26 @@ class MirrorCreateModel(BaseModel):
     mirror_type: str
 
 
-@china_router.post("/mirror", tags=["admin"], include_in_schema=True,
+@china_router.post("/mirror", tags=["Management"], include_in_schema=True,
                    dependencies=[Depends(verify_api_token)], response_model=StandardResponse)
-@global_router.post("/mirror", tags=["admin"], include_in_schema=True,
+@global_router.post("/mirror", tags=["Management"], include_in_schema=True,
                     dependencies=[Depends(verify_api_token)], response_model=StandardResponse)
-@fujian_router.post("/mirror", tags=["admin"], include_in_schema=True,
+@fujian_router.post("/mirror", tags=["Management"], include_in_schema=True,
                     dependencies=[Depends(verify_api_token)], response_model=StandardResponse)
 async def add_mirror_url(response: Response, request: Request, mirror: MirrorCreateModel) -> StandardResponse:
     """
     Update overwritten China URL for a project using a pydantic model.
     """
     redis_client = aioredis.Redis.from_pool(request.app.state.redis)
-    PROJECT_KEY = mirror.key.lower()
-    MIRROR_URL = mirror.url
-    MIRROR_NAME = mirror.mirror_name
-    MIRROR_TYPE = mirror.mirror_type
-    current_version = await redis_client.get(f"{PROJECT_KEY}:version")
+    project_key = mirror.key.lower()
+    mirror_url = mirror.url
+    mirror_name = mirror.mirror_name
+    mirror_type = mirror.mirror_type
+    current_version = await redis_client.get(f"{project_key}:version")
     current_version = current_version.decode("utf-8")
-    project_mirror_redis_key = f"{PROJECT_KEY}:mirrors:{current_version}"
+    project_mirror_redis_key = f"{project_key}:mirrors:{current_version}"
 
-    if not MIRROR_URL or not MIRROR_NAME or not MIRROR_TYPE or PROJECT_KEY not in VALID_PROJECT_KEYS:
+    if not mirror_url or not mirror_name or not mirror_type or project_key not in VALID_PROJECT_KEYS:
         response.status_code = status.HTTP_400_BAD_REQUEST
         return StandardResponse(message="Invalid request")
 
@@ -485,26 +485,26 @@ async def add_mirror_url(response: Response, request: Request, mirror: MirrorCre
     except TypeError:
         mirror_list = []
     current_mirror_names = [m["mirror_name"] for m in mirror_list]
-    if MIRROR_NAME in current_mirror_names:
+    if mirror_name in current_mirror_names:
         method = "updated"
         for m in mirror_list:
-            if m["mirror_name"] == MIRROR_NAME:
-                m["url"] = MIRROR_URL
+            if m["mirror_name"] == mirror_name:
+                m["url"] = mirror_url
     else:
         method = "added"
-        mirror_list.append(MirrorMeta(mirror_name=MIRROR_NAME, url=MIRROR_URL, mirror_type=MIRROR_TYPE))
-    logger.info(f"{method.capitalize()} {MIRROR_NAME} mirror URL for {PROJECT_KEY} to {MIRROR_URL}")
+        mirror_list.append(MirrorMeta(mirror_name=mirror_name, url=mirror_url, mirror_type=mirror_type))
+    logger.info(f"{method.capitalize()} {mirror_name} mirror URL for {project_key} to {mirror_url}")
 
     update_result = await redis_client.set(project_mirror_redis_key, json.dumps(mirror_list, default=pydantic_encoder))
     logger.info(f"Set {project_mirror_redis_key} to Redis: {update_result}")
 
-    if PROJECT_KEY == "snap-hutao":
+    if project_key == "snap-hutao":
         await update_snap_hutao_latest_version(redis_client)
-    elif PROJECT_KEY == "snap-hutao-deployment":
+    elif project_key == "snap-hutao-deployment":
         await update_snap_hutao_deployment_version(redis_client)
     response.status_code = status.HTTP_201_CREATED
     logger.info(f"Latest overwritten URL data: {mirror_list}")
-    return StandardResponse(message=f"Successfully {method} {MIRROR_NAME} mirror URL for {PROJECT_KEY}",
+    return StandardResponse(message=f"Successfully {method} {mirror_name} mirror URL for {project_key}",
                             data=mirror_list)
 
 
@@ -513,11 +513,11 @@ class MirrorDeleteModel(BaseModel):
     mirror_name: str
 
 
-@china_router.delete("/mirror", tags=["admin"], include_in_schema=True,
+@china_router.delete("/mirror", tags=["Management"], include_in_schema=True,
                      dependencies=[Depends(verify_api_token)], response_model=StandardResponse)
-@global_router.delete("/mirror", tags=["admin"], include_in_schema=True,
+@global_router.delete("/mirror", tags=["Management"], include_in_schema=True,
                       dependencies=[Depends(verify_api_token)], response_model=StandardResponse)
-@fujian_router.delete("/mirror", tags=["admin"], include_in_schema=True,
+@fujian_router.delete("/mirror", tags=["Management"], include_in_schema=True,
                       dependencies=[Depends(verify_api_token)], response_model=StandardResponse)
 async def delete_mirror_url(response: Response, request: Request,
                             delete_request: MirrorDeleteModel) -> StandardResponse:
@@ -577,11 +577,11 @@ async def delete_mirror_url(response: Response, request: Request,
                             data=mirror_list)
 
 
-@china_router.get("/mirror", tags=["admin"], include_in_schema=True,
+@china_router.get("/mirror", tags=["Management"], include_in_schema=True,
                   dependencies=[Depends(verify_api_token)], response_model=StandardResponse)
-@global_router.get("/mirror", tags=["admin"], include_in_schema=True,
+@global_router.get("/mirror", tags=["Management"], include_in_schema=True,
                    dependencies=[Depends(verify_api_token)], response_model=StandardResponse)
-@fujian_router.get("/mirror", tags=["admin"], include_in_schema=True,
+@fujian_router.get("/mirror", tags=["Management"], include_in_schema=True,
                    dependencies=[Depends(verify_api_token)], response_model=StandardResponse)
 async def get_mirror_url(request: Request, project: str) -> StandardResponse:
     """
