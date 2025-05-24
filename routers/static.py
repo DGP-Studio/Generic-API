@@ -296,7 +296,7 @@ async def upload_all_static_archive_to_cdn(redis_client: aioredis.Redis):
     :return: True if upload is successful, False otherwise
     """
     archive_type = ["original", "tiny"]
-    upload_endpoint = f"{os.getenv('CDN_UPLOAD_HOSTNAME')}/api/upload?name="
+    upload_endpoint = f"https://{os.getenv('CDN_UPLOAD_HOSTNAME')}/api/upload?name="
     for archive_quality in archive_type:
         file_list_url = f"https://static-archive.snapgenshin.cn/{archive_quality}/file_info.json"
         meta_url = f"https://static-archive.snapgenshin.cn/{archive_quality}/meta.json"
