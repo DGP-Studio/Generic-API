@@ -126,8 +126,6 @@ async def get_static_files_template(request: Request) -> StandardResponse:
     quality = request.headers.get("x-hutao-quality", "high").lower()
     if quality != "original":
         quality = "tiny"
-    zip_template = None
-    raw_template = None
 
     if request.url.path.startswith("/cn"):
         region = "china"
@@ -341,7 +339,7 @@ async def upload_all_static_archive_to_cdn(redis_client: aioredis.Redis):
 @china_router.post("/cdn/upload", dependencies=[Depends(verify_api_token)])
 @global_router.post("/cdn/upload", dependencies=[Depends(verify_api_token)])
 @fujian_router.post("/cdn/upload", dependencies=[Depends(verify_api_token)])
-def background_upload_to_cdn(request: Request, background_tasks: BackgroundTasks):
+async def background_upload_to_cdn(request: Request, background_tasks: BackgroundTasks):
     redis_client = aioredis.Redis.from_pool(request.app.state.redis)
-    background_tasks.add_task(lambda: asyncio.create_task(upload_all_static_archive_to_cdn(redis_client)))
+    background_tasks.add_task(upload_all_static_archive_to_cdn, redis_client)
     return {"message": "Background CDN upload started."}
