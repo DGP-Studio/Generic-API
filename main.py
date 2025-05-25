@@ -199,14 +199,9 @@ app.include_router(fujian_root_router)
 app.include_router(system_email.admin_router)
 app.include_router(mgnt.router)
 
-origins = [
-    "http://localhost",
-    "http://localhost:8080",
-]
-
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
