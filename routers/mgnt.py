@@ -6,6 +6,7 @@ from mysql_app.schemas import StandardResponse
 from redis import asyncio as aioredis
 from pydantic import BaseModel
 from utils.authentication import verify_api_token
+from utils.dgp_utils import update_recent_versions
 
 
 router = APIRouter(tags=["Management"], prefix="/mgnt", dependencies=[Depends(verify_api_token)])
@@ -77,6 +78,7 @@ async def list_current_logs() -> StandardResponse:
         data=log_files
     )
 
+
 @router.get("/log/{log_file}")
 async def download_log_file(log_file: str) -> StreamingResponse:
     """
@@ -87,3 +89,17 @@ async def download_log_file(log_file: str) -> StreamingResponse:
     :return: Streaming response with the log file
     """
     return StreamingResponse(open(f"log/{log_file}", "rb"), media_type="text/plain")
+
+
+@router.post("/reset-version", response_model=StandardResponse)
+async def reset_latest_version(request: Request) -> StandardResponse:
+    """
+    Reset latest version information by updating allowed user agents.
+    """
+    redis_client = aioredis.Redis.from_pool(request.app.state.redis)
+    new_versions = await update_recent_versions(redis_client)
+    return StandardResponse(
+        retcode=0,
+        message="Latest version information reset successfully.",
+        data={"allowed_user_agents": new_versions}
+    )

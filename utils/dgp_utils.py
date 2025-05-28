@@ -68,7 +68,7 @@ async def update_recent_versions(redis_client) -> list[str]:
         next_version = all_opened_pr_title[0].split(" ")[2] + ".0"
         new_user_agents.append(f"Snap Hutao/{next_version}")
 
-    redis_resp = await redis_client.set("allowed_user_agents", json.dumps(new_user_agents), ex=5 * 60)
+    redis_resp = await redis_client.set("allowed_user_agents", json.dumps(new_user_agents), ex=60 * 60)
     logging.info(f"Updated allowed user agents: {new_user_agents}. Result: {redis_resp}")
     return new_user_agents
 
