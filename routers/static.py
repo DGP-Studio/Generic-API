@@ -367,3 +367,31 @@ async def list_cdn_resources(request: Request):
             if url_val:
                 resources[f"{file_name}:{quality}"] = url_val.decode("utf-8")
     return resources
+
+
+async def delete_all_cdn_links(redis_client: aioredis.Redis) -> int:
+    """
+    Delete all CDN links stored in Redis and return the count of keys deleted.
+    """
+    keys = await redis_client.keys("static-cdn:*")
+    if keys:
+        await redis_client.delete(*keys)
+        logger.info(f"Deleted {len(keys)} CDN link keys from Redis.")
+        return len(keys)
+    logger.info("No CDN link keys found in Redis.")
+    return 0
+
+@china_router.delete("/cdn/clear", dependencies=[Depends(verify_api_token)])
+@global_router.delete("/cdn/clear", dependencies=[Depends(verify_api_token)])
+@fujian_router.delete("/cdn/clear", dependencies=[Depends(verify_api_token)])
+async def clear_cdn_links(request: Request) -> StandardResponse:
+    """
+    Endpoint to clear all CDN links stored in Redis.
+    """
+    redis_client = aioredis.Redis.from_pool(request.app.state.redis)
+    deleted_count = await delete_all_cdn_links(redis_client)
+    return StandardResponse(
+        retcode=0,
+        message="Cleared CDN links successfully.",
+        data={"deleted_count": deleted_count}
+    )
