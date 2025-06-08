@@ -19,14 +19,15 @@ if BYPASS_CLIENT_VERIFICATION:
     logger.warning("Client verification is bypassed in this server.")
 
 # Helper: HTTP GET with retry
-def fetch_with_retry(url, max_retries=3):
-    for attempt in range(max_retries):
-        try:
-            response = httpx.get(url, headers=github_headers, timeout=10.0)
-            response.raise_for_status()
-            return response.json()
-        except Exception as e:
-            logger.warning(f"Attempt {attempt+1}/{max_retries} failed for {url}: {e}")
+async def fetch_with_retry(url, max_retries=3):
+    async with httpx.AsyncClient() as client:
+        for attempt in range(max_retries):
+            try:
+                response = await client.get(url, headers=github_headers, timeout=10.0)
+                response.raise_for_status()
+                return response.json()
+            except Exception as e:
+                logger.warning(f"Attempt {attempt+1}/{max_retries} failed for {url}: {e}")
     logger.error(f"All {max_retries} attempts failed for {url}")
     return None
 
