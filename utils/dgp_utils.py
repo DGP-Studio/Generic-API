@@ -41,7 +41,7 @@ async def update_recent_versions(redis_client) -> list[str]:
     for k, v in WHITE_LIST_REPOSITORIES.items():
         this_repo_headers = []
         this_page = 1
-        latest_release = fetch_with_retry(f"https://api.github.com/repos/{k}/releases/latest")
+        latest_release = await fetch_with_retry(f"https://api.github.com/repos/{k}/releases/latest")
         if latest_release is None:
             logger.warning(f"Failed to fetch latest release for {k}; using static preset values.")
             new_user_agents += STATIC_PRESET_VERSIONS
@@ -50,7 +50,7 @@ async def update_recent_versions(redis_client) -> list[str]:
         this_repo_headers.append(v.format(ver=latest_version))
         
         while len(this_repo_headers) < 4:
-            all_versions = fetch_with_retry(f"https://api.github.com/repos/{k}/releases?per_page=30&page={this_page}")
+            all_versions = await fetch_with_retry(f"https://api.github.com/repos/{k}/releases?per_page=30&page={this_page}")
             if all_versions is None:
                 logger.warning(f"Failed to fetch releases for {k}; using static preset values.")
                 new_user_agents += STATIC_PRESET_VERSIONS
@@ -85,7 +85,7 @@ async def update_recent_versions(redis_client) -> list[str]:
         new_user_agents.append(f"Snap Hutao/{snap_hutao_alpha_patch_version}")
 
     # Snap Hutao Next Version with retry; ignore if fails
-    pr_list = fetch_with_retry("https://api.github.com/repos/DGP-Studio/Snap.Hutao.Docs/pulls")
+    pr_list = await fetch_with_retry("https://api.github.com/repos/DGP-Studio/Snap.Hutao.Docs/pulls")
     if pr_list is not None and len(pr_list) > 0:
         all_opened_pr_title = [pr["title"] for pr in pr_list if pr.get("state") == "open" and pr["title"].startswith("Update to ")]
         if all_opened_pr_title:
