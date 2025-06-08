@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, Request, HTTPException
 from mysql_app.schemas import StandardResponse
 
 china_router = APIRouter(tags=["Network"])
@@ -7,61 +7,34 @@ fujian_router = APIRouter(tags=["Network"])
 
 
 @china_router.get("/ip", response_model=StandardResponse)
-def get_client_ip_cn(request: Request) -> StandardResponse:
-    """
-    Get the client's IP address and division. In this endpoint, the division is always "China".
-
-    :param request: Request object from FastAPI, used to identify the client's IP address
-
-    :return: Standard response with the client's IP address and division
-    """
-    return StandardResponse(
-        retcode=0,
-        message="success",
-        data={
-            "ip": request.client.host,
-            "division": "China"
-        }
-    )
-
-
-@fujian_router.get("/ip", response_model=StandardResponse)
-def get_client_ip_cn(request: Request) -> StandardResponse:
-    """
-    Get the client's IP address and division. In this endpoint, the division is always "China".
-
-    :param request: Request object from FastAPI, used to identify the client's IP address
-
-    :return: Standard response with the client's IP address and division
-    """
-    return StandardResponse(
-        retcode=0,
-        message="success",
-        data={
-            "ip": request.client.host,
-            "division": "Fujian - China"
-        }
-    )
-
-
 @global_router.get("/ip", response_model=StandardResponse)
-def get_client_ip_global(request: Request) -> StandardResponse:
+@fujian_router.get("/ip", response_model=StandardResponse)
+def get_client_ip_geo(request: Request) -> StandardResponse:
     """
-    Get the client's IP address and division. In this endpoint, the division is always "Oversea".
+    Get the client's IP address and division.
 
     :param request: Request object from FastAPI, used to identify the client's IP address
 
     :return: Standard response with the client's IP address and division
     """
+    req_path = request.url.path
+    if req_path.startswith("/cn"):
+        division = "China"
+    elif req_path.startswith("/global"):
+        division = "Oversea"
+    elif req_path.startswith("/fj"):
+        division = "Fujian - China"
+    else:
+        raise HTTPException(status_code=400, detail="Invalid router")
+
     return StandardResponse(
         retcode=0,
         message="success",
         data={
             "ip": request.client.host,
-            "division": "Oversea"
+            "division": division
         }
     )
-
 
 @china_router.get("/ips")
 @global_router.get("/ips")
