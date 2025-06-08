@@ -2,6 +2,7 @@ import os
 import httpx
 import json
 import asyncio  # added asyncio import
+import aiofiles
 from redis import asyncio as aioredis
 from fastapi import APIRouter, Depends, Request, HTTPException, BackgroundTasks
 from fastapi.responses import RedirectResponse
@@ -297,28 +298,31 @@ async def upload_all_static_archive_to_cdn(redis_client: aioredis.Redis):
     """
     archive_type = ["original", "tiny"]
     upload_endpoint = f"https://{os.getenv('CDN_UPLOAD_HOSTNAME')}/api/upload?name="
-    for archive_quality in archive_type:
-        file_list_url = f"https://static-archive.snapgenshin.cn/{archive_quality}/file_info.json"
-        meta_url = f"https://static-archive.snapgenshin.cn/{archive_quality}/meta.json"
-        file_list = httpx.get(file_list_url).json()
-        meta = httpx.get(meta_url).json()
-        commit_hash = meta["commit"][:7]
-        os.makedirs(f"./cache/static/{archive_quality}-{commit_hash}", exist_ok=True)
-        for archive_file in file_list:
-            file_name = archive_file["name"].replace(".zip", "")
-            # Check redis cache, if exists, skip
-            if await redis_client.exists(f"static-cdn:{archive_quality}:{commit_hash}:{file_name}"):
-                logger.info(f"File {archive_file['name']} already exists in CDN, skipping upload")
-                continue
-            try:
-                file_url = f"https://static-archive.snapgenshin.cn/{archive_quality}/{archive_file['name']}"
-                # Download file
-                response = httpx.get(file_url)
-                with open(f"./cache/static/{archive_quality}-{commit_hash}/{archive_file['name']}", "wb+") as f:
-                    f.write(response.content)
-                # Upload file to CDN with PUT method
-                with open(f"./cache/static/{archive_quality}-{commit_hash}/{archive_file['name']}", "rb") as f:
-                    upload_response = httpx.put(upload_endpoint + archive_file['name'], data=f, timeout=180)
+    async with httpx.AsyncClient() as client:
+        for archive_quality in archive_type:
+            file_list_url = f"https://static-archive.snapgenshin.cn/{archive_quality}/file_info.json"
+            meta_url = f"https://static-archive.snapgenshin.cn/{archive_quality}/meta.json"
+            file_list = (await client.get(file_list_url)).json()
+            meta = (await client.get(meta_url)).json()
+            commit_hash = meta["commit"][:7]
+            local_dir = f"./cache/static/{archive_quality}-{commit_hash}"
+            os.makedirs(local_dir, exist_ok=True)
+            for archive_file in file_list:
+                file_name = archive_file["name"].replace(".zip", "")
+                if await redis_client.exists(f"static-cdn:{archive_quality}:{commit_hash}:{file_name}"):
+                    logger.info(f"File {archive_file['name']} already exists in CDN, skipping upload")
+                    continue
+                try:
+                    file_url = f"https://static-archive.snapgenshin.cn/{archive_quality}/{archive_file['name']}"
+                    # Download file asynchronously
+                    response = await client.get(file_url)
+                    local_file_path = f"{local_dir}/{archive_file['name']}"
+                    async with aiofiles.open(local_file_path, "wb+") as f:
+                        await f.write(response.content)
+                    # Upload file to CDN with PUT method
+                    async with aiofiles.open(local_file_path, "rb") as f:
+                        file_data = await f.read()
+                    upload_response = await client.put(upload_endpoint + archive_file['name'], data=file_data, timeout=180)
                     if upload_response.status_code != 200:
                         logger.error(f"Failed to upload {archive_file['name']} to CDN")
                     else:
@@ -328,12 +332,12 @@ async def upload_all_static_archive_to_cdn(redis_client: aioredis.Redis):
                         else:
                             logger.info(f"Uploaded {archive_file['name']} to CDN, response: {resp_url}")
                             await redis_client.set(f"static-cdn:{archive_quality}:{commit_hash}:{file_name}", resp_url)
-            except Exception as e:
-                logger.error(f"Failed to upload {archive_file['name']} to CDN, error: {e}")
-                continue
-            finally:
-                # Clean up local file
-                os.remove(f"./cache/static/{archive_quality}-{commit_hash}/{archive_file['name']}")
+                except Exception as e:
+                    logger.error(f"Failed to upload {archive_file['name']} to CDN, error: {e}")
+                    continue
+                finally:
+                    # Offload local file removal to avoid blocking
+                    await asyncio.to_thread(os.remove, local_file_path)
 
 
 @china_router.post("/cdn/upload", dependencies=[Depends(verify_api_token)])
