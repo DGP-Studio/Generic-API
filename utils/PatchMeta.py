@@ -16,6 +16,7 @@ class PatchMeta(BaseModel):
     version: str
     validation: str
     cache_time: datetime
+    file_name: str
     mirrors: list[MirrorMeta] = []
 
     def __str__(self):

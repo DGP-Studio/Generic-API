@@ -63,6 +63,7 @@ def fetch_snap_hutao_github_latest_version() -> PatchMeta:
 
         os.remove("cache/sha256sums")
 
+    github_file_name = github_msix_url.split("/")[-1]
     github_mirror = MirrorMeta(
         url=github_msix_url,
         mirror_name="GitHub",
@@ -73,6 +74,7 @@ def fetch_snap_hutao_github_latest_version() -> PatchMeta:
         version=github_meta["tag_name"] + ".0",
         validation=sha256sums_value if sha256sums_value else None,
         cache_time=datetime.now(),
+        file_name=github_file_name,
         mirrors=[github_mirror]
     )
     logger.debug(f"GitHub data fetched: {github_path_meta}")
@@ -142,16 +144,19 @@ async def update_snap_hutao_deployment_version(redis_client: aioredis.client.Red
     """
     github_meta = httpx.get("https://api.github.com/repos/DGP-Studio/Snap.Hutao.Deployment/releases/latest",
                             headers=github_headers).json()
+    exe_file_name = None
     github_exe_url = None
     for asset in github_meta["assets"]:
         if asset["name"].endswith(".exe"):
             github_exe_url = asset["browser_download_url"]
+            exe_file_name = asset["name"]
     if github_exe_url is None:
         raise ValueError("Failed to get Snap Hutao Deployment latest version from GitHub")
     github_patch_meta = PatchMeta(
         version=github_meta["tag_name"] + ".0",
         validation="",
         cache_time=datetime.now(),
+        file_name=exe_file_name,
         mirrors=[MirrorMeta(url=github_exe_url, mirror_name="GitHub", mirror_type="direct")]
     )
     cn_patch_meta = github_patch_meta.model_copy(deep=True)
