@@ -251,7 +251,8 @@ async def fetch_snap_hutao_alpha_latest_version(redis_client: aioredis.client.Re
         version=asset_urls[0]["name"],
         validation="",
         cache_time=datetime.now(),
-        mirrors=[github_mirror]
+        mirrors=[github_mirror],
+        file_name=asset_urls[0]["name"]
     )
 
     resp = await redis_client.set("snap-hutao-alpha:patch",
