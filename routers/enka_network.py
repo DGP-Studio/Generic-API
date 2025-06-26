@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, Request
 from fastapi.responses import RedirectResponse
 from redis import asyncio as aioredis
-from utils.dgp_utils import validate_client_is_updated
+from cloudflare_security_utils.safety import validate_client_is_updated
 
 
 china_router = APIRouter(tags=["Enka Network"], prefix="/enka")
