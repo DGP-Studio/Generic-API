@@ -1,0 +1,4 @@
+[submodule "cloudflare_security_utils"]
+	path = cloudflare_security_utils
+	url = https://github.com/DGP-Studio/cloudflare-api-security.git
+	branch = main
