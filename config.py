@@ -8,8 +8,8 @@ env_result = load_dotenv()
 VALID_PROJECT_KEYS = ["snap-hutao", "snap-hutao-deployment"]
 
 IMAGE_NAME = os.getenv("IMAGE_NAME", "generic-api")
-SERVER_TYPE = os.getenv("SERVER_TYPE", "[Unknown Server Type]")
-IS_DEBUG = True if "alpha" in IMAGE_NAME.lower() or "dev" in IMAGE_NAME.lower() else False
+SERVER_TYPE = os.getenv("SERVER_TYPE", "unknown").lower()
+IS_DEBUG = True if "alpha" in SERVER_TYPE.lower() or "dev" in SERVER_TYPE.lower() else False
 IS_DEV = True if os.getenv("IS_DEV", "False").lower() == "true" or SERVER_TYPE in ["dev"] else False
 if IS_DEV:
     BUILD_NUMBER = "DEV"
