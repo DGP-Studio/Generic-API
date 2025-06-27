@@ -1,6 +1,7 @@
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, Request, Depends
 from fastapi.responses import RedirectResponse
 from redis import asyncio as aioredis
+from cloudflare_security_utils.safety import enhanced_safety_check
 
 
 china_router = APIRouter(tags=["Client Feature"], prefix="/client")
@@ -8,7 +9,7 @@ global_router = APIRouter(tags=["Client Feature"], prefix="/client")
 fujian_router = APIRouter(tags=["Client Feature"], prefix="/client")
 
 
-@china_router.get("/{file_path:path}")
+@china_router.get("/{file_path:path}", dependencies=[Depends(enhanced_safety_check)])
 async def china_client_feature_request_handler(request: Request, file_path: str) -> RedirectResponse:
     """
     Handle requests to client feature metadata files.
@@ -27,7 +28,7 @@ async def china_client_feature_request_handler(request: Request, file_path: str)
     return RedirectResponse(host_for_normal_files, status_code=301)
 
 
-@global_router.get("/{file_path:path}")
+@global_router.get("/{file_path:path}", dependencies=[Depends(enhanced_safety_check)])
 async def global_client_feature_request_handler(request: Request, file_path: str) -> RedirectResponse:
     """
     Handle requests to client feature metadata files.
@@ -46,7 +47,7 @@ async def global_client_feature_request_handler(request: Request, file_path: str
     return RedirectResponse(host_for_normal_files, status_code=301)
 
 
-@fujian_router.get("/{file_path:path}")
+@fujian_router.get("/{file_path:path}", dependencies=[Depends(enhanced_safety_check)])
 async def fujian_client_feature_request_handler(request: Request, file_path: str) -> RedirectResponse:
     """
     Handle requests to client feature metadata files.
