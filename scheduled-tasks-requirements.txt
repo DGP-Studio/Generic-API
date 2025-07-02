@@ -8,3 +8,4 @@ pymysql
 pytz
 cryptography
 pyinstaller
+colorama
