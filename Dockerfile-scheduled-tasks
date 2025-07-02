@@ -4,6 +4,7 @@ FROM python:3.12.1 AS builder
 WORKDIR /code
 ADD . /code
 RUN pip install --no-cache-dir -r /code/scheduled-tasks-requirements.txt
+RUN date '+%Y.%-m.%-d.%H%M%S' > build_number.txt
 RUN pyinstaller -F scheduled_tasks.py
 
 # Runtime
@@ -11,5 +12,7 @@ FROM ubuntu:22.04 AS runtime
 ENV TZ="Asia/Shanghai"
 WORKDIR /app
 COPY --from=builder /code/dist/scheduled_tasks .
+COPY --from=builder /code/build_number.txt .
+COPY --from=builder /code/current_commit.txt .
 EXPOSE 8080
 ENTRYPOINT ["./scheduled_tasks"]
