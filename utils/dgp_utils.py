@@ -1,9 +1,6 @@
 import json
 import os
 import httpx
-from fastapi import HTTPException, status, Header, Request
-from redis import asyncio as aioredis
-from typing import Annotated
 from base_logger import get_logger
 from config import github_headers, IS_DEBUG
 
@@ -14,9 +11,6 @@ except json.JSONDecodeError:
     WHITE_LIST_REPOSITORIES = {}
     logger.error("Failed to load WHITE_LIST_REPOSITORIES from environment variable.")
     logger.info(os.environ.get("WHITE_LIST_REPOSITORIES"))
-BYPASS_CLIENT_VERIFICATION = os.environ.get("BYPASS_CLIENT_VERIFICATION", "False").lower() == "true"
-if BYPASS_CLIENT_VERIFICATION:
-    logger.warning("Client verification is bypassed in this server.")
 
 # Helper: HTTP GET with retry
 async def fetch_with_retry(url, max_retries=3):
@@ -102,34 +96,3 @@ async def update_recent_versions(redis_client) -> list[str]:
     return new_user_agents
 
 
-async def validate_client_is_updated(request: Request, user_agent: Annotated[str, Header()]) -> bool:
-    requested_hostname = request.headers.get("Host")
-    if "snapgenshin.cn" in requested_hostname:
-        return True
-    redis_client = aioredis.Redis.from_pool(request.app.state.redis)
-    if BYPASS_CLIENT_VERIFICATION:
-        logger.debug("Client verification is bypassed.")
-        return True
-    logger.info(f"Received request from user agent: {user_agent}")
-    if user_agent.startswith("Snap Hutao/2025"):
-        logger.info("Client is Snap Hutao Alpha, allowed.")
-        return True
-    if user_agent.startswith("PaimonsNotebook/"):
-        logger.info("Client is Paimon's Notebook, allowed.")
-        return True
-    if user_agent.startswith("Reqable/"):
-        logger.info("Client is Reqable, allowed.")
-        return True
-
-    allowed_user_agents = await redis_client.get("allowed_user_agents")
-    if allowed_user_agents:
-        allowed_user_agents = json.loads(allowed_user_agents)
-    else:
-        # redis data is expired
-        logger.info("Updating allowed user agents from GitHub")
-        allowed_user_agents = await update_recent_versions(redis_client)
-
-    if user_agent not in allowed_user_agents:
-        logger.info(f"Client is outdated: {user_agent}, not in the allowed list: {allowed_user_agents}")
-        raise HTTPException(status_code=status.HTTP_418_IM_A_TEAPOT, detail="Client is outdated.")
-    return True

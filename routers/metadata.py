@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, Request, HTTPException
 from fastapi.responses import RedirectResponse
 from redis import asyncio as aioredis
 from mysql_app.schemas import StandardResponse
-from utils.dgp_utils import validate_client_is_updated
+from cloudflare_security_utils.safety import validate_client_is_updated
 from base_logger import get_logger
 import httpx
 import os
@@ -10,6 +10,7 @@ import os
 china_router = APIRouter(tags=["Hutao Metadata"], prefix="/metadata")
 global_router = APIRouter(tags=["Hutao Metadata"], prefix="/metadata")
 fujian_router = APIRouter(tags=["Hutao Metadata"], prefix="/metadata")
+logger = get_logger(__name__)
 
 
 async def fetch_metadata_repo_file_list(redis_client: aioredis.Redis) -> None:
