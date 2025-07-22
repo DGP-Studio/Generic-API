@@ -275,6 +275,7 @@ async def generic_get_snap_hutao_latest_version_china_endpoint(request: Request)
     - Expects valid JSON data from Redis.
     """
     redis_client = aioredis.Redis.from_pool(request.app.state.redis)
+
     snap_hutao_latest_version = await redis_client.get("snap-hutao:patch")
     snap_hutao_latest_version = json.loads(snap_hutao_latest_version)
 
@@ -285,8 +286,15 @@ async def generic_get_snap_hutao_latest_version_china_endpoint(request: Request)
     return_data["urls"] = urls
     return_data["sha256"] = snap_hutao_latest_version["cn"]["validation"]
 
+    allowed_user_agents = await redis_client.get("allowed_user_agents")
+    current_ua = request.headers.get("User-Agent", "")
+    if allowed_user_agents and current_ua not in json.loads(allowed_user_agents):
+        retcode = 418
+    else:
+        retcode = 0
+
     return StandardResponse(
-        retcode=0,
+        retcode=retcode,
         message=f"CN endpoint reached. {snap_hutao_latest_version['gitlab_message']}",
         data=return_data
     )
@@ -334,8 +342,15 @@ async def generic_get_snap_hutao_latest_version_global_endpoint(request: Request
     return_data["urls"] = urls
     return_data["sha256"] = snap_hutao_latest_version["cn"]["validation"]
 
+    allowed_user_agents = await redis_client.get("allowed_user_agents")
+    current_ua = request.headers.get("User-Agent", "")
+    if allowed_user_agents and current_ua not in json.loads(allowed_user_agents):
+        retcode = 418
+    else:
+        retcode = 0
+
     return StandardResponse(
-        retcode=0,
+        retcode=retcode,
         message=f"Global endpoint reached. {snap_hutao_latest_version['github_message']}",
         data=return_data
     )
