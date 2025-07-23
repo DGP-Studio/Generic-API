@@ -3,15 +3,7 @@
 FROM python:3.12.1 AS builder
 WORKDIR /code
 ADD . /code
-RUN pip install fastapi["all"]
-RUN pip install redis
-RUN pip install pymysql
-RUN pip install cryptography
-RUN pip install sqlalchemy
-RUN pip install pytz
-RUN pip install colorama
-RUN pip install aiofiles
-RUN pip install "sentry-sdk[fastapi]"
+RUN pip install fastapi["all"] "redis[hiredis]" pymysql cryptography sqlalchemy pytz colorama aiofiles "sentry-sdk[fastapi]"
 #RUN pip install --no-cache-dir -r /code/requirements.txt
 RUN date '+%Y.%-m.%-d.%H%M%S' > build_number.txt
 RUN pip install pyinstaller

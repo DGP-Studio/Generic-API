@@ -9,6 +9,10 @@ class StandardResponse(BaseModel):
     data: Optional[dict | list | None] = None
 
 
+class ClientErrorMessageResponse(BaseModel):
+    message: str = "Generic Server Error"
+
+
 class Wallpaper(BaseModel):
     url: str
     display_date: Optional[datetime.date | None] = None
