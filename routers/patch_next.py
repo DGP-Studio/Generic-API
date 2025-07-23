@@ -290,12 +290,14 @@ async def generic_get_snap_hutao_latest_version_china_endpoint(request: Request)
     current_ua = request.headers.get("User-Agent", "")
     if allowed_user_agents and current_ua not in json.loads(allowed_user_agents):
         retcode = 418
+        message = "过时的客户端，请更新到最新版本。"
     else:
         retcode = 0
+        message = f"CN endpoint reached. {snap_hutao_latest_version['gitlab_message']}"
 
     return StandardResponse(
         retcode=retcode,
-        message=f"CN endpoint reached. {snap_hutao_latest_version['gitlab_message']}",
+        message=message,
         data=return_data
     )
 
@@ -346,12 +348,14 @@ async def generic_get_snap_hutao_latest_version_global_endpoint(request: Request
     current_ua = request.headers.get("User-Agent", "")
     if allowed_user_agents and current_ua not in json.loads(allowed_user_agents):
         retcode = 418
+        message = "Outdated client, please update to the latest version. 过时的客户端版本，请更新到最新版本。"
     else:
         retcode = 0
+        message = f"Global endpoint reached. {snap_hutao_latest_version['github_message']}",
 
     return StandardResponse(
         retcode=retcode,
-        message=f"Global endpoint reached. {snap_hutao_latest_version['github_message']}",
+        message=message,
         data=return_data
     )
 
