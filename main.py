@@ -199,6 +199,7 @@ app.include_router(fujian_root_router)
 # Misc
 app.include_router(system_email.admin_router)
 app.include_router(mgnt.router)
+app.include_router(mgnt.public_router)
 
 app.add_middleware(
     CORSMiddleware,
