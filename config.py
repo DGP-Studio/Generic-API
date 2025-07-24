@@ -31,7 +31,10 @@ HOMA_SERVER_IP = os.environ.get("HOMA_SERVER_IP", None)
 
 REDIS_HOST = os.getenv("REDIS_HOST", "redis")
 
-SENTRY_URL = f"http://{os.getenv('SENTRY_TOKEN')}@{socket.gethostbyname('host.docker.internal')}:9510/5"
+if not IS_DEV:
+    SENTRY_URL = f"http://{os.getenv('SENTRY_TOKEN')}@{socket.gethostbyname('host.docker.internal')}:9510/5"
+else:
+    SENTRY_URL = None
 
 # FastAPI Config
 TOS_URL = "https://hut.ao/statements/tos.html"
