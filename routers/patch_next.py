@@ -294,6 +294,7 @@ async def generic_get_snap_hutao_latest_version_china_endpoint(request: Request)
     else:
         retcode = 0
         message = f"CN endpoint reached. {snap_hutao_latest_version['gitlab_message']}"
+    message = message if isinstance(message, str) else message[0]
 
     return StandardResponse(
         retcode=retcode,
@@ -352,6 +353,7 @@ async def generic_get_snap_hutao_latest_version_global_endpoint(request: Request
     else:
         retcode = 0
         message = f"Global endpoint reached. {snap_hutao_latest_version['github_message']}",
+    message = message if isinstance(message, str) else message[0]
 
     return StandardResponse(
         retcode=retcode,
