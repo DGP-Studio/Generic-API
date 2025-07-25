@@ -286,15 +286,24 @@ async def generic_get_snap_hutao_latest_version_china_endpoint(request: Request)
     return_data["urls"] = urls
     return_data["sha256"] = snap_hutao_latest_version["cn"]["validation"]
 
-    allowed_user_agents = await redis_client.get("allowed_user_agents")
-    current_ua = request.headers.get("User-Agent", "")
-    if allowed_user_agents and current_ua not in json.loads(allowed_user_agents):
-        retcode = 418
-        message = "过时的客户端，请更新到最新版本。"
-    else:
+    try:
+        allowed_user_agents = await redis_client.get("allowed_user_agents")
+        allowed_user_agents = json.loads(allowed_user_agents)
+        current_ua = request.headers.get("User-Agent", "")
+        if allowed_user_agents:
+            if current_ua in allowed_user_agents:
+                retcode = 0
+                message = f"CN endpoint reached. {snap_hutao_latest_version['gitlab_message']}"
+            else:
+                retcode = 418
+                message = "过时的客户端，请更新到最新版本。"
+        else:
+            retcode = 0
+            message = "CN endpoint reached."
+    except TypeError:
         retcode = 0
-        message = f"CN endpoint reached. {snap_hutao_latest_version['gitlab_message']}"
-    message = message if isinstance(message, str) else message[0]
+        message = "CN endpoint reached."
+
 
     return StandardResponse(
         retcode=retcode,
@@ -345,14 +354,24 @@ async def generic_get_snap_hutao_latest_version_global_endpoint(request: Request
     return_data["urls"] = urls
     return_data["sha256"] = snap_hutao_latest_version["cn"]["validation"]
 
-    allowed_user_agents = await redis_client.get("allowed_user_agents")
-    current_ua = request.headers.get("User-Agent", "")
-    if allowed_user_agents and current_ua not in json.loads(allowed_user_agents):
-        retcode = 418
-        message = "Outdated client, please update to the latest version. 过时的客户端版本，请更新到最新版本。"
-    else:
+    try:
+        allowed_user_agents = await redis_client.get("allowed_user_agents")
+        allowed_user_agents = json.loads(allowed_user_agents)
+        current_ua = request.headers.get("User-Agent", "")
+        if allowed_user_agents:
+            if current_ua in allowed_user_agents:
+                retcode = 0
+                message = f"Global endpoint reached. {snap_hutao_latest_version['github_message']}"
+            else:
+                retcode = 418
+                message = "Outdated client, please update to the latest version. 过时的客户端版本，请更新到最新版本。"
+        else:
+            retcode = 0
+            message = "Global endpoint reached."
+    except TypeError:
         retcode = 0
-        message = f"Global endpoint reached. {snap_hutao_latest_version['github_message']}",
+        message = "Global endpoint reached."
+
     message = message if isinstance(message, str) else message[0]
 
     return StandardResponse(
