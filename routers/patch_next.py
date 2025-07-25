@@ -286,6 +286,7 @@ async def generic_get_snap_hutao_latest_version_china_endpoint(request: Request)
     return_data["urls"] = urls
     return_data["sha256"] = snap_hutao_latest_version["cn"]["validation"]
 
+    """
     try:
         allowed_user_agents = await redis_client.get("allowed_user_agents")
         allowed_user_agents = json.loads(allowed_user_agents)
@@ -303,11 +304,12 @@ async def generic_get_snap_hutao_latest_version_china_endpoint(request: Request)
     except TypeError:
         retcode = 0
         message = "CN endpoint reached."
+    """
 
 
     return StandardResponse(
-        retcode=retcode,
-        message=message,
+        retcode = 0,
+        message = "CN endpoint reached.",
         data=return_data
     )
 
@@ -354,6 +356,8 @@ async def generic_get_snap_hutao_latest_version_global_endpoint(request: Request
     return_data["urls"] = urls
     return_data["sha256"] = snap_hutao_latest_version["cn"]["validation"]
 
+
+    """
     try:
         allowed_user_agents = await redis_client.get("allowed_user_agents")
         allowed_user_agents = json.loads(allowed_user_agents)
@@ -373,10 +377,11 @@ async def generic_get_snap_hutao_latest_version_global_endpoint(request: Request
         message = "Global endpoint reached."
 
     message = message if isinstance(message, str) else message[0]
+    """
 
     return StandardResponse(
-        retcode=retcode,
-        message=message,
+        retcode=0,
+        message="Global endpoint reached.",
         data=return_data
     )
 
