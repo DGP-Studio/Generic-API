@@ -106,52 +106,6 @@ async def refresh_hoyolab_avatar_strategy(redis_client: redis.client.Redis, db: 
     return True
 
 
-@china_router.get("/refresh", response_model=StandardResponse, dependencies=[Depends(verify_api_token)])
-@global_router.get("/refresh", response_model=StandardResponse, dependencies=[Depends(verify_api_token)])
-@fujian_router.get("/refresh", response_model=StandardResponse, dependencies=[Depends(verify_api_token)])
-async def refresh_avatar_strategy(request: Request, channel: str, db: Session = Depends(get_db)) -> StandardResponse:
-    """
-    Refresh avatar strategy from Miyoushe or Hoyolab
-
-    :param request: request object from FastAPI
-
-    :param channel: one of `miyoushe`, `hoyolab`, `all`
-
-    :param db: Database session
-
-    :return: StandardResponse with DB operation result and full cached strategy dict
-    """
-    redis_client = redis.Redis.from_pool(request.app.state.redis)
-    if channel == "miyoushe":
-        result = {"mys": await refresh_miyoushe_avatar_strategy(redis_client, db)}
-    elif channel == "hoyolab":
-        result = {"hoyolab": await refresh_hoyolab_avatar_strategy(redis_client, db)}
-    elif channel == "all":
-        result = {"mys": await refresh_miyoushe_avatar_strategy(redis_client, db),
-                  "hoyolab": await refresh_hoyolab_avatar_strategy(redis_client, db)
-                  }
-    else:
-        raise HTTPException(status_code=400, detail="Invalid channel")
-
-    all_strategies = get_all_avatar_strategy(db)
-    strategy_dict = {}
-    for strategy in all_strategies:
-        strategy_dict[strategy.avatar_id] = {
-            "mys_strategy_id": strategy.mys_strategy_id,
-            "hoyolab_strategy_id": strategy.hoyolab_strategy_id
-        }
-    await redis_client.set("avatar_strategy", json.dumps(strategy_dict))
-
-    return StandardResponse(
-        retcode=0,
-        message="Success",
-        data={
-            "db": result,
-            "cache": strategy_dict
-        }
-    )
-
-
 @china_router.get("/item", response_model=StandardResponse)
 @global_router.get("/item", response_model=StandardResponse)
 @fujian_router.get("/item", response_model=StandardResponse)
@@ -226,4 +180,3 @@ async def get_all_avatar_strategy_item(request: Request) -> StandardResponse:
         message="Success",
         data=strategy_dict
     )
-
