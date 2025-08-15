@@ -36,9 +36,7 @@ def fetch_snap_hutao_github_latest_version() -> PatchMeta:
 
     # Output variables
     github_msix_url = None
-    sha256sums_url = None
     sha256sums_value = None
-
     github_meta = httpx.get("https://api.github.com/repos/DGP-Studio/Snap.Hutao/releases/latest",
                             headers=github_headers).json()
 
@@ -46,22 +44,10 @@ def fetch_snap_hutao_github_latest_version() -> PatchMeta:
     for asset in github_meta["assets"]:
         if asset["name"].endswith(".msix"):
             github_msix_url = asset["browser_download_url"]
-        elif asset["name"].endswith("SHA256SUMS"):
-            sha256sums_url = asset["browser_download_url"]
+            sha256sums_value = asset.get("digest", None).replace("sha256:", "").strip()
+
     if github_msix_url is None:
         raise ValueError("Failed to get Snap Hutao latest version from GitHub")
-
-    # Handle checksum file
-    if sha256sums_url:
-        with (open("cache/sha256sums", "wb") as f,
-              httpx.stream('GET', sha256sums_url, headers=github_headers, follow_redirects=True) as response):
-            response.raise_for_status()
-            for chunk in response.iter_bytes():
-                f.write(chunk)
-        with open("cache/sha256sums", 'r') as f:
-            sha256sums_value = f.read().replace("\n", "")
-
-        os.remove("cache/sha256sums")
 
     github_file_name = github_msix_url.split("/")[-1]
     github_mirror = MirrorMeta(
