@@ -7,7 +7,6 @@ from redis import asyncio as redis
 from mysql_app.schemas import AvatarStrategy, StandardResponse
 from mysql_app.crud import add_avatar_strategy, get_avatar_strategy_by_id
 from utils.dependencies import get_db
-from cloudflare_security_utils.mgnt import refresh_avatar_strategy
 from base_logger import get_logger
 
 
@@ -131,6 +130,7 @@ async def get_avatar_strategy_item(request: Request, item_id: int, db: Session=D
         try:
             strategy_dict = json.loads(await redis_client.get("avatar_strategy"))
         except TypeError:
+            from cloudflare_security_utils.mgnt import refresh_avatar_strategy
             await refresh_avatar_strategy(request, "all")
             strategy_dict = json.loads(await redis_client.get("avatar_strategy"))
         strategy_set = strategy_dict.get(str(item_id), {})
@@ -177,6 +177,7 @@ async def get_all_avatar_strategy_item(request: Request) -> StandardResponse:
     try:
         strategy_dict = json.loads(await redis_client.get("avatar_strategy"))
     except TypeError:
+        from cloudflare_security_utils.mgnt import refresh_avatar_strategy
         await refresh_avatar_strategy(request, "all")
         strategy_dict = json.loads(await redis_client.get("avatar_strategy"))
     return StandardResponse(
