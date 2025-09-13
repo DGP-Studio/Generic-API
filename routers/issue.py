@@ -96,4 +96,11 @@ async def get_open_bug_issues(request: Request) -> StandardResponse:
         return StandardResponse(retcode=0, message="Fetched from GitHub", data=data)
     except httpx.HTTPError as e:
         logger.error(f"GitHub API error: {e}")
-        return StandardResponse(retcode=1, message="Failed to fetch issues", data={"details": [], "stat": {}})
+        return StandardResponse(
+            retcode=1,
+            message="Failed to fetch issues",
+            data={
+                "details": [],
+                "stat": {"waiting_for_release": 0, "untreated": 0, "hard_to_fix": 0}
+            }
+        )
