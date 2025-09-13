@@ -61,13 +61,15 @@ def _calc_bug_stats(issues: List[Dict[str, Any]]) -> Dict[str, int]:
         # 1. 包含 "等待发布" 代表问题已修复但等待发布
         if "等待发布" in labels:
             stat["waiting_for_release"] += 1
-        # 2. 只包含 area 开头的 label 代表未处理
+            continue
+        # 2. need-community-help 或 无法稳定复现 代表难以修复
+        if any(l in labels for l in ["need-community-help", "无法稳定复现"]):
+            stat["hard_to_fix"] += 1
+            continue
+        # 3. 只包含 area 开头的 label 代表未处理
         area_labels = [l for l in labels if l.startswith("area")]
         if area_labels and len(area_labels) == len(labels):
             stat["untreated"] += 1
-        # 3. need-community-help 或 无法稳定复现 代表难以修复
-        if any(l in labels for l in ["need-community-help", "无法稳定复现"]):
-            stat["hard_to_fix"] += 1
     return stat
 
 
