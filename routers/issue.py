@@ -49,6 +49,28 @@ def _fetch_open_bug_issues() -> List[Dict[str, Any]]:
     return pruned
 
 
+def _calc_bug_stats(issues: List[Dict[str, Any]]) -> Dict[str, int]:
+    """Calculate bug stats based on label rules."""
+    stat = {
+        "waiting_for_release": 0,
+        "untreated": 0,
+        "hard_to_fix": 0,
+    }
+    for issue in issues:
+        labels = [l for l in issue.get("labels", []) if not l.startswith("priority")]
+        # 1. 包含 "等待发布" 代表问题已修复但等待发布
+        if "等待发布" in labels:
+            stat["waiting_for_release"] += 1
+        # 2. 只包含 area 开头的 label 代表未处理
+        area_labels = [l for l in labels if l.startswith("area")]
+        if area_labels and len(area_labels) == len(labels):
+            stat["untreated"] += 1
+        # 3. need-community-help 或 无法稳定复现 代表难以修复
+        if any(l in labels for l in ["need-community-help", "无法稳定复现"]):
+            stat["hard_to_fix"] += 1
+    return stat
+
+
 @china_router.get("/bug", response_model=StandardResponse, dependencies=[Depends(record_device_id)])
 @global_router.get("/bug", response_model=StandardResponse, dependencies=[Depends(record_device_id)])
 @fujian_router.get("/bug", response_model=StandardResponse, dependencies=[Depends(record_device_id)])
@@ -68,8 +90,10 @@ async def get_open_bug_issues(request: Request) -> StandardResponse:
     # Fetch from GitHub and cache
     try:
         issues = _fetch_open_bug_issues()
-        await redis_client.set(CACHE_KEY, json.dumps(issues, ensure_ascii=False), ex=CACHE_TTL_SECONDS)
-        return StandardResponse(retcode=0, message="Fetched from GitHub", data=issues)
+        stat = _calc_bug_stats(issues)
+        data = {"details": issues, "stat": stat}
+        await redis_client.set(CACHE_KEY, json.dumps(data, ensure_ascii=False), ex=CACHE_TTL_SECONDS)
+        return StandardResponse(retcode=0, message="Fetched from GitHub", data=data)
     except httpx.HTTPError as e:
         logger.error(f"GitHub API error: {e}")
-        return StandardResponse(retcode=1, message="Failed to fetch issues", data=[])
+        return StandardResponse(retcode=1, message="Failed to fetch issues", data={"details": [], "stat": {}})
