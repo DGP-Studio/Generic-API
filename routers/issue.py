@@ -38,8 +38,7 @@ def _fetch_open_bug_issues() -> List[Dict[str, Any]]:
     """Fetch open issues labeled 'Bug' from GitHub."""
     params = {
         "state": "open",
-        "labels": "Bug",
-        "per_page": 100,
+        "type": "Bug"
     }
     logger.debug(f"Fetching issues from GitHub: {GITHUB_ISSUES_URL} {params}")
     resp = httpx.get(GITHUB_ISSUES_URL, headers=github_headers, params=params, timeout=30.0)
