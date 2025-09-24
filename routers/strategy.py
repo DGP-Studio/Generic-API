@@ -4,12 +4,13 @@ from fastapi import Depends, APIRouter, HTTPException, Request
 from sqlalchemy.orm import Session
 from utils.uigf import get_genshin_avatar_id
 from redis import asyncio as redis
-from utils.authentication import verify_api_token
 from mysql_app.schemas import AvatarStrategy, StandardResponse
-from mysql_app.crud import add_avatar_strategy, get_all_avatar_strategy, get_avatar_strategy_by_id
+from mysql_app.crud import add_avatar_strategy, get_avatar_strategy_by_id
 from utils.dependencies import get_db
+from base_logger import get_logger
 
 
+logger = get_logger("strategy")
 china_router = APIRouter(tags=["Strategy"], prefix="/strategy")
 global_router = APIRouter(tags=["Strategy"], prefix="/strategy")
 fujian_router = APIRouter(tags=["Strategy"], prefix="/strategy")
@@ -44,6 +45,7 @@ async def refresh_miyoushe_avatar_strategy(redis_client: redis.client.Redis, db:
                 if item["id"] == 39:
                     for avatar in item["children"]:
                         avatar_id = await get_genshin_avatar_id(redis_client, avatar["name"], "chs")
+                        logger.info(f"Processing avatar: {avatar['name']}, UIGF ID: {avatar_id}")
                         if avatar_id:
                             avatar_strategy.append(
                                 AvatarStrategy(
@@ -52,7 +54,7 @@ async def refresh_miyoushe_avatar_strategy(redis_client: redis.client.Redis, db:
                                 )
                             )
                         else:
-                            print(f"Failed to get avatar id for {avatar['name']}")
+                            logger.error(f"Failed to get avatar id for {avatar['name']}")
                     break
     for strategy in avatar_strategy:
         mysql_add_result = add_avatar_strategy(db, strategy)
@@ -91,6 +93,7 @@ async def refresh_hoyolab_avatar_strategy(redis_client: redis.client.Redis, db: 
             f"Failed to refresh Hoyolab avatar strategy, \nstatus code: {response.status_code}, \ncontent: {response.text}")
     for item in data:
         avatar_id = await get_genshin_avatar_id(redis_client, item["title"], "chs")
+        logger.info(f"Processing avatar: {item['title']}, UIGF ID: {avatar_id}")
         if avatar_id:
             avatar_strategy.append(
                 AvatarStrategy(
@@ -127,6 +130,7 @@ async def get_avatar_strategy_item(request: Request, item_id: int, db: Session=D
         try:
             strategy_dict = json.loads(await redis_client.get("avatar_strategy"))
         except TypeError:
+            from cloudflare_security_utils.mgnt import refresh_avatar_strategy
             await refresh_avatar_strategy(request, "all")
             strategy_dict = json.loads(await redis_client.get("avatar_strategy"))
         strategy_set = strategy_dict.get(str(item_id), {})
@@ -173,6 +177,7 @@ async def get_all_avatar_strategy_item(request: Request) -> StandardResponse:
     try:
         strategy_dict = json.loads(await redis_client.get("avatar_strategy"))
     except TypeError:
+        from cloudflare_security_utils.mgnt import refresh_avatar_strategy
         await refresh_avatar_strategy(request, "all")
         strategy_dict = json.loads(await redis_client.get("avatar_strategy"))
     return StandardResponse(
