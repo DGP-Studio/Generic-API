@@ -1,6 +1,6 @@
 import os
-from dotenv import load_dotenv
 import subprocess
+from dotenv import load_dotenv
 
 
 def get_short_commit_hash(length=7):
@@ -11,8 +11,74 @@ def get_short_commit_hash(length=7):
         print(f"Error: {e}")
         return None
 
+
+def get_container_ip(container_name):
+    try:
+        result = subprocess.check_output(
+            [
+                'docker',
+                'inspect',
+                '-f',
+                '{{range.NetworkSettings.Networks}}{{.IPAddress}}{{end}}',
+                container_name,
+            ]
+        )
+    except subprocess.CalledProcessError as e:
+        error_output = e.output.decode('utf-8', errors='ignore').strip()
+        raise RuntimeError(
+            f"Failed to retrieve IP address for container {container_name}: {error_output}"
+        ) from e
+    except FileNotFoundError as e:
+        raise RuntimeError("Docker is not available on this system.") from e
+
+    container_ip = result.decode('utf-8').strip()
+    if not container_ip:
+        raise RuntimeError(f"Failed to retrieve IP address for container {container_name}")
+
+    return container_ip
+
+
+def update_env_file(env_file_path, key, value):
+    if not os.path.exists(env_file_path):
+        raise RuntimeError(
+            f"Environment file '{env_file_path}' not found. Please ensure it contains a {key} entry."
+        )
+
+    with open(env_file_path, 'r', encoding='utf-8') as env_file:
+        env_lines = env_file.readlines()
+
+    for index, line in enumerate(env_lines):
+        stripped_line = line.strip()
+        if not stripped_line or stripped_line.startswith('#'):
+            continue
+
+        variable, separator, _ = line.partition('=')
+        if separator and variable.strip() == key:
+            newline = '\n' if line.endswith('\n') else ''
+            env_lines[index] = f"{key}={value}{newline}"
+            break
+    else:
+        raise RuntimeError(
+            f"{key} was not found in {env_file_path}. Please add it manually to avoid duplicate entries."
+        )
+
+    with open(env_file_path, 'w', encoding='utf-8') as env_file:
+        env_file.writelines(env_lines)
+
+
 if __name__ == "__main__":
-    load_dotenv(dotenv_path=".env")
+    env_file = ".env"
+    container_name = "Homa-Server"
+
+    try:
+        container_ip = get_container_ip(container_name)
+        update_env_file(env_file, "HOMA_SERVER_IP", container_ip)
+        os.environ["HOMA_SERVER_IP"] = container_ip
+        print(f"Updated {env_file} with HOMA_SERVER_IP={container_ip}")
+    except RuntimeError as error:
+        raise SystemExit(error)
+
+    load_dotenv(dotenv_path=env_file, override=True)
 
     input_file = "docker-compose.yml.base"
     output_file = "docker-compose.yml"
