@@ -55,7 +55,7 @@ def update_env_file(env_file_path, key, value):
         variable, separator, _ = line.partition('=')
         if separator and variable.strip() == key:
             newline = '\n' if line.endswith('\n') else ''
-            env_lines[index] = f"{key}={value}{newline}"
+            env_lines[index] = f"{variable}{separator}{value}{newline}"
             break
     else:
         raise RuntimeError(
