@@ -25,11 +25,11 @@ async def get_all_git_repositories(db: Session = Depends(get_db)) -> StandardRes
     :return: A list of git repository objects
     """
     repositories = crud.get_all_git_repositories(db)
-    repository_schemas = [
-        schemas.GitRepository.model_validate(repo.to_dict())
+    repository_dicts = [
+        schemas.GitRepository.model_validate(repo.to_dict()).model_dump()
         for repo in repositories
     ]
-    return StandardResponse(data=repository_schemas, message="Successfully fetched all git repositories")
+    return StandardResponse(data=repository_dicts, message="Successfully fetched all git repositories")
 
 
 @china_router.post("/create", response_model=StandardResponse, dependencies=[Depends(verify_api_token)])
@@ -50,7 +50,7 @@ async def create_git_repository(repository: schemas.GitRepositoryCreate, db: Ses
     
     created_repository = crud.create_git_repository(db, repository)
     return StandardResponse(
-        data=schemas.GitRepository.model_validate(created_repository.to_dict()),
+        data=schemas.GitRepository.model_validate(created_repository.to_dict()).model_dump(),
         message="Git repository created successfully"
     )
 
@@ -85,7 +85,7 @@ async def update_git_repository(
         raise HTTPException(status_code=404, detail="Git repository not found")
     
     return StandardResponse(
-        data=schemas.GitRepository.model_validate(updated_repository.to_dict()),
+        data=schemas.GitRepository.model_validate(updated_repository.to_dict()).model_dump(),
         message="Git repository updated successfully"
     )
 
