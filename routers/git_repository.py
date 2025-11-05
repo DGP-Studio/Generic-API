@@ -14,9 +14,9 @@ global_router = APIRouter(tags=["Git Repository"], prefix="/git-repository")
 fujian_router = APIRouter(tags=["Git Repository"], prefix="/git-repository")
 
 
-@china_router.get("/all", response_model=StandardResponse, dependencies=[Depends(verify_api_token)])
-@global_router.get("/all", response_model=StandardResponse, dependencies=[Depends(verify_api_token)])
-@fujian_router.get("/all", response_model=StandardResponse, dependencies=[Depends(verify_api_token)])
+@china_router.get("/all", response_model=StandardResponse)
+@global_router.get("/all", response_model=StandardResponse)
+@fujian_router.get("/all", response_model=StandardResponse)
 async def get_all_git_repositories(db: Session = Depends(get_db)) -> StandardResponse:
     """
     Get all git repositories from database. **This endpoint requires API token verification**
