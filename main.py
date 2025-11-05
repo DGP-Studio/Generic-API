@@ -200,6 +200,7 @@ china_root_router.include_router(issue.china_router)
 global_root_router.include_router(issue.global_router)
 fujian_root_router.include_router(issue.fujian_router)
 
+# Git Repository Management API Routers
 china_root_router.include_router(git_repository.china_router)
 global_root_router.include_router(git_repository.global_router)
 fujian_root_router.include_router(git_repository.fujian_router)
