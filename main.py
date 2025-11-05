@@ -9,7 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from datetime import datetime
 from contextlib import asynccontextmanager
 from routers import (enka_network, metadata, patch_next, static, net, wallpaper, strategy, crowdin, system_email,
-                     client_feature, issue)
+                     client_feature, issue, git_repository)
 from cloudflare_security_utils import mgnt
 from base_logger import get_logger
 from config import (MAIN_SERVER_DESCRIPTION, TOS_URL, CONTACT_INFO, LICENSE_INFO, VALID_PROJECT_KEYS,
@@ -199,6 +199,10 @@ fujian_root_router.include_router(mgnt.public_router)
 china_root_router.include_router(issue.china_router)
 global_root_router.include_router(issue.global_router)
 fujian_root_router.include_router(issue.fujian_router)
+
+china_root_router.include_router(git_repository.china_router)
+global_root_router.include_router(git_repository.global_router)
+fujian_root_router.include_router(git_repository.fujian_router)
 
 app.include_router(system_email.admin_router)
 app.include_router(mgnt.router)

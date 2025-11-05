@@ -84,3 +84,32 @@ class PatchMetadata(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class GitRepositoryBase(BaseModel):
+    name: str
+    web_url: str
+    https_url: Optional[str] = None
+    ssh_url: Optional[str] = None
+    type: Optional[str] = None
+    token: Optional[str] = None
+
+
+class GitRepositoryCreate(GitRepositoryBase):
+    pass
+
+
+class GitRepositoryUpdate(BaseModel):
+    name: Optional[str] = None
+    web_url: Optional[str] = None
+    https_url: Optional[str] = None
+    ssh_url: Optional[str] = None
+    type: Optional[str] = None
+    token: Optional[str] = None
+
+
+class GitRepository(GitRepositoryBase):
+    id: int
+
+    class Config:
+        from_attributes = True

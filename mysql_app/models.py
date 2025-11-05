@@ -64,3 +64,21 @@ class DailyEmailSentStats(Base):
 
     def __repr__(self):
         return f"models.DailyEmailSentStats({self.__dict__()})"
+
+
+class GitRepository(Base):
+    __tablename__ = "git_repositories"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String(255), unique=True, nullable=False, index=True)
+    web_url = Column(String(512), nullable=False)
+    https_url = Column(String(512), nullable=True)
+    ssh_url = Column(String(512), nullable=True)
+    type = Column(String(50), nullable=True)
+    token = Column(String(512), nullable=True)
+
+    def to_dict(self):
+        return {field.name: getattr(self, field.name) for field in self.__table__.c}
+
+    def __repr__(self):
+        return f"models.GitRepository(id={self.id}, name={self.name}, web_url={self.web_url})"
