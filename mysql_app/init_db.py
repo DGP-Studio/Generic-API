@@ -2,7 +2,6 @@
 Database initialization module for creating tables.
 """
 from mysql_app.database import engine, Base
-from mysql_app import models
 from base_logger import get_logger
 
 

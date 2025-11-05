@@ -124,19 +124,33 @@ def create_git_repository(db: Session, repository: schemas.GitRepositoryCreate) 
     return db_repository
 
 
-def update_git_repository(db: Session, repo_id: int, repository: schemas.GitRepositoryUpdate) -> models.GitRepository | None:
-    """Update a git repository by ID"""
-    db_repository = db.query(models.GitRepository).filter(models.GitRepository.id == repo_id).first()
-    if not db_repository:
-        return None
-    
+def _apply_update_to_repository(db: Session, db_repository: models.GitRepository, repository: schemas.GitRepositoryUpdate) -> models.GitRepository:
+    """Helper function to apply updates to a git repository"""
     update_data = repository.model_dump(exclude_unset=True)
+    
+    # Check for duplicate name if name is being updated
+    if 'name' in update_data and update_data['name'] != db_repository.name:
+        existing = db.query(models.GitRepository).filter(
+            models.GitRepository.name == update_data['name']
+        ).first()
+        if existing:
+            raise ValueError(f"Repository with name '{update_data['name']}' already exists")
+    
     for key, value in update_data.items():
         setattr(db_repository, key, value)
     
     db.commit()
     db.refresh(db_repository)
     return db_repository
+
+
+def update_git_repository(db: Session, repo_id: int, repository: schemas.GitRepositoryUpdate) -> models.GitRepository | None:
+    """Update a git repository by ID"""
+    db_repository = db.query(models.GitRepository).filter(models.GitRepository.id == repo_id).first()
+    if not db_repository:
+        return None
+    
+    return _apply_update_to_repository(db, db_repository, repository)
 
 
 def update_git_repository_by_name(db: Session, name: str, repository: schemas.GitRepositoryUpdate) -> models.GitRepository | None:
@@ -145,13 +159,7 @@ def update_git_repository_by_name(db: Session, name: str, repository: schemas.Gi
     if not db_repository:
         return None
     
-    update_data = repository.model_dump(exclude_unset=True)
-    for key, value in update_data.items():
-        setattr(db_repository, key, value)
-    
-    db.commit()
-    db.refresh(db_repository)
-    return db_repository
+    return _apply_update_to_repository(db, db_repository, repository)
 
 
 def delete_git_repository(db: Session, repo_id: int) -> bool:

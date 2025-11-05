@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from typing import Union
+from typing import Optional
 from mysql_app import crud, schemas
 from mysql_app.schemas import StandardResponse
 from utils.dependencies import get_db
@@ -60,8 +60,8 @@ async def create_git_repository(repository: schemas.GitRepositoryCreate, db: Ses
 @fujian_router.put("/update", response_model=StandardResponse, dependencies=[Depends(verify_api_token)])
 async def update_git_repository(
     repository: schemas.GitRepositoryUpdate,
-    repo_id: int = None,
-    name: str = None,
+    repo_id: Optional[int] = None,
+    name: Optional[str] = None,
     db: Session = Depends(get_db)
 ) -> StandardResponse:
     """
@@ -76,10 +76,13 @@ async def update_git_repository(
     if not repo_id and not name:
         raise HTTPException(status_code=400, detail="Either repo_id or name must be provided")
     
-    if repo_id:
-        updated_repository = crud.update_git_repository(db, repo_id, repository)
-    else:
-        updated_repository = crud.update_git_repository_by_name(db, name, repository)
+    try:
+        if repo_id:
+            updated_repository = crud.update_git_repository(db, repo_id, repository)
+        else:
+            updated_repository = crud.update_git_repository_by_name(db, name, repository)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
     
     if not updated_repository:
         raise HTTPException(status_code=404, detail="Git repository not found")
@@ -94,8 +97,8 @@ async def update_git_repository(
 @global_router.delete("/delete", response_model=StandardResponse, dependencies=[Depends(verify_api_token)])
 @fujian_router.delete("/delete", response_model=StandardResponse, dependencies=[Depends(verify_api_token)])
 async def delete_git_repository(
-    repo_id: int = None,
-    name: str = None,
+    repo_id: Optional[int] = None,
+    name: Optional[str] = None,
     db: Session = Depends(get_db)
 ) -> StandardResponse:
     """
