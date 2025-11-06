@@ -32,6 +32,11 @@ async def lifespan(app: FastAPI):
     logger.info(f"Current system timezone: {now.astimezone().tzname()} (UTC{utc_offset:+.0f})")
     # Create cache folder
     os.makedirs("cache", exist_ok=True)
+    
+    # Initialize database tables
+    from mysql_app.init_db import init_database
+    init_database()
+    
     # Redis connection
     redis_pool = aioredis.ConnectionPool.from_url(f"redis://{REDIS_HOST}", db=0)
     app.state.redis = redis_pool

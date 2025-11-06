@@ -17,6 +17,9 @@ def init_database():
         Exception: If table creation fails
     """
     try:
+        # Import models to register them with SQLAlchemy Base
+        from mysql_app import models  # noqa: F401
+        
         Base.metadata.create_all(bind=engine)
         logger.info("Database tables created successfully")
     except Exception as e:
