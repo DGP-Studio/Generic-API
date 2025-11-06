@@ -19,7 +19,6 @@ fujian_router = APIRouter(tags=["Git Repository"], prefix="/git-repository")
 async def get_all_git_repositories_cn(name: Optional[str] = None, db: Session = Depends(get_db)) -> StandardResponse:
     """
     Get all git repositories from database (filtered by region=cn), or a specific repository by name if provided.
-    **This endpoint requires API token verification**
     
     :param name: Optional repository name to filter by
     :param db: Database session
@@ -48,7 +47,6 @@ async def get_all_git_repositories_cn(name: Optional[str] = None, db: Session = 
 async def get_all_git_repositories_global(name: Optional[str] = None, db: Session = Depends(get_db)) -> StandardResponse:
     """
     Get all git repositories from database (filtered by region=global), or a specific repository by name if provided.
-    **This endpoint requires API token verification**
     
     :param name: Optional repository name to filter by
     :param db: Database session
