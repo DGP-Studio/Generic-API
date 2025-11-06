@@ -17,6 +17,7 @@ REGION = "cn"  # Can be cn, global, or fj
 class GitRepositoryAPITester:
     def __init__(self, base_url: str, api_token: str, region: str = "cn"):
         self.base_url = f"{base_url}/{region}/git-repository"
+        self.region = region
         self.headers = {
             "Authorization": f"Bearer {api_token}",
             "Content-Type": "application/json"
@@ -29,6 +30,7 @@ class GitRepositoryAPITester:
         
         data = {
             "name": self.test_repo_name,
+            "region": self.region,
             "web_url": "https://github.com/test/test-repo",
             "https_url": "https://github.com/test/test-repo.git",
             "ssh_url": "git@github.com:test/test-repo.git",

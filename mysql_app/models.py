@@ -1,5 +1,5 @@
 from .database import Base
-from sqlalchemy import Column, Integer, String, Date
+from sqlalchemy import Column, Integer, String, Date, UniqueConstraint
 
 
 class Wallpaper(Base):
@@ -68,9 +68,13 @@ class DailyEmailSentStats(Base):
 
 class GitRepository(Base):
     __tablename__ = "git_repositories"
+    __table_args__ = (
+        UniqueConstraint('name', 'region', name='uix_name_region'),
+    )
 
     id = Column(Integer, primary_key=True, index=True)
-    name = Column(String(255), unique=True, nullable=False, index=True)
+    name = Column(String(255), nullable=False, index=True)
+    region = Column(String(50), nullable=False, index=True)
     web_url = Column(String(512), nullable=False)
     https_url = Column(String(512), nullable=True)
     ssh_url = Column(String(512), nullable=True)
@@ -81,4 +85,4 @@ class GitRepository(Base):
         return {field.name: getattr(self, field.name) for field in self.__table__.c}
 
     def __repr__(self):
-        return f"models.GitRepository(id={self.id}, name={self.name}, web_url={self.web_url})"
+        return f"models.GitRepository(id={self.id}, name={self.name}, region={self.region}, web_url={self.web_url})"

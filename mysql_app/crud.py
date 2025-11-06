@@ -100,9 +100,19 @@ def dump_daily_email_sent_stats(db: Session, stats: schemas.DailyEmailSentStats)
     return db_stats
 
 
-def get_all_git_repositories(db: Session) -> list[models.GitRepository]:
-    """Get all git repositories from database"""
-    return cast(list[models.GitRepository], db.query(models.GitRepository).all())
+def get_all_git_repositories(db: Session, region: str | None = None) -> list[models.GitRepository]:
+    """
+    Get all git repositories from database, optionally filtered by region.
+    
+    :param db: Database session
+    :param region: Optional region filter. If provided, only repositories in that region are returned.
+                   If None, all repositories across all regions are returned.
+    :return: List of GitRepository objects
+    """
+    query = db.query(models.GitRepository)
+    if region:
+        query = query.filter(models.GitRepository.region == region)
+    return cast(list[models.GitRepository], query.all())
 
 
 def get_git_repository_by_id(db: Session, repo_id: int) -> models.GitRepository | None:
@@ -110,9 +120,21 @@ def get_git_repository_by_id(db: Session, repo_id: int) -> models.GitRepository 
     return db.query(models.GitRepository).filter(models.GitRepository.id == repo_id).first()
 
 
-def get_git_repository_by_name(db: Session, name: str) -> models.GitRepository | None:
-    """Get a git repository by name"""
-    return db.query(models.GitRepository).filter(models.GitRepository.name == name).first()
+def get_git_repository_by_name(db: Session, name: str, region: str | None = None) -> models.GitRepository | None:
+    """
+    Get a git repository by name, optionally filtered by region.
+    
+    :param db: Database session
+    :param name: Repository name to search for
+    :param region: Optional region filter. If provided, searches for the repository in that region.
+                   If None, returns the first repository with the given name (behavior depends on database order).
+                   It's recommended to always provide a region when querying by name.
+    :return: GitRepository object or None
+    """
+    query = db.query(models.GitRepository).filter(models.GitRepository.name == name)
+    if region:
+        query = query.filter(models.GitRepository.region == region)
+    return query.first()
 
 
 def create_git_repository(db: Session, repository: schemas.GitRepositoryCreate) -> models.GitRepository:
@@ -128,13 +150,17 @@ def _apply_update_to_repository(db: Session, db_repository: models.GitRepository
     """Helper function to apply updates to a git repository"""
     update_data = repository.model_dump(exclude_unset=True)
     
-    # Check for duplicate name if name is being updated
-    if 'name' in update_data and update_data['name'] != db_repository.name:
+    # Check for duplicate (name, region) if name or region is being updated
+    new_name = update_data.get('name', db_repository.name)
+    new_region = update_data.get('region', db_repository.region)
+    
+    if (new_name != db_repository.name or new_region != db_repository.region):
         existing = db.query(models.GitRepository).filter(
-            models.GitRepository.name == update_data['name']
+            models.GitRepository.name == new_name,
+            models.GitRepository.region == new_region
         ).first()
-        if existing:
-            raise ValueError(f"Repository with name '{update_data['name']}' already exists")
+        if existing and existing.id != db_repository.id:
+            raise ValueError(f"Repository with name '{new_name}' and region '{new_region}' already exists")
     
     for key, value in update_data.items():
         setattr(db_repository, key, value)
@@ -153,9 +179,20 @@ def update_git_repository(db: Session, repo_id: int, repository: schemas.GitRepo
     return _apply_update_to_repository(db, db_repository, repository)
 
 
-def update_git_repository_by_name(db: Session, name: str, repository: schemas.GitRepositoryUpdate) -> models.GitRepository | None:
-    """Update a git repository by name"""
-    db_repository = db.query(models.GitRepository).filter(models.GitRepository.name == name).first()
+def update_git_repository_by_name(db: Session, name: str, region: str, repository: schemas.GitRepositoryUpdate) -> models.GitRepository | None:
+    """
+    Update a git repository by name and region.
+    
+    :param db: Database session
+    :param name: Repository name to search for
+    :param region: Required region to identify the specific repository (since same name can exist in multiple regions)
+    :param repository: Update data
+    :return: Updated GitRepository object or None if not found
+    """
+    db_repository = db.query(models.GitRepository).filter(
+        models.GitRepository.name == name,
+        models.GitRepository.region == region
+    ).first()
     if not db_repository:
         return None
     
@@ -173,9 +210,19 @@ def delete_git_repository(db: Session, repo_id: int) -> bool:
     return True
 
 
-def delete_git_repository_by_name(db: Session, name: str) -> bool:
-    """Delete a git repository by name"""
-    db_repository = db.query(models.GitRepository).filter(models.GitRepository.name == name).first()
+def delete_git_repository_by_name(db: Session, name: str, region: str) -> bool:
+    """
+    Delete a git repository by name and region.
+    
+    :param db: Database session
+    :param name: Repository name to search for
+    :param region: Required region to identify the specific repository (since same name can exist in multiple regions)
+    :return: True if deleted successfully, False if not found
+    """
+    db_repository = db.query(models.GitRepository).filter(
+        models.GitRepository.name == name,
+        models.GitRepository.region == region
+    ).first()
     if not db_repository:
         return False
     
