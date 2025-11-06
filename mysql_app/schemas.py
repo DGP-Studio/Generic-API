@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from typing import Optional
+from typing import Optional, Literal
 import datetime
 
 
@@ -88,6 +88,7 @@ class PatchMetadata(BaseModel):
 
 class GitRepositoryBase(BaseModel):
     name: str
+    region: Literal["cn", "global"]
     web_url: str
     https_url: Optional[str] = None
     ssh_url: Optional[str] = None
@@ -101,6 +102,7 @@ class GitRepositoryCreate(GitRepositoryBase):
 
 class GitRepositoryUpdate(BaseModel):
     name: Optional[str] = None
+    region: Optional[Literal["cn", "global"]] = None
     web_url: Optional[str] = None
     https_url: Optional[str] = None
     ssh_url: Optional[str] = None
