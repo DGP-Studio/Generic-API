@@ -17,19 +17,31 @@ fujian_router = APIRouter(tags=["Git Repository"], prefix="/git-repository")
 @china_router.get("/all", response_model=StandardResponse)
 @global_router.get("/all", response_model=StandardResponse)
 @fujian_router.get("/all", response_model=StandardResponse)
-async def get_all_git_repositories(db: Session = Depends(get_db)) -> StandardResponse:
+async def get_all_git_repositories(name: Optional[str] = None, db: Session = Depends(get_db)) -> StandardResponse:
     """
-    Get all git repositories from database. **This endpoint requires API token verification**
+    Get all git repositories from database, or a specific repository by name if provided.
+    **This endpoint requires API token verification**
     
+    :param name: Optional repository name to filter by
     :param db: Database session
-    :return: A list of git repository objects
+    :return: A list of git repository objects (or single repository if name is provided)
     """
-    repositories = crud.get_all_git_repositories(db)
-    repository_dicts = [
-        schemas.GitRepository.model_validate(repo.to_dict()).model_dump()
-        for repo in repositories
-    ]
-    return StandardResponse(data=repository_dicts, message="Successfully fetched all git repositories")
+    if name:
+        # Get specific repository by name
+        repository = crud.get_git_repository_by_name(db, name)
+        if not repository:
+            raise HTTPException(status_code=404, detail=f"Repository with name '{name}' not found")
+        repository_dicts = [schemas.GitRepository.model_validate(repository.to_dict()).model_dump()]
+        message = f"Successfully fetched repository '{name}'"
+    else:
+        # Get all repositories
+        repositories = crud.get_all_git_repositories(db)
+        repository_dicts = [
+            schemas.GitRepository.model_validate(repo.to_dict()).model_dump()
+            for repo in repositories
+        ]
+        message = "Successfully fetched all git repositories"
+    return StandardResponse(data=repository_dicts, message=message)
 
 
 @china_router.post("/create", response_model=StandardResponse, dependencies=[Depends(verify_api_token)])
