@@ -133,11 +133,11 @@ async def update_git_repository_cn(
     db: Session = Depends(get_db)
 ) -> StandardResponse:
     """
-    Update a git repository by ID or name (region='cn'). **This endpoint requires API token verification**
+    Update a git repository by ID or name in the 'cn' region. **This endpoint requires API token verification**
     
     :param repository: Git repository update data
     :param repo_id: Repository ID (optional)
-    :param name: Repository name (optional, requires region='cn')
+    :param name: Repository name (optional, will update the repository with this name in 'cn' region)
     :param db: Database session
     :return: StandardResponse object with updated repository data
     """
@@ -170,11 +170,11 @@ async def update_git_repository_global(
     db: Session = Depends(get_db)
 ) -> StandardResponse:
     """
-    Update a git repository by ID or name (region='global'). **This endpoint requires API token verification**
+    Update a git repository by ID or name in the 'global' region. **This endpoint requires API token verification**
     
     :param repository: Git repository update data
     :param repo_id: Repository ID (optional)
-    :param name: Repository name (optional, requires region='global')
+    :param name: Repository name (optional, will update the repository with this name in 'global' region)
     :param db: Database session
     :return: StandardResponse object with updated repository data
     """
@@ -207,10 +207,10 @@ async def delete_git_repository_cn(
     db: Session = Depends(get_db)
 ) -> StandardResponse:
     """
-    Delete a git repository by ID or name (region='cn'). **This endpoint requires API token verification**
+    Delete a git repository by ID or name in the 'cn' region. **This endpoint requires API token verification**
     
     :param repo_id: Repository ID (optional)
-    :param name: Repository name (optional, requires region='cn')
+    :param name: Repository name (optional, will delete the repository with this name in 'cn' region)
     :param db: Database session
     :return: StandardResponse object confirming deletion
     """
@@ -239,10 +239,10 @@ async def delete_git_repository_global(
     db: Session = Depends(get_db)
 ) -> StandardResponse:
     """
-    Delete a git repository by ID or name (region='global'). **This endpoint requires API token verification**
+    Delete a git repository by ID or name in the 'global' region. **This endpoint requires API token verification**
     
     :param repo_id: Repository ID (optional)
-    :param name: Repository name (optional, requires region='global')
+    :param name: Repository name (optional, will delete the repository with this name in 'global' region)
     :param db: Database session
     :return: StandardResponse object confirming deletion
     """
