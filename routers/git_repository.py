@@ -32,6 +32,7 @@ async def get_all_git_repositories(name: Optional[str] = None, db: Session = Dep
         if not repository:
             raise HTTPException(status_code=404, detail=f"Repository with name '{name}' not found")
         repository_dicts = [schemas.GitRepository.model_validate(repository.to_dict()).model_dump()]
+        message = f"Successfully fetched repository '{name}'"
     else:
         # Get all repositories
         repositories = crud.get_all_git_repositories(db)
@@ -39,7 +40,8 @@ async def get_all_git_repositories(name: Optional[str] = None, db: Session = Dep
             schemas.GitRepository.model_validate(repo.to_dict()).model_dump()
             for repo in repositories
         ]
-    return StandardResponse(data=repository_dicts, message="Successfully fetched git repositories")
+        message = "Successfully fetched all git repositories"
+    return StandardResponse(data=repository_dicts, message=message)
 
 
 @china_router.post("/create", response_model=StandardResponse, dependencies=[Depends(verify_api_token)])
