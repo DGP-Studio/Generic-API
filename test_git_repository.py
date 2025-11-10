@@ -35,7 +35,8 @@ class GitRepositoryAPITester:
             "https_url": "https://github.com/test/test-repo.git",
             "ssh_url": "git@github.com:test/test-repo.git",
             "type": "public",
-            "token": "test_token_12345"
+            "token": "test_token_12345",
+            "username": "testuser"
         }
         
         try:
@@ -176,7 +177,8 @@ class GitRepositoryAPITester:
         
         data = {
             "ssh_url": "git@github.com:test/updated-repo.git",
-            "token": "updated_token_67890"
+            "token": "updated_token_67890",
+            "username": "updateduser"
         }
         
         try:

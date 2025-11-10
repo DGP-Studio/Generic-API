@@ -94,6 +94,7 @@ class GitRepositoryBase(BaseModel):
     ssh_url: Optional[str] = None
     type: Optional[str] = None
     token: Optional[str] = None
+    username: Optional[str] = None
 
 
 class GitRepositoryCreate(GitRepositoryBase):
@@ -108,10 +109,10 @@ class GitRepositoryUpdate(BaseModel):
     ssh_url: Optional[str] = None
     type: Optional[str] = None
     token: Optional[str] = None
+    username: Optional[str] = None
 
 
 class GitRepository(GitRepositoryBase):
-    id: int
 
     class Config:
         from_attributes = True
