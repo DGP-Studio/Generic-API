@@ -80,6 +80,7 @@ class GitRepository(Base):
     ssh_url = Column(String(512), nullable=True)
     type = Column(String(50), nullable=True)
     token = Column(String(512), nullable=True)
+    username = Column(String(255), nullable=True)
 
     def to_dict(self):
         return {field.name: getattr(self, field.name) for field in self.__table__.c}

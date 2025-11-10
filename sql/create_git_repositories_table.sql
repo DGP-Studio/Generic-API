@@ -10,6 +10,7 @@ CREATE TABLE IF NOT EXISTS `git_repositories` (
   `ssh_url` varchar(512) DEFAULT NULL,
   `type` varchar(50) DEFAULT NULL,
   `token` varchar(512) DEFAULT NULL,
+  `username` varchar(255) DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `uix_name_region` (`name`, `region`),
   KEY `ix_git_repositories_id` (`id`),
