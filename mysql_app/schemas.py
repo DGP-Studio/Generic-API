@@ -113,7 +113,6 @@ class GitRepositoryUpdate(BaseModel):
 
 
 class GitRepository(GitRepositoryBase):
-    id: int
 
     class Config:
         from_attributes = True
