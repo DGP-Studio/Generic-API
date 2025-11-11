@@ -56,7 +56,8 @@ async def reinit_redis_data(r: redis.Redis):
         if value is None:
             await r.delete(key)
             logger.info(f"Removing {key} from Redis")
-        else:
+        current = await r.get(key)
+        if current is None:
             await r.set(key, value)
             logger.info(f"Reinitialized {key} to {value}")
     logger.info("redis data reinitialized")
