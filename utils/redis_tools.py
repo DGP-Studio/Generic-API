@@ -4,17 +4,6 @@ from base_logger import get_logger
 
 logger = get_logger(__name__)
 REINITIALIZED_REDIS_DATA = {
-    # 1.14.5
-    "url:china:static:zip": None,
-    "url:global:static:zip": None,
-    "url:fujian:static:zip": None,
-    "url:china:static:raw": None,
-    "url:global:static:raw": None,
-    "url:fujian:static:raw": None,
-    "url:china:client-feature": "https://cnb.cool/DGP-Studio/Snap.ClientFeature/-/git/raw/main/{file_path}",
-    "url:fujian:client-feature": "https://cnb.cool/DGP-Studio/Snap.ClientFeature/-/git/raw/main/{file_path}",
-    "url:china:metadata": "https://cnb.cool/DGP-Studio/Snap.Metadata/-/git/raw/main/{file_path}",
-    "url:fujian:metadata": "https://cnb.cool/DGP-Studio/Snap.Metadata/-/git/raw/main/{file_path}",
 }
 
 INITIALIZED_REDIS_DATA = {
@@ -56,8 +45,7 @@ async def reinit_redis_data(r: redis.Redis):
         if value is None:
             await r.delete(key)
             logger.info(f"Removing {key} from Redis")
-        current = await r.get(key)
-        if current is None:
+        else:
             await r.set(key, value)
             logger.info(f"Reinitialized {key} to {value}")
     logger.info("redis data reinitialized")
