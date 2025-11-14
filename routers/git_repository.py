@@ -18,20 +18,23 @@ fujian_router = APIRouter(tags=["Git Repository"], prefix="/git-repository")
 @fujian_router.get("/all", response_model=StandardResponse)
 async def get_all_git_repositories_cn(name: Optional[str] = None, db: Session = Depends(get_db)) -> StandardResponse:
     """
-    Get all git repositories from database (filtered by region=cn), or a specific repository by name if provided.
+    Get all git repositories from database (filtered by region=cn), or repositories by name if provided.
     
-    :param name: Optional repository name to filter by
+    :param name: Optional repository name to filter by (returns all repositories with this name)
     :param db: Database session
-    :return: A list of git repository objects (or single repository if name is provided)
+    :return: A list of git repository objects
     """
     region = "cn"
     if name:
-        # Get specific repository by name and region
-        repository = crud.get_git_repository_by_name(db, name, region)
-        if not repository:
-            raise HTTPException(status_code=404, detail=f"Repository with name '{name}' and region '{region}' not found")
-        repository_dicts = [schemas.GitRepository.model_validate(repository.to_dict()).model_dump()]
-        message = f"Successfully fetched repository '{name}' in region '{region}'"
+        # Get all repositories by name and region
+        repositories = crud.get_git_repositories_by_name(db, name, region)
+        if not repositories:
+            raise HTTPException(status_code=404, detail=f"No repositories found with name '{name}' and region '{region}'")
+        repository_dicts = [
+            schemas.GitRepository.model_validate(repo.to_dict()).model_dump()
+            for repo in repositories
+        ]
+        message = f"Successfully fetched {len(repositories)} repository(ies) with name '{name}' in region '{region}'"
     else:
         # Get all repositories for this region
         repositories = crud.get_all_git_repositories(db, region)
@@ -46,20 +49,23 @@ async def get_all_git_repositories_cn(name: Optional[str] = None, db: Session = 
 @global_router.get("/all", response_model=StandardResponse)
 async def get_all_git_repositories_global(name: Optional[str] = None, db: Session = Depends(get_db)) -> StandardResponse:
     """
-    Get all git repositories from database (filtered by region=global), or a specific repository by name if provided.
+    Get all git repositories from database (filtered by region=global), or repositories by name if provided.
     
-    :param name: Optional repository name to filter by
+    :param name: Optional repository name to filter by (returns all repositories with this name)
     :param db: Database session
-    :return: A list of git repository objects (or single repository if name is provided)
+    :return: A list of git repository objects
     """
     region = "global"
     if name:
-        # Get specific repository by name and region
-        repository = crud.get_git_repository_by_name(db, name, region)
-        if not repository:
-            raise HTTPException(status_code=404, detail=f"Repository with name '{name}' and region '{region}' not found")
-        repository_dicts = [schemas.GitRepository.model_validate(repository.to_dict()).model_dump()]
-        message = f"Successfully fetched repository '{name}' in region '{region}'"
+        # Get all repositories by name and region
+        repositories = crud.get_git_repositories_by_name(db, name, region)
+        if not repositories:
+            raise HTTPException(status_code=404, detail=f"No repositories found with name '{name}' and region '{region}'")
+        repository_dicts = [
+            schemas.GitRepository.model_validate(repo.to_dict()).model_dump()
+            for repo in repositories
+        ]
+        message = f"Successfully fetched {len(repositories)} repository(ies) with name '{name}' in region '{region}'"
     else:
         # Get all repositories for this region
         repositories = crud.get_all_git_repositories(db, region)
