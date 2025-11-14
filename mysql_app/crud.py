@@ -137,6 +137,22 @@ def get_git_repository_by_name(db: Session, name: str, region: str | None = None
     return query.first()
 
 
+def get_git_repositories_by_name(db: Session, name: str, region: str | None = None) -> list[models.GitRepository]:
+    """
+    Get all git repositories by name, optionally filtered by region.
+    
+    :param db: Database session
+    :param name: Repository name to search for
+    :param region: Optional region filter. If provided, searches for repositories in that region.
+                   If None, returns all repositories with the given name across all regions.
+    :return: List of GitRepository objects
+    """
+    query = db.query(models.GitRepository).filter(models.GitRepository.name == name)
+    if region:
+        query = query.filter(models.GitRepository.region == region)
+    return cast(list[models.GitRepository], query.all())
+
+
 def create_git_repository(db: Session, repository: schemas.GitRepositoryCreate) -> models.GitRepository:
     """Create a new git repository record"""
     db_repository = models.GitRepository(**repository.model_dump())

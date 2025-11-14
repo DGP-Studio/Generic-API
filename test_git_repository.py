@@ -105,11 +105,12 @@ class GitRepositoryAPITester:
             
             if response.status_code == 200 and result.get("retcode") == 0:
                 repos = result.get("data", [])
-                if len(repos) == 1 and repos[0].get("name") == self.test_repo_name:
-                    print(f"✓ Successfully fetched repository by name")
+                # Changed: Now expects at least 1 repository (can be multiple with same name)
+                if len(repos) >= 1 and all(repo.get("name") == self.test_repo_name for repo in repos):
+                    print(f"✓ Successfully fetched {len(repos)} repository(ies) by name")
                     return True
                 else:
-                    print(f"✗ Expected 1 repository with name '{self.test_repo_name}', got {len(repos)}")
+                    print(f"✗ Expected at least 1 repository with name '{self.test_repo_name}', got {len(repos)}")
             else:
                 print(f"✗ Failed to get repository by name")
         except Exception as e:
@@ -235,6 +236,42 @@ class GitRepositoryAPITester:
         
         return None
 
+    def test_get_multiple_repositories_by_name(self):
+        """Test getting multiple repositories with the same name"""
+        print(f"\n=== Testing Get Multiple Repositories by Name ({self.test_repo_name}) ===")
+        
+        try:
+            response = httpx.get(
+                f"{self.base_url}/all?name={self.test_repo_name}",
+                headers=self.headers,
+                timeout=10.0
+            )
+            print(f"Status Code: {response.status_code}")
+            result = response.json()
+            print(f"Response: {json.dumps(result, indent=2)}")
+            
+            if response.status_code == 200 and result.get("retcode") == 0:
+                repos = result.get("data", [])
+                if len(repos) >= 2:
+                    # Verify all have the same name
+                    all_same_name = all(repo.get("name") == self.test_repo_name for repo in repos)
+                    if all_same_name:
+                        print(f"✓ Successfully fetched {len(repos)} repositories with name '{self.test_repo_name}'")
+                        # Print distinct URLs to show they are different repos
+                        urls = [repo.get("web_url") for repo in repos]
+                        print(f"  URLs: {urls}")
+                        return True
+                    else:
+                        print(f"✗ Not all repositories have the expected name")
+                else:
+                    print(f"✗ Expected at least 2 repositories with name '{self.test_repo_name}', got {len(repos)}")
+            else:
+                print(f"✗ Failed to get repositories by name")
+        except Exception as e:
+            print(f"✗ Error: {e}")
+        
+        return False
+
     
     def run_all_tests(self):
         """Run all tests in sequence"""
@@ -262,17 +299,21 @@ class GitRepositoryAPITester:
         if duplicate_repo_id:
             print(f"✓ Successfully created repository with duplicate name!")
         
-        # Test 6: Get all repositories with same name
-        print(f"\n=== Verifying Multiple Repositories with Same Name ===")
+        # Test 6: Verify multiple repositories with same name can be retrieved
+        if duplicate_repo_id:
+            self.test_get_multiple_repositories_by_name()
+        
+        # Test 7: Get all repositories
+        print(f"\n=== Getting All Repositories ===")
         self.test_get_all_repositories()
         
-        # Test 7: Update by ID
+        # Test 8: Update by ID
         self.test_update_repository_by_id(repo_id)
         
-        # Test 8: Get all again to verify updates
+        # Test 9: Get all again to verify updates
         self.test_get_all_repositories()
         
-        # Test 9: Delete repositories
+        # Test 10: Delete repositories
         self.test_delete_repository_by_id(repo_id)
         if duplicate_repo_id:
             self.test_delete_repository_by_id(duplicate_repo_id)
