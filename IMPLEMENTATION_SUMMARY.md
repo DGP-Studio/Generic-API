@@ -10,12 +10,14 @@ This implementation adds a complete git repository management API to the Generic
 - Table: `git_repositories`
 - Fields:
   - `id` (Integer, Primary Key, Auto-increment)
-  - `name` (String(255), Unique, Required, Indexed)
+  - `name` (String(255), Required, Indexed)
+  - `region` (String(50), Required, Indexed)
   - `web_url` (String(512), Required)
   - `https_url` (String(512), Optional)
   - `ssh_url` (String(512), Optional)
   - `type` (String(50), Optional)
   - `token` (String(512), Optional)
+  - `username` (String(255), Optional)
 
 ### 2. Pydantic Schemas (`mysql_app/schemas.py`)
 - **GitRepositoryBase**: Base schema with all fields

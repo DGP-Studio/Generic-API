@@ -18,7 +18,7 @@ Each git repository record contains:
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
 | `id` | Integer | Auto | Primary key (auto-generated) |
-| `name` | String(255) | ✓ | Friendly name or internal identifier (unique) |
+| `name` | String(255) | ✓ | Friendly name or internal identifier |
 | `web_url` | String(512) | ✓ | Web page URL of the repository |
 | `https_url` | String(512) | ✗ | HTTPS clone URL |
 | `ssh_url` | String(512) | ✗ | SSH clone URL |
@@ -40,16 +40,18 @@ Returns all git repositories in the database.
 ```json
 {
   "retcode": 0,
-  "message": "Successfully fetched all git repositories",
+  "message": "Successfully fetched all git repositories in region 'cn'",
   "data": [
     {
       "id": 1,
       "name": "snap-hutao",
+      "region": "cn",
       "web_url": "https://github.com/DGP-Studio/Snap.Hutao",
       "https_url": "https://github.com/DGP-Studio/Snap.Hutao.git",
       "ssh_url": "git@github.com:DGP-Studio/Snap.Hutao.git",
       "type": "public",
-      "token": null
+      "token": null,
+      "username": null
     }
   ]
 }
@@ -66,11 +68,13 @@ Creates a new git repository record.
 ```json
 {
   "name": "my-repo",
+  "region": "cn",
   "web_url": "https://github.com/user/repo",
   "https_url": "https://github.com/user/repo.git",
   "ssh_url": "git@github.com:user/repo.git",
   "type": "public",
-  "token": "ghp_xxxxxxxxxxxx"
+  "token": "ghp_xxxxxxxxxxxx",
+  "username": "myuser"
 }
 ```
 
@@ -82,11 +86,13 @@ Creates a new git repository record.
   "data": {
     "id": 2,
     "name": "my-repo",
+    "region": "cn",
     "web_url": "https://github.com/user/repo",
     "https_url": "https://github.com/user/repo.git",
     "ssh_url": "git@github.com:user/repo.git",
     "type": "public",
-    "token": "ghp_xxxxxxxxxxxx"
+    "token": "ghp_xxxxxxxxxxxx",
+    "username": "myuser"
   }
 }
 ```
@@ -94,16 +100,12 @@ Creates a new git repository record.
 ### 3. Update Repository
 ```
 PUT /{region}/git-repository/update?repo_id={id}
-PUT /{region}/git-repository/update?name={name}
 ```
 
-Updates a git repository by ID or name. Only the fields provided in the request body will be updated.
+Updates a git repository by ID. Only the fields provided in the request body will be updated.
 
 **Query Parameters:**
-- `repo_id` (optional): Repository ID
-- `name` (optional): Repository name
-
-**Note:** Either `repo_id` or `name` must be provided.
+- `repo_id` (required): Repository ID
 
 **Request Body (partial update):**
 ```json
@@ -121,11 +123,13 @@ Updates a git repository by ID or name. Only the fields provided in the request 
   "data": {
     "id": 2,
     "name": "my-repo",
+    "region": "cn",
     "web_url": "https://github.com/user/new-repo",
     "https_url": "https://github.com/user/repo.git",
     "ssh_url": "git@github.com:user/repo.git",
     "type": "private",
-    "token": "ghp_xxxxxxxxxxxx"
+    "token": "ghp_xxxxxxxxxxxx",
+    "username": "myuser"
   }
 }
 ```
@@ -133,16 +137,12 @@ Updates a git repository by ID or name. Only the fields provided in the request 
 ### 4. Delete Repository
 ```
 DELETE /{region}/git-repository/delete?repo_id={id}
-DELETE /{region}/git-repository/delete?name={name}
 ```
 
-Deletes a git repository by ID or name.
+Deletes a git repository by ID.
 
 **Query Parameters:**
-- `repo_id` (optional): Repository ID
-- `name` (optional): Repository name
-
-**Note:** Either `repo_id` or `name` must be provided.
+- `repo_id` (required): Repository ID
 
 **Response Example:**
 ```json
@@ -185,10 +185,11 @@ python3 test_git_repository.py
 The test script will:
 1. Create a test repository
 2. Retrieve all repositories
-3. Update the repository by ID
-4. Update the repository by name
-5. Delete the repository
-6. Verify deletion
+3. Get repository by name
+4. Create repository with duplicate name
+5. Update the repository by ID
+6. Delete the repositories
+7. Verify deletion
 
 ## Region Support
 

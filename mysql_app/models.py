@@ -1,5 +1,5 @@
 from .database import Base
-from sqlalchemy import Column, Integer, String, Date, UniqueConstraint
+from sqlalchemy import Column, Integer, String, Date
 
 
 class Wallpaper(Base):
@@ -68,9 +68,6 @@ class DailyEmailSentStats(Base):
 
 class GitRepository(Base):
     __tablename__ = "git_repositories"
-    __table_args__ = (
-        UniqueConstraint('name', 'region', name='uix_name_region'),
-    )
 
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String(255), nullable=False, index=True)

@@ -171,37 +171,6 @@ class GitRepositoryAPITester:
         
         return False
     
-    def test_update_repository_by_name(self):
-        """Test updating a repository by name"""
-        print(f"\n=== Testing Update Repository by Name ({self.test_repo_name}) ===")
-        
-        data = {
-            "ssh_url": "git@github.com:test/updated-repo.git",
-            "token": "updated_token_67890",
-            "username": "updateduser"
-        }
-        
-        try:
-            response = httpx.put(
-                f"{self.base_url}/update?name={self.test_repo_name}",
-                json=data,
-                headers=self.headers,
-                timeout=10.0
-            )
-            print(f"Status Code: {response.status_code}")
-            print(f"Response: {response.json()}")
-            
-            if response.status_code == 200:
-                result = response.json()
-                if result.get("retcode") == 0:
-                    print(f"✓ Repository updated successfully")
-                    return True
-            print(f"✗ Failed to update repository")
-        except Exception as e:
-            print(f"✗ Error: {e}")
-        
-        return False
-    
     def test_delete_repository_by_id(self, repo_id: int):
         """Test deleting a repository by ID"""
         print(f"\n=== Testing Delete Repository by ID ({repo_id}) ===")
@@ -226,13 +195,25 @@ class GitRepositoryAPITester:
         
         return False
     
-    def test_delete_repository_by_name(self):
-        """Test deleting a repository by name"""
-        print(f"\n=== Testing Delete Repository by Name ({self.test_repo_name}) ===")
+    def test_create_duplicate_name_repository(self) -> Optional[int]:
+        """Test creating a repository with a duplicate name (should succeed after removing constraint)"""
+        print("\n=== Testing Create Repository with Duplicate Name ===")
+        
+        data = {
+            "name": self.test_repo_name,  # Same name as the first repository
+            "region": self.region,
+            "web_url": "https://github.com/test/duplicate-repo",  # Different URL
+            "https_url": "https://github.com/test/duplicate-repo.git",
+            "ssh_url": "git@github.com:test/duplicate-repo.git",
+            "type": "private",
+            "token": "duplicate_token_12345",
+            "username": "duplicateuser"
+        }
         
         try:
-            response = httpx.delete(
-                f"{self.base_url}/delete?name={self.test_repo_name}",
+            response = httpx.post(
+                f"{self.base_url}/create",
+                json=data,
                 headers=self.headers,
                 timeout=10.0
             )
@@ -241,14 +222,19 @@ class GitRepositoryAPITester:
             
             if response.status_code == 200:
                 result = response.json()
-                if result.get("retcode") == 0:
-                    print(f"✓ Repository deleted successfully")
-                    return True
-            print(f"✗ Failed to delete repository")
+                if result.get("retcode") == 0 and result.get("data"):
+                    repo_id = result["data"].get("id")
+                    print(f"✓ Duplicate name repository created successfully with ID: {repo_id}")
+                    return repo_id
+                else:
+                    print(f"✗ Failed to create duplicate name repository: {result.get('message')}")
+            else:
+                print(f"✗ HTTP Error: {response.status_code} - This should succeed after removing constraint!")
         except Exception as e:
             print(f"✗ Error: {e}")
         
-        return False
+        return None
+
     
     def run_all_tests(self):
         """Run all tests in sequence"""
@@ -271,19 +257,25 @@ class GitRepositoryAPITester:
         # Test 4: Get non-existent repository by name (NEW TEST)
         self.test_get_nonexistent_repository_by_name()
         
-        # Test 5: Update by ID
-        self.test_update_repository_by_id(repo_id)
+        # Test 5: Create duplicate name repository (NEW TEST - should succeed)
+        duplicate_repo_id = self.test_create_duplicate_name_repository()
+        if duplicate_repo_id:
+            print(f"✓ Successfully created repository with duplicate name!")
         
-        # Test 6: Update by name
-        self.test_update_repository_by_name()
-        
-        # Test 7: Get all again to verify updates
+        # Test 6: Get all repositories with same name
+        print(f"\n=== Verifying Multiple Repositories with Same Name ===")
         self.test_get_all_repositories()
         
-        # Test 8: Delete by ID (or name if you want to test that instead)
-        # Uncomment one of the following:
+        # Test 7: Update by ID
+        self.test_update_repository_by_id(repo_id)
+        
+        # Test 8: Get all again to verify updates
+        self.test_get_all_repositories()
+        
+        # Test 9: Delete repositories
         self.test_delete_repository_by_id(repo_id)
-        # self.test_delete_repository_by_name()
+        if duplicate_repo_id:
+            self.test_delete_repository_by_id(duplicate_repo_id)
         
         # Verify deletion
         self.test_get_all_repositories()

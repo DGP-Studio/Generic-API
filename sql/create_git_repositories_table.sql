@@ -12,7 +12,6 @@ CREATE TABLE IF NOT EXISTS `git_repositories` (
   `token` varchar(512) DEFAULT NULL,
   `username` varchar(255) DEFAULT NULL,
   PRIMARY KEY (`id`),
-  UNIQUE KEY `uix_name_region` (`name`, `region`),
   KEY `ix_git_repositories_id` (`id`),
   KEY `ix_git_repositories_name` (`name`),
   KEY `ix_git_repositories_region` (`region`)
