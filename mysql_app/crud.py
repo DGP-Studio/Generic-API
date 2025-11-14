@@ -150,18 +150,6 @@ def _apply_update_to_repository(db: Session, db_repository: models.GitRepository
     """Helper function to apply updates to a git repository"""
     update_data = repository.model_dump(exclude_unset=True)
     
-    # Check for duplicate (name, region) if name or region is being updated
-    new_name = update_data.get('name', db_repository.name)
-    new_region = update_data.get('region', db_repository.region)
-    
-    if (new_name != db_repository.name or new_region != db_repository.region):
-        existing = db.query(models.GitRepository).filter(
-            models.GitRepository.name == new_name,
-            models.GitRepository.region == new_region
-        ).first()
-        if existing and existing.id != db_repository.id:
-            raise ValueError(f"Repository with name '{new_name}' and region '{new_region}' already exists")
-    
     for key, value in update_data.items():
         setattr(db_repository, key, value)
     

@@ -85,11 +85,6 @@ async def create_git_repository_cn(repository: schemas.GitRepositoryCreate, db: 
     if repository.region != "cn":
         raise HTTPException(status_code=400, detail=f"Region must be 'cn' for this endpoint, got '{repository.region}'")
     
-    # Check if repository with the same name and region already exists
-    existing = crud.get_git_repository_by_name(db, repository.name, repository.region)
-    if existing:
-        raise HTTPException(status_code=400, detail=f"Repository with name '{repository.name}' and region '{repository.region}' already exists")
-    
     created_repository = crud.create_git_repository(db, repository)
     return StandardResponse(
         data=schemas.GitRepository.model_validate(created_repository.to_dict()).model_dump(),
@@ -109,11 +104,6 @@ async def create_git_repository_global(repository: schemas.GitRepositoryCreate, 
     # Validate region is 'global'
     if repository.region != "global":
         raise HTTPException(status_code=400, detail=f"Region must be 'global' for this endpoint, got '{repository.region}'")
-    
-    # Check if repository with the same name and region already exists
-    existing = crud.get_git_repository_by_name(db, repository.name, repository.region)
-    if existing:
-        raise HTTPException(status_code=400, detail=f"Repository with name '{repository.name}' and region '{repository.region}' already exists")
     
     created_repository = crud.create_git_repository(db, repository)
     return StandardResponse(
