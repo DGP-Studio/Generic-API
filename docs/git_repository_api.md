@@ -18,7 +18,7 @@ Each git repository record contains:
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
 | `id` | Integer | Auto | Primary key (auto-generated) |
-| `name` | String(255) | ✓ | Friendly name or internal identifier (unique) |
+| `name` | String(255) | ✓ | Friendly name or internal identifier |
 | `web_url` | String(512) | ✓ | Web page URL of the repository |
 | `https_url` | String(512) | ✗ | HTTPS clone URL |
 | `ssh_url` | String(512) | ✗ | SSH clone URL |

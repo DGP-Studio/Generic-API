@@ -1,5 +1,5 @@
 from .database import Base
-from sqlalchemy import Column, Integer, String, Date, UniqueConstraint
+from sqlalchemy import Column, Integer, String, Date
 
 
 class Wallpaper(Base):
