@@ -116,28 +116,19 @@ async def create_git_repository_global(repository: schemas.GitRepositoryCreate, 
 @fujian_router.put("/update", response_model=StandardResponse, dependencies=[Depends(verify_api_token)])
 async def update_git_repository_cn(
     repository: schemas.GitRepositoryUpdate,
-    repo_id: Optional[int] = None,
-    name: Optional[str] = None,
+    repo_id: int,
     db: Session = Depends(get_db)
 ) -> StandardResponse:
     """
-    Update a git repository by ID or name in the 'cn' region. **This endpoint requires API token verification**
+    Update a git repository by ID in the 'cn' region. **This endpoint requires API token verification**
     
     :param repository: Git repository update data
-    :param repo_id: Repository ID (optional)
-    :param name: Repository name (optional, will update the repository with this name in 'cn' region)
+    :param repo_id: Repository ID (required)
     :param db: Database session
     :return: StandardResponse object with updated repository data
     """
-    if not repo_id and not name:
-        raise HTTPException(status_code=400, detail="Either repo_id or name must be provided")
-    
     try:
-        if repo_id:
-            updated_repository = crud.update_git_repository(db, repo_id, repository)
-        else:
-            # For name-based update, we need to specify region='cn'
-            updated_repository = crud.update_git_repository_by_name(db, name, "cn", repository)
+        updated_repository = crud.update_git_repository(db, repo_id, repository)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     
@@ -153,28 +144,19 @@ async def update_git_repository_cn(
 @global_router.put("/update", response_model=StandardResponse, dependencies=[Depends(verify_api_token)])
 async def update_git_repository_global(
     repository: schemas.GitRepositoryUpdate,
-    repo_id: Optional[int] = None,
-    name: Optional[str] = None,
+    repo_id: int,
     db: Session = Depends(get_db)
 ) -> StandardResponse:
     """
-    Update a git repository by ID or name in the 'global' region. **This endpoint requires API token verification**
+    Update a git repository by ID in the 'global' region. **This endpoint requires API token verification**
     
     :param repository: Git repository update data
-    :param repo_id: Repository ID (optional)
-    :param name: Repository name (optional, will update the repository with this name in 'global' region)
+    :param repo_id: Repository ID (required)
     :param db: Database session
     :return: StandardResponse object with updated repository data
     """
-    if not repo_id and not name:
-        raise HTTPException(status_code=400, detail="Either repo_id or name must be provided")
-    
     try:
-        if repo_id:
-            updated_repository = crud.update_git_repository(db, repo_id, repository)
-        else:
-            # For name-based update, we need to specify region='global'
-            updated_repository = crud.update_git_repository_by_name(db, name, "global", repository)
+        updated_repository = crud.update_git_repository(db, repo_id, repository)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     
@@ -190,26 +172,17 @@ async def update_git_repository_global(
 @china_router.delete("/delete", response_model=StandardResponse, dependencies=[Depends(verify_api_token)])
 @fujian_router.delete("/delete", response_model=StandardResponse, dependencies=[Depends(verify_api_token)])
 async def delete_git_repository_cn(
-    repo_id: Optional[int] = None,
-    name: Optional[str] = None,
+    repo_id: int,
     db: Session = Depends(get_db)
 ) -> StandardResponse:
     """
-    Delete a git repository by ID or name in the 'cn' region. **This endpoint requires API token verification**
+    Delete a git repository by ID in the 'cn' region. **This endpoint requires API token verification**
     
-    :param repo_id: Repository ID (optional)
-    :param name: Repository name (optional, will delete the repository with this name in 'cn' region)
+    :param repo_id: Repository ID (required)
     :param db: Database session
     :return: StandardResponse object confirming deletion
     """
-    if not repo_id and not name:
-        raise HTTPException(status_code=400, detail="Either repo_id or name must be provided")
-    
-    if repo_id:
-        success = crud.delete_git_repository(db, repo_id)
-    else:
-        # For name-based delete, we need to specify region='cn'
-        success = crud.delete_git_repository_by_name(db, name, "cn")
+    success = crud.delete_git_repository(db, repo_id)
     
     if not success:
         raise HTTPException(status_code=404, detail="Git repository not found")
@@ -222,26 +195,17 @@ async def delete_git_repository_cn(
 
 @global_router.delete("/delete", response_model=StandardResponse, dependencies=[Depends(verify_api_token)])
 async def delete_git_repository_global(
-    repo_id: Optional[int] = None,
-    name: Optional[str] = None,
+    repo_id: int,
     db: Session = Depends(get_db)
 ) -> StandardResponse:
     """
-    Delete a git repository by ID or name in the 'global' region. **This endpoint requires API token verification**
+    Delete a git repository by ID in the 'global' region. **This endpoint requires API token verification**
     
-    :param repo_id: Repository ID (optional)
-    :param name: Repository name (optional, will delete the repository with this name in 'global' region)
+    :param repo_id: Repository ID (required)
     :param db: Database session
     :return: StandardResponse object confirming deletion
     """
-    if not repo_id and not name:
-        raise HTTPException(status_code=400, detail="Either repo_id or name must be provided")
-    
-    if repo_id:
-        success = crud.delete_git_repository(db, repo_id)
-    else:
-        # For name-based delete, we need to specify region='global'
-        success = crud.delete_git_repository_by_name(db, name, "global")
+    success = crud.delete_git_repository(db, repo_id)
     
     if not success:
         raise HTTPException(status_code=404, detail="Git repository not found")

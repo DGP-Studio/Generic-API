@@ -171,37 +171,6 @@ class GitRepositoryAPITester:
         
         return False
     
-    def test_update_repository_by_name(self):
-        """Test updating a repository by name"""
-        print(f"\n=== Testing Update Repository by Name ({self.test_repo_name}) ===")
-        
-        data = {
-            "ssh_url": "git@github.com:test/updated-repo.git",
-            "token": "updated_token_67890",
-            "username": "updateduser"
-        }
-        
-        try:
-            response = httpx.put(
-                f"{self.base_url}/update?name={self.test_repo_name}",
-                json=data,
-                headers=self.headers,
-                timeout=10.0
-            )
-            print(f"Status Code: {response.status_code}")
-            print(f"Response: {response.json()}")
-            
-            if response.status_code == 200:
-                result = response.json()
-                if result.get("retcode") == 0:
-                    print(f"✓ Repository updated successfully")
-                    return True
-            print(f"✗ Failed to update repository")
-        except Exception as e:
-            print(f"✗ Error: {e}")
-        
-        return False
-    
     def test_delete_repository_by_id(self, repo_id: int):
         """Test deleting a repository by ID"""
         print(f"\n=== Testing Delete Repository by ID ({repo_id}) ===")
@@ -209,30 +178,6 @@ class GitRepositoryAPITester:
         try:
             response = httpx.delete(
                 f"{self.base_url}/delete?repo_id={repo_id}",
-                headers=self.headers,
-                timeout=10.0
-            )
-            print(f"Status Code: {response.status_code}")
-            print(f"Response: {response.json()}")
-            
-            if response.status_code == 200:
-                result = response.json()
-                if result.get("retcode") == 0:
-                    print(f"✓ Repository deleted successfully")
-                    return True
-            print(f"✗ Failed to delete repository")
-        except Exception as e:
-            print(f"✗ Error: {e}")
-        
-        return False
-    
-    def test_delete_repository_by_name(self):
-        """Test deleting a repository by name"""
-        print(f"\n=== Testing Delete Repository by Name ({self.test_repo_name}) ===")
-        
-        try:
-            response = httpx.delete(
-                f"{self.base_url}/delete?name={self.test_repo_name}",
                 headers=self.headers,
                 timeout=10.0
             )
@@ -324,13 +269,10 @@ class GitRepositoryAPITester:
         # Test 7: Update by ID
         self.test_update_repository_by_id(repo_id)
         
-        # Test 8: Update by name (note: will update the first matching repository)
-        self.test_update_repository_by_name()
-        
-        # Test 9: Get all again to verify updates
+        # Test 8: Get all again to verify updates
         self.test_get_all_repositories()
         
-        # Test 10: Delete repositories
+        # Test 9: Delete repositories
         self.test_delete_repository_by_id(repo_id)
         if duplicate_repo_id:
             self.test_delete_repository_by_id(duplicate_repo_id)
